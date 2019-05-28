@@ -40,7 +40,7 @@ class Openpose(threading.Thread):
                     response = self.service(latest)
                     self.send_message(response, "THERMAL", latest.header.stamp)
                 else:
-                    sleep(1)
+                    sleep(0.025)
 
             except rospy.ServiceException as exc:
                 self.died = True

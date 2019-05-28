@@ -12,11 +12,55 @@ from converter import Converter
 CATEGORY_JOINTS_OPENPOSE_2D_RGB = 3
 CATEGORY_JOINTS_OPENPOSE_2D_THERMAL = 4
 
+def get_model_prototype():
+    return {
+        'Neck-X': -1.0,
+        'Neck-Y': -1.0,
+        'Neck-Z': -1.0,
+        'Right:Wrist-X': -1.0,
+        'Right:Wrist-Y': -1.0,
+        'Left:Wrist-X': -1.0,
+        'Left:Wrist-Y': -1.0,
+        'Right:Elbow-X': -1.0,
+        'Right:Elbow-Y': -1.0,
+        'Left:Elbow-X': -1.0,
+        'Left:Elbow-Y': -1.0,
+        'Right:Shoulder-X': -1.0,
+        'Right:Shoulder-Y': -1.0,
+        'Right:Shoulder-Z': -1.0,
+        'Left:Shoulder-X': -1.0,
+        'Left:Shoulder-Y': -1.0,
+        'Left:Shoulder-Z': -1.0,
+        'Upper-Spine-X': -1.0,
+        'Upper-Spine-Y': -1.0,
+        'Upper-Spine-Z': -1.0,
+        'Mid-Spine-X': -1.0,
+        'Mid-Spine-Y': -1.0,
+        'Mid-Spine-Z': -1.0,
+        'Lower-Spine-X': -1.0,
+        'Lower-Spine-Y': -1.0,
+        'Lower-Spine-Z': -1.0,
+        'Right:Hip-X': -1.0,
+        'Right:Hip-Y': -1.0,
+        'Right:Hip-Z': -1.0,
+        'Left:Hip-X': -1.0,
+        'Left:Hip-Y': -1.0,
+        'Left:Hip-Z': -1.0,
+        'Right:Knee-X': -1.0,
+        'Left:Knee-X': -1.0,
+        'Right:Ankle-X': -1.0,
+        'Right:Ankle-Y': -1.0,
+        'Right:Ankle-Z': -1.0,
+        'Left:Ankle-X': -1.0,
+        'Left:Ankle-Y': -1.0,
+        'Left:Ankle-Z': -1.0}.copy()
+
 
 class SkeletonConverter():
 
     def __init__(self):
         self.converter = Converter()
+        self.count = 10
         rospy.loginfo("SCS: Skeleton Converter Service starting")
         rospy.init_node('skeleton_converter', anonymous=False)
         rospy.loginfo("SCS: Subscribing to /lcas/hri/joint_positions")

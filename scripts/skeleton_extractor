@@ -22,7 +22,7 @@ class Openpose(threading.Thread):
         self.service = service
         self.publisher = rospy.Publisher('/lcas/hri/joint_positions', Recognitions, queue_size=10)
         self.died = False
-        self.last_processed = Openpose.THERMAL
+        self.last_processed = Openpose.RGB
         self.latest_rgb = deque(maxlen=1)
         self.latest_thermal = deque(maxlen=1)
 
@@ -30,7 +30,7 @@ class Openpose(threading.Thread):
     def run(self):
         while rosgraph.is_master_online() and not self.died:
             try:
-                self.last_processed = not self.last_processed
+                #self.last_processed = not self.last_processed
                 if self.last_processed == Openpose.RGB and self.latest_rgb:
                     latest = self.latest_rgb.pop()
                     response = self.service(latest)

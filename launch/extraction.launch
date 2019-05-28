@@ -10,7 +10,7 @@
             <param name="net_input_height" value="176"/>
             <param name="net_output_width" value="320"/>
             <param name="net_output_height" value="176"/>
-            <param name="model_folder" value="/home/rasberry/git/openpose/models"/>
+            <param name="model_folder" value="/home/rasberry/git/openpose/models/"/>
             <param name="pose_model" value="BODY_25"/>
             <param name="publish_result" value="1"/>
             <param name="overlay_alpha" value="0.6"/>

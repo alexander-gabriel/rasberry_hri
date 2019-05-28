@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 
-import rospy
 import sys
-from converter import Converter
+
+import rospy
 from sensor_msgs.msg import JointState
+from image_recognition_msgs.msg import Recognitions
+
+from converter import Converter
+
 
 CATEGORY_JOINTS_OPENPOSE_2D_RGB = 3
 CATEGORY_JOINTS_OPENPOSE_2D_THERMAL = 4

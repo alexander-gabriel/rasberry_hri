@@ -16,6 +16,9 @@ CATEGORY_JOINTS_OPENPOSE_2D_THERMAL = 4
 class SkeletonConverter():
 
     def __init__(self):
+        rospy.loginfo("SCS: Skeleton Converter Service starting")
+        rospy.init_node('skeleton_converter', anonymous=False)
+        rospy.loginfo("SCS: Subscribing to /lcas/hri/joint_positions")
         rospy.Subscriber("/lcas/hri/joint_positions", Recognitions, self.openPoseCallback)
         self.publisher = rospy.Publisher('/lcas/hri/skeleton_model/angles', JointState, queue_size=10)
 

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(rasberry_people_perception)
+project(rasberry_hri)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -72,7 +72,7 @@ include_directories(
 
 
 install(PROGRAMS
-  scripts/skeleton_extractor.py
+  scripts/skeleton_extractor
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   ${USE_SOURCE_PERMISSIONS}
 )

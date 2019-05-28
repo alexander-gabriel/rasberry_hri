@@ -61,7 +61,7 @@ class Openpose(threading.Thread):
 class SkeletonExtractor:
 
     def __init__(self):
-        rospy.init_node('skeleteon_extractor', anonymous=False)
+        rospy.init_node('skeleton_extractor', anonymous=False)
         rospy.wait_for_service('recognize')
         self.interface = rospy.ServiceProxy('recognize', Recognize)
         self.service = Openpose(self.interface)

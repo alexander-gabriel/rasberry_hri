@@ -16,7 +16,7 @@
             <param name="overlay_alpha" value="0.6"/>
         </node>
 
-        <node pkg="rasberry_hri" name="skeleton_extractor" type="skeleton_extractor" output="screen">
-        </node>
+        <node pkg="rasberry_hri" name="skeleton_extractor" type="skeleton_extractor" output="screen" />
+        <node pkg="rasberry_hri" name="skeleton_converter" type="skeleton_converter" output="screen" />
     </group>
 </launch>

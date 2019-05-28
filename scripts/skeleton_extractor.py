@@ -2,53 +2,95 @@
 import sys
 import threading
 import subprocess
+from time import sleep
+from collections import deque
 
 import roslaunch
+import rosgraph
 import rospy
 from sensor_msgs.msg import Image
+from image_recognition_msgs.msg import Recognitions
 from image_recognition_msgs.srv import Recognize
 
 class Openpose(threading.Thread):
+
+    RGB = True
+    THERMAL = False
+
     def __init__(self, service):
         threading.Thread.__init__(self)
         self.service = service
+        self.publisher = rospy.Publisher('/lcas/hri/joint_positions', Recognitions, queue_size=10)
         self.died = False
+        self.last_processed = Openpose.THERMAL
+        self.latest_rgb = deque(maxlen=1)
+        self.latest_thermal = deque(maxlen=1)
+
 
     def run(self):
-        try:
-            resp = self.service(self.data)
-            print(resp)
-        except rospy.ServiceException:
-            self.died = True
+        while rosgraph.is_master_online() and not self.died:
+            try:
+                self.last_processed = not self.last_processed
+                if self.last_processed == Openpose.RGB and self.latest_rgb:
+                    latest = self.latest_rgb.pop()
+                    response = self.service(latest)
+                    self.send_message(response, "RGB", latest.header.stamp)
+                elif self.last_processed == Openpose.THERMAL and self.latest_thermal:
+                    latest = self.latest_thermal.pop()
+                    response = self.service(latest)
+                    self.send_message(response, "THERMAL", latest.header.stamp)
+                else:
+                    sleep(1)
+
+            except rospy.ServiceException as exc:
+                self.died = True
+                print("Service did not process request: " + str(exc))
+            except KeyboardInterrupt:
+                rospy.signal_shutdown("killed")
+
+
+    def send_message(self, response, category, timestamp):
+        msg = Recognitions()
+        msg.recognitions = response.recognitions
+        msg.header.frame_id = category
+        msg.header.stamp = timestamp
+        self.publisher.publish(msg)
 
 
 
-class SkeleteonExtractor:
+class SkeletonExtractor:
+
     def __init__(self):
         rospy.init_node('skeleteon_extractor', anonymous=False)
         rospy.wait_for_service('recognize')
         self.interface = rospy.ServiceProxy('recognize', Recognize)
         self.service = Openpose(self.interface)
-        self.count = 0
 
-        rospy.Subscriber("/camera", Image, self.callback)
+        # realsense D415
+        rospy.Subscriber("/camera/color/image_raw", Image, self.callback_rgb)
+        # rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.callback_depth)
+        # rospy.Subscriber("/camera/infra1/image_rect_raw", Image, self.callback_infra1)
+        # rospy.Subscriber("/camera/infra2/image_rect_raw", Image, self.callback_infra2)
 
-    def callback(self, data):
-        try:
-            if (self.service.died):
-                rospy.signal_shutdown("openpose not found")
-            if (self.count < 100000):
-                if not self.service.isAlive():
-                    self.service = Openpose(self.interface)
-                    self.count = self.count + 1
-                    self.service.data = data
-                    self.service.start()
-        except rospy.ServiceException as exc:
-            print("Service did not process request: " + str(exc))
+        # ZED camera
+        # rospy.Subscriber("/zed/left/image_rect_color", Image, self.callback_rgb)
+
+        # Thermal camera
+        # rospy.Subscriber("/optris/thermal_image_view", Image, self.callback_thermal)
+
+
+
+    def callback_rgb(self, data):
+        self.service.latest_rgb.append(data)
+
+
+    def callback_thermal(self, data):
+        self.service.latest_thermal.append(data)
+
+
 
 if __name__ == '__main__':
     rospy.myargv(argv=sys.argv)
-    proc = subprocess.Popen(["rosrun", "openpose_ros", "openpose_ros_node"])
-    se = SkeleteonExtractor()
+    se = SkeletonExtractor()
+    se.service.start()
     rospy.spin()
-    proc.kill()

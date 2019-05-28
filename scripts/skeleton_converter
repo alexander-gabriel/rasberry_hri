@@ -3,9 +3,8 @@
 import sys
 
 import rospy
-from sensor_msgs.msg import JointState
 from image_recognition_msgs.msg import Recognitions
-
+from rasberry_hri.msg import Joints, Joint
 from converter import Converter
 
 
@@ -65,7 +64,7 @@ class SkeletonConverter():
         rospy.init_node('skeleton_converter', anonymous=False)
         rospy.loginfo("SCS: Subscribing to /lcas/hri/joint_positions")
 
-        self.publisher = rospy.Publisher('/lcas/hri/skeleton_model/angles', JointState, queue_size=10)
+        self.publisher = rospy.Publisher('/lcas/hri/skeleton_model/angles', Joints, queue_size=10)
         rospy.Subscriber("/lcas/hri/joint_positions", Recognitions, self.openPoseCallback)
 
 
@@ -87,17 +86,22 @@ class SkeletonConverter():
                     model[id] = self.converter.get_angle1(id)
                 except:
                     pass
-            outmsg = JointState()
+            outmsg = Joints()
             outmsg.header.stamp = msg.header.stamp
             outmsg.name = [msg.header.frame_id + "-LElbow"]
-            outmsg.position = [model['Left:Elbow-X']]
+            outmsg.joints = []
+            for label,angle in model:
+                joint = Joint()
+                joint.label = label
+                joint.angle = angle
+                outmsg.joints.append(joint)
             self.publisher.publish(outmsg)
-            if msg.header.frame_id == "RGB":
-                self.model.add_sample(CATEGORY_JOINTS_OPENPOSE_2D_RGB, msg.header.stamp, model)
-            elif msg.header.frame_id == "THERMAL":
-                self.model.add_sample(CATEGORY_JOINTS_OPENPOSE_2D_THERMAL, msg.header.stamp, model)
-            else:
-                print("unknown category")
+            # if msg.header.frame_id == "RGB":
+            #     self.model.add_sample(CATEGORY_JOINTS_OPENPOSE_2D_RGB, msg.header.stamp, model)
+            # elif msg.header.frame_id == "THERMAL":
+            #     self.model.add_sample(CATEGORY_JOINTS_OPENPOSE_2D_THERMAL, msg.header.stamp, model)
+            # else:
+            #     print("unknown category")
             #self.model.classify(inp)
 
 

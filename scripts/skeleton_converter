@@ -88,7 +88,7 @@ class SkeletonConverter():
                     pass
             outmsg = Joints()
             outmsg.header.stamp = msg.header.stamp
-            outmsg.name = [msg.header.frame_id + "-LElbow"]
+            outmsg.source = msg.header.frame_id + "-LElbow"
             outmsg.joints = []
             for label,angle in model:
                 joint = Joint()

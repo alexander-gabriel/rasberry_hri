@@ -1,6 +1,6 @@
 <launch>
     <group>
-        <include file="$(find rasberry_hri)/launch/any_camera.launch"/>
+        <include file="$(find rasberry_hri)/launch/d415_camera.launch"/>
 
         <!-- Set to match the cameras that are launched in the include file (camera launch script) -->
         <arg name="topic_prefixes" default="rsense"/> <!-- Separate topic_prefixes with commas -->

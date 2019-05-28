@@ -6,15 +6,15 @@ project(rasberry_people_perception)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   #message_generation
-  geometry_msgs
-  people_msgs
+  #geometry_msgs
+  #people_msgs
   roscpp
   rospy
   openpose_ros
   std_msgs
-  strands_navigation_msgs
+  #strands_navigation_msgs
   tf
-  topological_navigation
+  #topological_navigation
 )
 
  catkin_python_setup()
@@ -54,7 +54,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES rasberry_people_perception
+#  LIBRARIES rasberry_hri
 #  CATKIN_DEPENDS message_runtime
 #  DEPENDS system_lib
 )
@@ -72,7 +72,7 @@ include_directories(
 
 
 install(PROGRAMS
-  scripts/simple_marvel_localiser.py
+  scripts/skeleton_extractor.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   ${USE_SOURCE_PERMISSIONS}
 )
@@ -82,5 +82,3 @@ install(DIRECTORY
   launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
-
-

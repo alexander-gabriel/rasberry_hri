@@ -1,0 +1,22 @@
+<launch>
+    <group>
+        <include file="$(find rasberry_hri)/launch/any_camera.launch"/>
+
+        <!-- Set to match the cameras that are launched in the include file (camera launch script) -->
+        <arg name="topic_prefixes" default="rsense"/> <!-- Separate topic_prefixes with commas -->
+
+        <node pkg="openpose_ros" name="openpose" type="openpose_ros_node" output="screen">
+            <param name="net_input_width" value="320"/>
+            <param name="net_input_height" value="176"/>
+            <param name="net_output_width" value="320"/>
+            <param name="net_output_height" value="176"/>
+            <param name="model_folder" value="$(arg model_folder)"/>
+            <param name="pose_model" value="BODY_25"/>
+            <param name="publish_result" value="$(arg publish_result)"/>
+            <param name="overlay_alpha" value="$(arg overlay_alpha)"/>
+        </node>
+
+        <node pkg="rasberry_hri" name="skeleton_extractor" type="skeleton_extractor" output="screen">
+        </node>
+    </group>
+</launch>

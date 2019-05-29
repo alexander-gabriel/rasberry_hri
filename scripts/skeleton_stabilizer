@@ -127,13 +127,13 @@ class Model:
 class SkeletonStabilizer():
 
     def __init__(self):
-
+        rospy.loginfo("SSS: Skeleton Stabilizer Service starting")
+        rospy.init_node('skeleton_stabilizer', anonymous=False)
         self.model = Model()
         self.publisher = Publisher(self.model)
         self.publisher.start()
-        rospy.loginfo("SCS: Skeleton Stabilizer Service starting")
-        rospy.init_node('skeleton_stabilizer', anonymous=False)
-        rospy.loginfo("SCS: Subscribing to /lcas/hri/joint_positions")
+
+        rospy.loginfo("SSS: Subscribing to /lcas/hri/joint_positions")
 
         self.publisher = rospy.Publisher('/lcas/hri/joint_positions_stabilized', Recognitions, queue_size=10)
         rospy.Subscriber("/lcas/hri/joint_positions", Recognitions, self.openPoseCallback)

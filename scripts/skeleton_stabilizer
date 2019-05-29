@@ -82,6 +82,8 @@ class Model:
     def __init__(self, converter):
         self.converter = converter
         self.samples = dict()
+        for label in self.converter.label_table.keys():
+            self.samples[label] = list()
 
 
     def add_sample(self, label, data, timestamp):

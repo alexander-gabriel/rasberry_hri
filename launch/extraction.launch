@@ -19,5 +19,6 @@
 
         <node pkg="rasberry_hri" name="skeleton_extractor" type="skeleton_extractor" output="screen" />
         <node pkg="rasberry_hri" name="skeleton_stabilizer" type="skeleton_stabilizer" output="screen" />
+        <node pkg="rasberry_hri" name="skeleton_converter" type="skeleton_converter" output="screen" />
     </group>
 </launch>

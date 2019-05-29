@@ -91,7 +91,7 @@ class Model:
 
 
     def get_recognitions(self):
-        recognitions = Recognitions()
+        recognitions = list()
         for label,samples in self.samples.items():
             if samples:
                 recognition = Recognition()
@@ -104,7 +104,7 @@ class Model:
                 recognition.roi.width = 1
                 recognition.roi.do_rectify = False
                 recognition.group_id = 0
-                recognitions.recognitions.append(recognition)
+                recognitions.append(recognition)
         return recognitions
 
     def get_distribution(self):

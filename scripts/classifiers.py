@@ -12,7 +12,7 @@ class MinimumDifferenceClassifier:
     def classify(self, joints):
         scores = dict()
         min_score = ('Initial', 1000000)
-        for name,pose in pose_list:
+        for name,pose in pose_list.items():
             score_list = list()
             for label,angle in pose.items():
                 score_list.append(abs(angle - joints[label]))

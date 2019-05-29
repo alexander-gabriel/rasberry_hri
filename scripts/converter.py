@@ -20,10 +20,10 @@ class Converter:
 
         self.label_table = {'RBigToe': 'Right:BigToe',
                                 'LBigToe': 'Left:BigToe',
-                                'RSmallToe' 'Right:SmallToe',
-                                'LSmallToe' 'Left:SmallToe',
+                                'RSmallToe': 'Right:SmallToe',
+                                'LSmallToe': 'Left:SmallToe',
                                 'RHeel': 'Right:Heel',
-                                'LHeel' 'Left:Heel',
+                                'LHeel': 'Left:Heel',
                                 'RAnkle': 'Right:Ankle',
                                 'LAnkle': 'Left:Ankle',
                                 'RKnee': 'Right:Knee',

@@ -29,6 +29,7 @@ add_message_files(
   FILES
   Joint.msg
   Joints.msg
+  Poses.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -75,6 +76,7 @@ install(PROGRAMS
   scripts/skeleton_extractor
   scripts/skeleton_converter
   scripts/skeleton_stabilizer
+  scripts/skeleton_comparator
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   ${USE_SOURCE_PERMISSIONS}
 )

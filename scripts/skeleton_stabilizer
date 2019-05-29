@@ -92,7 +92,7 @@ class Model:
 
 
     def add_sample(self, label, data, timestamp):
-        if not (data.X == 0 and data.Y == 0):
+        if not (data['X'] == 0 and data['Y'] == 0):
             self.samples[label].append((data, timestamp))
 
 

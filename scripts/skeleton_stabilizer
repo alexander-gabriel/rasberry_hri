@@ -99,19 +99,30 @@ class Model:
         recognitions = list()
         for label,samples in self.samples.items():
             if len(samples) > self.sampleSize:
+                probability = []
+                X = []
+                Y = []
+                for index in range(5):
+                    index = -index-1
+                    probability.append(samples[index][0]['probability'])
+                    X.append(samples[-self.sampleSize:-1][0]['X'])
+                    Y.append(samples[-self.sampleSize:-1][0]['Y'])
+                probability = mean(probability)
+                X = int(mean(X))
+                Y = int(mean(Y))
                 recognition = Recognition()
 
                 cat_prob = CategoryProbability()
                 cat_prob.label = label
-                cat_prob.probability = mean(samples[-self.sampleSize:-1][0]['probability'])
+                cat_prob.probability = probability
 
                 recognition.categorical_distribution = CategoricalDistribution()
                 recognition.categorical_distribution.probabilities.append(cat_prob)
                 recognition.categorical_distribution.unknown_probability = 0.0
 
                 recognition.roi = RegionOfInterest()
-                recognition.roi.x_offset = int(mean(samples[-self.sampleSize:-1][0]['X']))
-                recognition.roi.y_offset = int(mean(samples[-self.sampleSize:-1][0]['Y']))
+                recognition.roi.x_offset = X
+                recognition.roi.y_offset = Y
                 recognition.roi.height = 1
                 recognition.roi.width = 1
                 recognition.roi.do_rectify = False

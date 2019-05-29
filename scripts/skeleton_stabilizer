@@ -149,8 +149,6 @@ class SkeletonStabilizer():
 
 
     def openPoseCallback(self, msg):
-        print(msg)
-        rospy.loginfo("SSS: Stabilizer callback fired")
         recognitions = self.converter.from_openpose(msg.recognitions)
         for label, joint in recognitions.items():
             # new_label = self.converter.from_openpose_labels(label)

@@ -142,10 +142,8 @@ class SkeletonStabilizer():
         self.publisher = Publisher(self.model)
         self.publisher.start()
 
-        rospy.loginfo("SSS: Subscribing to /lcas/hri/joint_positions")
-
-        self.publisher = rospy.Publisher('/lcas/hri/joint_positions_stabilized', Recognitions, queue_size=10)
-        rospy.Subscriber("/lcas/hri/joint_positions", Recognitions, self.openPoseCallback)
+        rospy.loginfo("SSS: Subscribing to /lcas/hri/joint/positions/raw")
+        rospy.Subscriber("/lcas/hri/joint/positions/raw", Recognitions, self.openPoseCallback)
 
 
     def openPoseCallback(self, msg):

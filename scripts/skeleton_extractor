@@ -20,7 +20,7 @@ class Openpose(threading.Thread):
     def __init__(self, service):
         threading.Thread.__init__(self)
         self.service = service
-        self.publisher = rospy.Publisher('/lcas/hri/joint_positions', Recognitions, queue_size=10)
+        self.publisher = rospy.Publisher('/lcas/hri/joints/positions/raw', Recognitions, queue_size=10)
         self.died = False
         self.last_processed = Openpose.RGB
         self.latest_rgb = deque(maxlen=1)

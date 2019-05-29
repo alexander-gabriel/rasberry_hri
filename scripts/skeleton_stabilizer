@@ -90,7 +90,8 @@ class Model:
 
     def get_recognitions(self):
         recognitions = Recognitions()
-        for label,samples in self.samples.items():
+        for label,tuple in self.samples.items():
+            sample,stamp = tuple
             recognition = Recognition()
             recognition.categorical_distribution.probabilities = List()
             recognition.categorical_distribution.probabilities.append({"label": label, "probability": samples[label][-1].probability})
@@ -149,12 +150,11 @@ class SkeletonStabilizer():
         print(msg)
         rospy.loginfo("SSS: Stabilizer callback fired")
         recognitions = self.converter.from_openpose(msg.recognitions)
-
         for label, joint in recognitions.items():
             # new_label = self.converter.from_openpose_labels(label)
             # if new_label is None:
                 # rospy.logerror(label)
-            self.model.add_sample(label, joint, msg.header.timestamp)
+            self.model.add_sample(label, joint, msg.header.stamp)
 
         # convert x/y offsets to values relative to some reference point (neck?)
         # adjust joint number and setup and labels

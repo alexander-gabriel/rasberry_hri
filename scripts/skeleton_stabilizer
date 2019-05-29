@@ -79,7 +79,8 @@ class Publisher(Thread):
 
 class Model:
 
-    def __init__(self, ):
+    def __init__(self, converter):
+        self.converter = converter
         self.samples = list()
         initial_model = get_model_prototype()
         for joint in initial_model.keys():
@@ -87,11 +88,12 @@ class Model:
         self.samples.append((initial_model, 0.0))
 
 
-
     def add_sample(self, joints, header):
         any_data = False
         for label, joints in sample.items():
-            pass
+            new_label = self.converter.from_openpose_labels(label)
+            if new_label is None:
+                rospy.logerror(label)
         if any_data:
             self.samples.append((sample, timestamp))
 
@@ -129,7 +131,7 @@ class SkeletonStabilizer():
         rospy.loginfo("SSS: Skeleton Stabilizer Service starting")
         rospy.init_node('skeleton_stabilizer', anonymous=False)
         self.converter = Converter()
-        self.model = Model()
+        self.model = Model(self.converter)
         self.publisher = Publisher(self.model)
         self.publisher.start()
 

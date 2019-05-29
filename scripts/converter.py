@@ -18,6 +18,32 @@ class Converter:
                              'Lower-Spine-X' : ("RHip", "LHip", "Neck"),
                              'Neck-Z' : ("REar", "LEar", "Neck")}
 
+        self.label_table = {'RBigToe': 'Right:BigToe',
+                                'LBigToe': 'Left:BigToe',
+                                'RSmallToe' 'Right:SmallToe',
+                                'LSmallToe' 'Left:SmallToe',
+                                'RHeel': 'Right:Heel',
+                                'LHeel' 'Left:Heel',
+                                'RAnkle': 'Right:Ankle',
+                                'LAnkle': 'Left:Ankle',
+                                'RKnee': 'Right:Knee',
+                                'LKnee': 'Left:Knee',
+                                'RHip': 'Right:Hip',
+                                'MidHip': 'Mid:Hip',
+                                'LHip': 'Left:Hip',
+                                'Neck': 'Neck',
+                                'RWrist': 'Right:Wrist',
+                                'LWrist': 'Left:Wrist',
+                                'RElbow': 'Right:Wrist',
+                                'LElbow': 'left:Wrist',
+                                'RShoulder': 'Right:Shoulder',
+                                'LShoulder': 'Left:Shoulder',
+                                'Nose': 'Nose',
+                                'REye': 'Right:Eye',
+                                'LEye': 'Left:Eye',
+                                'REar': 'Right:Ear',
+                                'LEar': 'Left:Ear'}
+
 
     def create_index_map(self, recognitions):
         self.index_map = {}
@@ -77,6 +103,7 @@ class Converter:
         cY = self.Y(joints[2]) - midY
         return abs(arctan2(-cY,cX))
 
+
     def from_openpose(recongitions):
         joints = {}
         for entry in recognitions:
@@ -89,3 +116,7 @@ class Converter:
             joints[label].X = X
             joints[label].Y = Y
             joints[label].Z = -1
+
+
+    def from_openpose_labels(label):
+        return self.label_table[label]

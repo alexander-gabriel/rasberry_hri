@@ -92,23 +92,19 @@ class Model:
 
     def get_recognitions(self):
         recognitions = Recognitions()
-        try:
-            for label,tuple in self.samples.items():
-                sample,stamp = tuple
-                recognition = Recognition()
-                recognition.categorical_distribution.probabilities = List()
-                recognition.categorical_distribution.probabilities.append({"label": label, "probability": samples[label][-1].probability})
-                recognition.categorical_distribution.unknown_probability = 0.0
-
-                recognition.roi.x_offset = samples[label][-1].X
-                recognition.roi.y_offset = samples[label][-1].Y
-                recognition.roi.height = 1
-                recognition.roi.width = 1
-                recognition.roi.do_rectify = False
-                recognition.group_id = 0
-                recognitions.append(recognition)
-        except:
-            rospy.loginfo("SSS: Publishing empty joint state")
+        for label,tuple in self.samples.items():
+            sample,stamp = tuple
+            recognition = Recognition()
+            recognition.categorical_distribution.probabilities = List()
+            recognition.categorical_distribution.probabilities.append({"label": label, "probability": samples[label][-1].probability})
+            recognition.categorical_distribution.unknown_probability = 0.0
+            recognition.roi.x_offset = samples[label][-1].X
+            recognition.roi.y_offset = samples[label][-1].Y
+            recognition.roi.height = 1
+            recognition.roi.width = 1
+            recognition.roi.do_rectify = False
+            recognition.group_id = 0
+            recognitions.append(recognition)
         return recognitions
 
     def get_distribution(self):

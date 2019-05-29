@@ -7,10 +7,10 @@
         <arg name="topic_prefixes" default="rsense"/> <!-- Separate topic_prefixes with commas -->
 
         <node pkg="openpose_ros" name="openpose" type="openpose_ros_node" output="screen">
-          <param name="net_input_width" value="480"/>
-            <param name="net_input_height" value="960"/>
-            <param name="net_output_width" value="200"/>
-            <param name="net_output_height" value="100"/>
+          <param name="net_input_width" value="350"/>
+            <param name="net_input_height" value="200"/>
+            <param name="net_output_width" value="1080"/>
+            <param name="net_output_height" value="720"/>
             <param name="model_folder" value="/home/rasberry/git/openpose/models/"/>
             <param name="pose_model" value="BODY_25"/>
             <param name="publish_result" value="false"/>

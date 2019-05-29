@@ -7,17 +7,17 @@ from poses import pose_list
 class MinimumDifferenceClassifier:
 
     def __init__(self):
-        pass
+        self.limit = 20
 
     def classify(self, joints):
-        scores = dict()
-        min_score = ('Initial', 1000000)
+        errors = dict()
+        min_error = ('Initial', 1000000)
         for name,pose in pose_list.items():
-            score_list = list()
+            error_list = list()
             for label,angle in pose.items():
-                score_list.append(abs(angle - joints[label]))
-            score = mean(score_list)
-            scores[name] = score
-            if score < min_score[1]:
-                min_score = (name, score)
-        return min_score
+                error_list.append(abs(angle - joints[label]))
+            error = mean(error_list)
+            errors[name] = error
+            if error < min_error[1]:
+                min_error = (name, error)
+        return min_error

@@ -29,7 +29,7 @@ add_message_files(
   FILES
   Joint.msg
   Joints.msg
-  Poses.msg
+  Pose.msg
 )
 
 ## Generate services in the 'srv' folder

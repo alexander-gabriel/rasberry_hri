@@ -74,6 +74,7 @@ include_directories(
 install(PROGRAMS
   scripts/skeleton_extractor
   scripts/skeleton_converter
+  scripts/skeleton_stabilizer
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   ${USE_SOURCE_PERMISSIONS}
 )

@@ -2,6 +2,7 @@
 
 import sys
 from threading import Thread
+from statistics import mean
 
 # import simdkalman
 # import numpy as np
@@ -83,6 +84,7 @@ class Model:
     def __init__(self, converter):
         self.converter = converter
         self.samples = dict()
+        self.sampleSize = 5
         for label in self.converter.label_table.keys():
             self.samples[label] = list()
 
@@ -99,15 +101,15 @@ class Model:
 
                 cat_prob = CategoryProbability()
                 cat_prob.label = label
-                cat_prob.probability = samples[-1][0]['probability']
+                cat_prob.probability = mean(samples[-self.sampleSize:-1][0]['probability'])
 
                 recognition.categorical_distribution = CategoricalDistribution()
                 recognition.categorical_distribution.probabilities.append(cat_prob)
                 recognition.categorical_distribution.unknown_probability = 0.0
 
                 recognition.roi = RegionOfInterest()
-                recognition.roi.x_offset = samples[-1][0]['X']
-                recognition.roi.y_offset = samples[-1][0]['Y']
+                recognition.roi.x_offset = int(mean(samples[-self.sampleSize:-1][0]['X']))
+                recognition.roi.y_offset = int(mean(samples[-self.sampleSize:-1][0]['Y']))
                 recognition.roi.height = 1
                 recognition.roi.width = 1
                 recognition.roi.do_rectify = False

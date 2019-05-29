@@ -116,6 +116,7 @@ class Converter:
             joints[label]['X'] = X
             joints[label]['Y'] = Y
             joints[label]['Z'] = -1
+        return joints
 
 
     def from_openpose_labels(self, label):

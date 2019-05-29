@@ -97,10 +97,10 @@ class Model:
                 print(samples[-1][0])
                 recognition = Recognition()
                 recognition.categorical_distribution.probabilities = list()
-                recognition.categorical_distribution.probabilities.append({"label": label, "probability": samples[-1][0].probability})
+                recognition.categorical_distribution.probabilities.append({"label": label, "probability": samples[-1][0]['probability']})
                 recognition.categorical_distribution.unknown_probability = 0.0
-                recognition.roi.x_offset = samples[-1][0].X
-                recognition.roi.y_offset = samples[-1][0].Y
+                recognition.roi.x_offset = samples[-1][0]['X']
+                recognition.roi.y_offset = samples[-1][0]['Y']
                 recognition.roi.height = 1
                 recognition.roi.width = 1
                 recognition.roi.do_rectify = False

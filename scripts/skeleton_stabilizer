@@ -2,7 +2,6 @@
 
 import sys
 from threading import Thread
-from statistics import mean
 
 # import simdkalman
 # import numpy as np
@@ -16,6 +15,9 @@ from rasberry_hri.msg import Joints, Joint
 PUBLISHING_RATE = 30 #Hz
 CATEGORY_JOINTS_OPENPOSE_2D_RGB = 3
 CATEGORY_JOINTS_OPENPOSE_2D_THERMAL = 4
+
+def mean(l):
+    return sum(l)/len(l)
 
 def get_model_prototype():
     return {

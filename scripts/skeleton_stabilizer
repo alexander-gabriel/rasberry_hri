@@ -105,8 +105,8 @@ class Model:
                 for index in range(5):
                     index = -index-1
                     probability.append(samples[index][0]['probability'])
-                    X.append(samples[-self.sampleSize:-1][0]['X'])
-                    Y.append(samples[-self.sampleSize:-1][0]['Y'])
+                    X.append(samples[index][0]['X'])
+                    Y.append(samples[index][0]['Y'])
                 probability = mean(probability)
                 X = int(mean(X))
                 Y = int(mean(Y))

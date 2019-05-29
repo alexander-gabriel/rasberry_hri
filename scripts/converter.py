@@ -104,7 +104,7 @@ class Converter:
         return abs(arctan2(-cY,cX))
 
 
-    def from_openpose(self, recongitions):
+    def from_openpose(self, recognitions):
         joints = {}
         for entry in recognitions:
             label = entry.categorical_distribution.probabilities[0].label

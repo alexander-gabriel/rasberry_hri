@@ -86,12 +86,14 @@ class Model:
     def __init__(self, converter):
         self.converter = converter
         self.samples = dict()
-        self.sampleSize = 5
+        self.sampleSize = 10
         for label in self.converter.label_table.keys():
             self.samples[label] = list()
 
 
     def add_sample(self, label, data, timestamp):
+        if label == "RAnkle":
+            print(data)
         self.samples[label].append((data, timestamp))
 
 

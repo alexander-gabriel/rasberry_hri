@@ -3,7 +3,7 @@
 import sys
 
 import rospy
-from rasberry_hri.msg import Joints, Joint
+from rasberry_hri.msg import Joints, Joint, Pose
 from classifiers import MinimumDifferenceClassifier
 
 def get_model_prototype():

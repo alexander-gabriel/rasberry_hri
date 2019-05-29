@@ -76,3 +76,16 @@ class Converter:
         cX = self.X(joints[2]) - midX
         cY = self.Y(joints[2]) - midY
         return abs(arctan2(-cY,cX))
+
+    def from_openpose(recongitions):
+        joints = {}
+        for entry in recognitions:
+            label = entry.categorical_distribution.probabilities[0].label
+            probability = entry.categorical_distribution.probabilities[0].probability
+            X = entry.roi.x_offset
+            Y = entry.roi.y_offset
+            joints[label] = {}
+            joints[label].probability = probability
+            joints[label].X = X
+            joints[label].Y = Y
+            joints[label].Z = -1

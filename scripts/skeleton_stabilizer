@@ -7,6 +7,7 @@ from threading import Thread
 # import numpy as np
 import rospy
 
+from converter import Converter
 from image_recognition_msgs.msg import Recognitions
 from rasberry_hri.msg import Joints, Joint
 
@@ -86,13 +87,11 @@ class Model:
         self.samples.append((initial_model, 0.0))
 
 
-    def add_sample(self, sample, timestamp):
+
+    def add_sample(self, joints, header):
         any_data = False
-        for joint in sample.keys():
-            if sample[joint] == -1.0:
-                sample[joint] = self.samples[-1][0][joint]
-            else:
-                any_data = True
+        for label, joints in sample.items():
+            pass
         if any_data:
             self.samples.append((sample, timestamp))
 
@@ -129,6 +128,7 @@ class SkeletonStabilizer():
     def __init__(self):
         rospy.loginfo("SSS: Skeleton Stabilizer Service starting")
         rospy.init_node('skeleton_stabilizer', anonymous=False)
+        self.converter = Converter()
         self.model = Model()
         self.publisher = Publisher(self.model)
         self.publisher.start()
@@ -140,7 +140,8 @@ class SkeletonStabilizer():
 
 
     def openPoseCallback(self, msg):
-        print(msg.recognitions[0])
+        print(msg)
+        self.model.add_sample(self.converter.from_openpose(msg.recognitions), msg.header)
         # convert x/y offsets to values relative to some reference point (neck?)
         # adjust joint number and setup and labels
         # model = get_model_prototype()

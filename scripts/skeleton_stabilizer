@@ -94,6 +94,7 @@ class Model:
         recognitions = Recognitions()
         for label,samples in self.samples.items():
             if samples:
+                print(samples[-1][0])
                 recognition = Recognition()
                 recognition.categorical_distribution.probabilities = list()
                 recognition.categorical_distribution.probabilities.append({"label": label, "probability": samples[-1][0].probability})

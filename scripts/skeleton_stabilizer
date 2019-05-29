@@ -108,7 +108,7 @@ class Model:
                 recognition.group_id = 0
                 recognitions.append(recognition)
         except:
-            rospy.logerror("SSS: Publishing empty joint state")
+            rospy.loginfo("SSS: Publishing empty joint state")
         return recognitions
 
     def get_distribution(self):

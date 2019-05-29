@@ -8,7 +8,8 @@ from threading import Thread
 import rospy
 
 from converter import Converter
-from image_recognition_msgs.msg import Recognitions, Recognition
+from sensor_msgs.msg import RegionOfInterest
+from image_recognition_msgs.msg import Recognitions, Recognition, CategoricalDistribution, CategoryProbability
 from rasberry_hri.msg import Joints, Joint
 
 PUBLISHING_RATE = 30 #Hz
@@ -95,15 +96,24 @@ class Model:
         for label,samples in self.samples.items():
             if samples:
                 recognition = Recognition()
-                recognition.categorical_distribution.probabilities = list()
-                recognition.categorical_distribution.probabilities.append({"label": label, "probability": samples[-1][0]['probability']})
+
+                cat_prob = CategoryProbability()
+                cat_prob.label = label
+                cat_prob.probability = samples[-1][0]['probability']
+
+                recognition.categorical_distribution = CategoricalDistribution()
+                recognition.categorical_distribution.probabilities.append(cat_prob)
                 recognition.categorical_distribution.unknown_probability = 0.0
+
+                recognition.roi = RegionOfInterest()
                 recognition.roi.x_offset = samples[-1][0]['X']
                 recognition.roi.y_offset = samples[-1][0]['Y']
                 recognition.roi.height = 1
                 recognition.roi.width = 1
                 recognition.roi.do_rectify = False
+
                 recognition.group_id = 0
+
                 recognitions.append(recognition)
         return recognitions
 

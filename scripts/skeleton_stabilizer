@@ -8,7 +8,7 @@ from threading import Thread
 import rospy
 
 from converter import Converter
-from image_recognition_msgs.msg import Recognitions
+from image_recognition_msgs.msg import Recognitions, Recognition
 from rasberry_hri.msg import Joints, Joint
 
 PUBLISHING_RATE = 30 #Hz
@@ -81,25 +81,29 @@ class Model:
 
     def __init__(self, converter):
         self.converter = converter
-        self.samples = list()
-        initial_model = get_model_prototype()
-        for joint in initial_model.keys():
-            initial_model[joint] = 0
-        self.samples.append((initial_model, 0.0))
+        self.samples = dict()
 
 
-    def add_sample(self, joints, header):
-        any_data = False
-        for label, joints in sample.items():
-            new_label = self.converter.from_openpose_labels(label)
-            if new_label is None:
-                rospy.logerror(label)
-        if any_data:
-            self.samples.append((sample, timestamp))
+    def add_sample(self, label, data, timestamp):
+        self.samples[label].append((data, timestamp))
+
 
     def get_recognitions(self):
-        for sample,timestamp in self.samples:
-            pass
+        recognitions = Recognitions()
+        for label,samples in self.samples.items():
+            recognition = Recognition()
+            recognition.categorical_distribution.probabilities = List()
+            recognition.categorical_distribution.probabilities.append({"label": label, "probability": samples[label][-1].probability})
+            recognition.categorical_distribution.unknown_probability = 0.0
+
+            recognition.roi.x_offset = samples[label][-1].X
+            recognition.roi.y_offset = samples[label][-1].Y
+            recognition.roi.height = 1
+            recognition.roi.width = 1
+            recognition.roi.do_rectify = False
+            recognition.group_id = 0
+            recognitions.append(recognition)
+        return recognitions
 
     def get_distribution(self):
         iterator = iter(self.samples)
@@ -143,7 +147,14 @@ class SkeletonStabilizer():
 
     def openPoseCallback(self, msg):
         print(msg)
-        self.model.add_sample(self.converter.from_openpose(msg.recognitions), msg.header)
+        recognitions = self.converter.from_openpose(msg.recognitions)
+
+        for label, joint in recognitions.items():
+            # new_label = self.converter.from_openpose_labels(label)
+            # if new_label is None:
+                # rospy.logerror(label)
+            self.model.add_sample(label, joint, msg.header.timestamp)
+
         # convert x/y offsets to values relative to some reference point (neck?)
         # adjust joint number and setup and labels
         # model = get_model_prototype()

@@ -95,7 +95,7 @@ class Model:
         for label,samples in self.samples.items():
             if samples:
                 recognition = Recognition()
-                recognition.categorical_distribution.probabilities = List()
+                recognition.categorical_distribution.probabilities = list()
                 recognition.categorical_distribution.probabilities.append({"label": label, "probability": samples[-1][0].probability})
                 recognition.categorical_distribution.unknown_probability = 0.0
                 recognition.roi.x_offset = samples[-1][0].X

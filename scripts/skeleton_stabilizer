@@ -98,7 +98,7 @@ class Model:
     def get_recognitions(self):
         recognitions = list()
         for label,samples in self.samples.items():
-            if samples:
+            if len(samples) > self.sampleSize:
                 recognition = Recognition()
 
                 cat_prob = CategoryProbability()

@@ -65,10 +65,11 @@ class SkeletonComparator():
     def angle_callback(self, msg):
         model = get_model_prototype()
         pose = dict()
+        limit = 20
         for label,angle in msg.joints.items():
             pose[label] = angle
-        pose_label, score = self.classifier.classify(pose)
-        if score > limit:
+        pose_label, error = self.classifier.classify(pose)
+        if error < limit:
             outmsg = Pose()
             outmsg.header.stamp = msg.header.stamp
             outmsg.pose = pose_label

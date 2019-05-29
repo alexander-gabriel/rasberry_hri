@@ -11,13 +11,13 @@ class MinimumDifferenceClassifier:
 
     def classify(self, joints):
         scores = dict()
-        max_score = ('Initial', 0.0)
+        min_score = ('Initial', 1000000)
         for name,pose in pose_list:
             score_list = list()
             for label,angle in pose.items():
                 score_list.append(abs(angle - joints[label]))
             score = mean(score_list)
             scores[name] = score
-            if score > max_score[1]:
-                max_score = (name, score)
-        return max_score
+            if score < min_score[1]:
+                min_score = (name, score)
+        return min_score

@@ -17,6 +17,7 @@ class MinimumDifferenceClassifier:
             for label,angle in pose.items():
                 score_list.append(abs(angle - joints[label]))
             score = mean(score_list)
+            print(score)
             scores[name] = score
             if score < min_score[1]:
                 min_score = (name, score)

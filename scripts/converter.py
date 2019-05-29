@@ -112,10 +112,10 @@ class Converter:
             X = entry.roi.x_offset
             Y = entry.roi.y_offset
             joints[label] = {}
-            joints[label].probability = probability
-            joints[label].X = X
-            joints[label].Y = Y
-            joints[label].Z = -1
+            joints[label]['probability'] = probability
+            joints[label].['X'] = X
+            joints[label].['Y'] = Y
+            joints[label].['Z'] = -1
 
 
     def from_openpose_labels(self, label):

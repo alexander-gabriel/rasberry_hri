@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import sys
-import subprocess
-from time import sleep
+
 
 import rospy
 from sensor_msgs.msg import Image

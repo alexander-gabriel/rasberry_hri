@@ -3,8 +3,11 @@ import sys
 import subprocess
 from time import sleep
 
-from openpose import Openpose
 import rospy
+from image_recognition_msgs.srv import Recognize
+
+from openpose import Openpose
+
 
 class SkeletonExtractor:
 

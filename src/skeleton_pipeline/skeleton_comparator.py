@@ -9,7 +9,7 @@ class SkeletonComparator():
 
     def __init__(self):
         rospy.loginfo("SkelComp: Skeleton Comparator Service starting")
-        rospy.init_node('skeleton_comparator', anonymous=False)
+        rospy.init_node('skeleton_comparator_node', anonymous=False)
         topic = rospy.get_param('robot_control', '/rasberry/robot_control/move_base')
         rospy.loginfo("SkelComp: Subscribing to /lcas/hri/joints/angles")
 

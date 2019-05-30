@@ -4,6 +4,7 @@ import subprocess
 from time import sleep
 
 import rospy
+from sensor_msgs.msg import Image
 from image_recognition_msgs.srv import Recognize
 
 from openpose import Openpose

@@ -11,7 +11,10 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   openpose_ros
+  actionlib
   std_msgs
+  actionlib_msgs
+  move_base_msgs
   #strands_navigation_msgs
   tf
   #topological_navigation
@@ -30,6 +33,7 @@ add_message_files(
   Joint.msg
   Joints.msg
   Pose.msg
+  Command.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -56,7 +60,11 @@ add_message_files(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES rasberry_hri
-#  CATKIN_DEPENDS message_runtime
+   CATKIN_DEPENDS std_msgs
+               actionlib
+               actionlib_msgs
+               move_base_msgs
+
 #  DEPENDS system_lib
 )
 
@@ -73,10 +81,11 @@ include_directories(
 
 
 install(PROGRAMS
-  scripts/skeleton_extractor
-  scripts/skeleton_converter
-  scripts/skeleton_stabilizer
-  scripts/skeleton_comparator
+  scripts/skeleton_extractor_node
+  scripts/skeleton_converter_node
+  scripts/skeleton_stabilizer_node
+  scripts/skeleton_comparator_node
+  scripts/robot_control_node
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   ${USE_SOURCE_PERMISSIONS}
 )

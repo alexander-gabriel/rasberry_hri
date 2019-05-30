@@ -1,0 +1,7 @@
+#! /usr/bin/python
+import rospy
+from commands4movebase.commands_executer import CommandsExecuter
+
+if '__main__' == __name__:
+    rospy.init_node("robot_control")
+    executer = CommandsExecuter()

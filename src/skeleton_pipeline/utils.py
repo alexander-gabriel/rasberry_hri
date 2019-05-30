@@ -1,10 +1,3 @@
-#!/usr/bin/env python
-
-import sys
-
-import rospy
-from rasberry_hri.msg import Joints, Joint, Pose
-from classifiers import MinimumDifferenceClassifier
 
 def get_model_prototype():
     return {
@@ -50,31 +43,5 @@ def get_model_prototype():
         'Left:Ankle-Z': -1.0}.copy()
 
 
-
-class SkeletonComparator():
-
-    def __init__(self):
-        rospy.loginfo("SkelComp: Skeleton Comparator Service starting")
-        rospy.init_node('skeleton_comparator', anonymous=False)
-        rospy.loginfo("SkelComp: Subscribing to /lcas/hri/joints/angles")
-
-        self.classifier = MinimumDifferenceClassifier()
-        self.publisher = rospy.Publisher('/lcas/hri/poses', Pose, queue_size=10)
-        rospy.Subscriber("/lcas/hri/joints/angles", Joints, self.angle_callback)
-
-    def angle_callback(self, msg):
-        model = get_model_prototype()
-        pose = dict()
-        for joint in msg.joints:
-            pose[joint.label] = joint.angle
-        pose_label, error = self.classifier.classify(pose)
-        if error < self.classifier.limit:
-            outmsg = Pose()
-            outmsg.header.stamp = msg.header.stamp
-            outmsg.pose = pose_label
-            self.publisher.publish(outmsg)
-
-if __name__ == '__main__':
-    rospy.myargv(argv=sys.argv)
-    sm = SkeletonComparator()
-    rospy.spin()
+def mean(l):
+    return sum(l)/len(l)

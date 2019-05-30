@@ -5,54 +5,12 @@ import sys
 import rospy
 from image_recognition_msgs.msg import Recognitions
 from rasberry_hri.msg import Joints, Joint
-from converter import Converter
 
+from converter import Converter
+from utils import get_model_prototype
 
 CATEGORY_JOINTS_OPENPOSE_2D_RGB = 3
 CATEGORY_JOINTS_OPENPOSE_2D_THERMAL = 4
-
-def get_model_prototype():
-    return {
-        'Neck-X': -1.0,
-        'Neck-Y': -1.0,
-        'Neck-Z': -1.0,
-        'Right:Wrist-X': -1.0,
-        'Right:Wrist-Y': -1.0,
-        'Left:Wrist-X': -1.0,
-        'Left:Wrist-Y': -1.0,
-        'Right:Elbow-X': -1.0,
-        'Right:Elbow-Y': -1.0,
-        'Left:Elbow-X': -1.0,
-        'Left:Elbow-Y': -1.0,
-        'Right:Shoulder-X': -1.0,
-        'Right:Shoulder-Y': -1.0,
-        'Right:Shoulder-Z': -1.0,
-        'Left:Shoulder-X': -1.0,
-        'Left:Shoulder-Y': -1.0,
-        'Left:Shoulder-Z': -1.0,
-        'Upper-Spine-X': -1.0,
-        'Upper-Spine-Y': -1.0,
-        'Upper-Spine-Z': -1.0,
-        'Mid-Spine-X': -1.0,
-        'Mid-Spine-Y': -1.0,
-        'Mid-Spine-Z': -1.0,
-        'Lower-Spine-X': -1.0,
-        'Lower-Spine-Y': -1.0,
-        'Lower-Spine-Z': -1.0,
-        'Right:Hip-X': -1.0,
-        'Right:Hip-Y': -1.0,
-        'Right:Hip-Z': -1.0,
-        'Left:Hip-X': -1.0,
-        'Left:Hip-Y': -1.0,
-        'Left:Hip-Z': -1.0,
-        'Right:Knee-X': -1.0,
-        'Left:Knee-X': -1.0,
-        'Right:Ankle-X': -1.0,
-        'Right:Ankle-Y': -1.0,
-        'Right:Ankle-Z': -1.0,
-        'Left:Ankle-X': -1.0,
-        'Left:Ankle-Y': -1.0,
-        'Left:Ankle-Z': -1.0}.copy()
 
 
 class SkeletonConverter():
@@ -100,10 +58,3 @@ class SkeletonConverter():
         # else:
         #     print("unknown category")
         #self.model.classify(inp)
-
-
-
-if __name__ == '__main__':
-    rospy.myargv(argv=sys.argv)
-    sm = SkeletonConverter()
-    rospy.spin()

@@ -1,16 +1,14 @@
-#!/usr/bin/env python
-import sys
 import threading
-import subprocess
-from time import sleep
 from collections import deque
 
-import roslaunch
-import rosgraph
+
 import rospy
+import rosgraph
+
 from sensor_msgs.msg import Image
-from image_recognition_msgs.msg import Recognitions
 from image_recognition_msgs.srv import Recognize
+from image_recognition_msgs.msg import Recognitions
+
 
 class Openpose(threading.Thread):
 
@@ -55,46 +53,3 @@ class Openpose(threading.Thread):
         msg.header.frame_id = category
         msg.header.stamp = timestamp
         self.publisher.publish(msg)
-
-
-
-class SkeletonExtractor:
-
-    def __init__(self):
-        rospy.loginfo("SES: Skeleton Extractor Service starting")
-        rospy.init_node('skeleton_extractor', anonymous=False)
-        rospy.loginfo("SES: Waiting for openpose_ros_node")
-        rospy.wait_for_service('recognize')
-        self.interface = rospy.ServiceProxy('recognize', Recognize)
-        self.service = Openpose(self.interface)
-
-        # realsense D415
-        rospy.loginfo("SES: Subscribing to realsense D415")
-        rospy.Subscriber("/camera/color/image_raw", Image, self.callback_rgb)
-        # rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.callback_depth)
-        # rospy.Subscriber("/camera/infra1/image_rect_raw", Image, self.callback_infra1)
-        # rospy.Subscriber("/camera/infra2/image_rect_raw", Image, self.callback_infra2)
-
-        # ZED camera
-        # rospy.Subscriber("/zed/left/image_rect_color", Image, self.callback_rgb)
-
-        # Thermal camera
-        # rospy.Subscriber("/optris/thermal_image_view", Image, self.callback_thermal)
-        rospy.loginfo("SES: Initialization Complete")
-
-
-
-    def callback_rgb(self, data):
-        self.service.latest_rgb.append(data)
-
-
-    def callback_thermal(self, data):
-        self.service.latest_thermal.append(data)
-
-
-
-if __name__ == '__main__':
-    rospy.myargv(argv=sys.argv)
-    se = SkeletonExtractor()
-    se.service.start()
-    rospy.spin()

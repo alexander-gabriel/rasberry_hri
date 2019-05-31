@@ -49,7 +49,7 @@ class PositionFilter(Filter):
                 distance = abs(self.center - recognition.roi.x_offset)
                 if distance < best_score:
                     best_score = distance
-                    besdt_id = recognition.group_id
+                    best_id = recognition.group_id
         for recognition in recognitions:
             if recognition.group_id == best_id:
                 new_recognitions.append(recognition)

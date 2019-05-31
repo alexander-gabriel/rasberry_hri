@@ -2,6 +2,8 @@
 from numpy import arctan2, abs
 import numpy as np
 
+import rospy
+
 from filter import LimbFilter, PositionFilter
 
 class Converter:

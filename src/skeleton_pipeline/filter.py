@@ -1,5 +1,7 @@
 from numpy import abs
 
+import rospy
+
 class Filter(object):
 
     def filter(self, recognitions):
@@ -35,8 +37,8 @@ class LimbFilter(Filter):
 
 class PositionFilter(Filter):
 
-    def __init__(self, img_width):
-        self.center = img_width/2
+    def __init__(self):
+        self.center = rospy.get_param("/openpose/net_output_width", 2) / 2
 
     def filter(self, recognitions):
         best_score = 9999

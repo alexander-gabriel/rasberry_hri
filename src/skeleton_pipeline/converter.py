@@ -2,8 +2,6 @@
 from numpy import arctan2, abs
 import numpy as np
 
-import rospy
-
 from filter import LimbFilter, PositionFilter
 
 class Converter:
@@ -47,9 +45,8 @@ class Converter:
                                 'LEye': 'Left:Eye',
                                 'REar': 'Right:Ear',
                                 'LEar': 'Left:Ear'}
-        img_width = rospy.get_param("/openpose_ros/openpose_ros_node/net_output_width", 100)
         self.limb_filter = LimbFilter(0.5)
-        self.position_filter = PositionFilter(img_width)
+        self.position_filter = PositionFilter()
 
 
     def create_index_map(self, recognitions):

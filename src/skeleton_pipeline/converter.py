@@ -2,6 +2,8 @@
 from numpy import arctan2, abs
 import numpy as np
 
+from filter import LimbFilter, PositionFilter
+
 class Converter:
 
     def __init__(self):
@@ -43,6 +45,9 @@ class Converter:
                                 'LEye': 'Left:Eye',
                                 'REar': 'Right:Ear',
                                 'LEar': 'Left:Ear'}
+        img_width = rospy.get_param("/openpose_ros/openpose_ros_node/net_output_width", 100)
+        self.limb_filter = LimbFilter(0.5)
+        self.position_filter = PositionFilter(img_width)
 
 
     def create_index_map(self, recognitions):
@@ -106,6 +111,8 @@ class Converter:
 
     def from_openpose(self, recognitions):
         joints = {}
+        recognitions = self.limb_filter.filter(recognitions)
+        recognitions = self.position_filter.filter(recognitions)
         for entry in recognitions:
             label = entry.categorical_distribution.probabilities[0].label
             probability = entry.categorical_distribution.probabilities[0].probability

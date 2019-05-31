@@ -25,9 +25,7 @@ class LimbFilter(Filter):
             Y = recognition.roi.y_offset
             entries[recognition.group_id][joint] = (P, X, Y)
         for id, entry in entries.items():
-            if entry["RShoulder"][0] > self.limit and entry["LShoulder"][0] > self.limit
-            and entry["RElbow"][0] > self.limit and entry["LElbow"][0] > self.limit
-            and entry["RRWrist"][0] > self.limit and entry["LWrist"][0] > self.limit:
+            if entry["RShoulder"][0] > self.limit and entry["LShoulder"][0] > self.limit and entry["RElbow"][0] > self.limit and entry["LElbow"][0] > self.limit and entry["RRWrist"][0] > self.limit and entry["LWrist"][0] > self.limit:
                 approved.append(id)
         for recognition in recognitions:
             if recognition.group_id in approved:

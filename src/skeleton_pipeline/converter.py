@@ -85,7 +85,7 @@ class Converter:
         v1 = np.array([self.X(joints[2]), self.Y(joints[2])]) - np.array([midX, midY])
 
         angle = np.math.atan2(np.linalg.det([v0,v1]),np.dot(v0,v1))
-        return abs(np.degrees(angle))
+        return np.degrees(angle)
 
 
     def get_angle3(self, joint_name):
@@ -96,7 +96,7 @@ class Converter:
         aY = self.Y(joints[0]) - self.Y(joints[1])
         bY = self.Y(joints[2]) - self.Y(joints[1])
         cY = aY - bY
-        return abs(arctan2(-cY,cX))
+        return arctan2(-cY,cX)
 
 
     def get_angle4(self, joint_name):
@@ -105,7 +105,7 @@ class Converter:
         midY = (self.Y(joints[0]) - self.Y(joints[1]))/2.0
         cX = self.X(joints[2]) - midX
         cY = self.Y(joints[2]) - midY
-        return abs(arctan2(-cY,cX))
+        return arctan2(-cY,cX)
 
 
     def from_openpose(self, recognitions):

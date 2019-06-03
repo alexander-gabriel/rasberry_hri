@@ -70,7 +70,7 @@ class Converter:
         v1 = np.array([self.X(joints[2]), self.Y(joints[2])]) - np.array([self.X(joints[1]), self.Y(joints[1])])
 
         angle = np.math.atan2(np.linalg.det([v0,v1]),np.dot(v0,v1))
-        return abs(np.degrees(angle))
+        return np.degrees(angle)
 
 
     def get_position(self, joint_name, model):

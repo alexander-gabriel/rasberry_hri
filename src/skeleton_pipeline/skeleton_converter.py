@@ -19,9 +19,9 @@ class SkeletonConverter():
         self.converter = Converter()
         rospy.loginfo("SCS: Skeleton Converter Service starting")
         rospy.init_node('skeleton_converter_node', anonymous=False)
-        rospy.loginfo("SCS: Subscribing to /lcas/hri/joint/positions/stabilized")
 
         self.publisher = rospy.Publisher('/lcas/hri/joints/angles', Joints, queue_size=10)
+        rospy.loginfo("SCS: Subscribing to /lcas/hri/joint/positions/stabilized")
         rospy.Subscriber("/lcas/hri/joints/positions/stabilized", Recognitions, self.openpose_callback)
 
 
@@ -36,14 +36,19 @@ class SkeletonConverter():
             except:
                 pass
 
-        for id in ['Right:Elbow-X', 'Upper-Spine-X', 'Mid-Spine-X', 'Lower-Spine-X', 'Left:Elbow-X', 'Right:Shoulder-X', 'Left:Shoulder-X', 'Right:Hip-X', 'Left:Hip-X', 'Right:Knee-X', 'Left:Knee-X']:
+        for id in ['Right:Elbow-X', 'Upper-Spine-X', 'Mid-Spine-X', 'Lower-Spine-X', 'Right:Shoulder-X', 'Right:Hip-X', 'Right:Knee-X']:
             try:
                 model[id] = self.converter.get_angle1(id)
             except:
                 pass
+        for id in ['Left:Elbow-X', 'Left:Shoulder-X', 'Left:Hip-X', 'Left:Knee-X']:
+            try:
+                model[id] = -self.converter.get_angle1(id)
+            except:
+                pass
         outmsg = Joints()
         outmsg.header.stamp = msg.header.stamp
-        outmsg.source = msg.header.frame_id + "-LElbow"
+        outmsg.source = msg.header.frame_id
         outmsg.joints = []
         for label,angle in model.items():
             joint = Joint()

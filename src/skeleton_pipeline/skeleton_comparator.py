@@ -11,11 +11,12 @@ class SkeletonComparator():
         rospy.loginfo("SkelComp: Skeleton Comparator Service starting")
         rospy.init_node('skeleton_comparator_node', anonymous=False)
         topic = rospy.get_param('robot_control', '/rasberry/robot_control/move_base')
-        rospy.loginfo("SkelComp: Subscribing to /lcas/hri/joints/angles")
 
         self.classifier = MinimumDifferenceClassifier()
         self.pose_publisher = rospy.Publisher('/lcas/hri/poses', Pose, queue_size=10)
         self.command_publisher = rospy.Publisher(topic, Command, queue_size=10)
+
+        rospy.loginfo("SkelComp: Subscribing to /lcas/hri/joints/angles")
         rospy.Subscriber("/lcas/hri/joints/angles", Joints, self.angle_callback)
 
     def angle_callback(self, msg):

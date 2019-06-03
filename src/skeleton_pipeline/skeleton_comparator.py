@@ -28,7 +28,7 @@ class SkeletonComparator():
             pose[joint.label] = joint.angle
         pose_label, error = self.classifier.classify(pose)
         if error < self.classifier.limit:
-            if not pose_label in self.pose_label_count:
+            if not pose_label in self.last_detected_count:
                 self.last_detected_count[pose_label] = 1
             else:
                 self.last_detected_count[pose_label] +=  1

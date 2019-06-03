@@ -21,8 +21,8 @@ class SkeletonConverter():
         rospy.init_node('skeleton_converter_node', anonymous=False)
 
         self.publisher = rospy.Publisher('/lcas/hri/joints/angles', Joints, queue_size=10)
-        rospy.loginfo("SCS: Subscribing to /lcas/hri/joint/positions/stabilized")
-        rospy.Subscriber("/lcas/hri/joints/positions/stabilized", Recognitions, self.openpose_callback)
+        rospy.loginfo("SCS: Subscribing to /lcas/hri/joint/positions/raw")
+        rospy.Subscriber("/lcas/hri/joints/positions/raw", Recognitions, self.openpose_callback)
 
 
     def openpose_callback(self, msg):

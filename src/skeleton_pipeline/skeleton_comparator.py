@@ -23,7 +23,7 @@ class SkeletonComparator():
         pose = dict()
         for joint in msg.joints:
             pose[joint.label] = joint.angle
-        for joint in ["RShoulder", "LShoulder", "RElbow", "LElbow"]:
+        for joint in ["Right:Shoulder-X", "Left:Shoulder-X", "Right:Elbow-X", "Left:Elbow-X"]:
             print("------------------")
             print(pose[joint])
         pose_label, error = self.classifier.classify(pose)

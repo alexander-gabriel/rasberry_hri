@@ -18,6 +18,8 @@ class SkeletonComparator():
 
         rospy.loginfo("SkelComp: Subscribing to /lcas/hri/joints/angles")
         rospy.Subscriber("/lcas/hri/joints/angles", Joints, self.angle_callback)
+        self.last_detected = None
+
 
     def angle_callback(self, msg):
         model = get_model_prototype()
@@ -26,11 +28,15 @@ class SkeletonComparator():
             pose[joint.label] = joint.angle
         pose_label, error = self.classifier.classify(pose)
         if error < self.classifier.limit:
-            outmsg = Pose()
-            outmsg.header.stamp = msg.header.stamp
-            outmsg.pose = pose_label
-            self.pose_publisher.publish(outmsg)
-            outmsg = Command()
-            outmsg.header.stamp = msg.header.stamp
-            outmsg.command = pose_label
-            self.command_publisher.publish(outmsg)
+            if self.last_detected == pose_label:
+                outmsg = Pose()
+                outmsg.header.stamp = msg.header.stamp
+                outmsg.pose = pose_label
+                self.pose_publisher.publish(outmsg)
+                outmsg = Command()
+                outmsg.header.stamp = msg.header.stamp
+                outmsg.command = pose_label
+                self.command_publisher.publish(outmsg)
+            self.last_detected = pose_label
+        else:
+            self.last_detected = None

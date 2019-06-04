@@ -10,7 +10,7 @@ class SkeletonComparator():
     def __init__(self):
         rospy.loginfo("SkelComp: Skeleton Comparator Service starting")
         rospy.init_node('skeleton_comparator_node', anonymous=False)
-        topic = rospy.get_param('robot_control', '/rasberry/robot_control/move_base')
+        topic = rospy.get_param('robot_control', '/lcas/hri//robot_control')
 
         self.classifier = MinimumDifferenceClassifier()
         self.pose_publisher = rospy.Publisher('/lcas/hri/poses', Pose, queue_size=10)

@@ -5,7 +5,7 @@ stop = {"Left:Shoulder-X": -90.0, "Left:Elbow-X" : 180.0,  "Right:Shoulder-X": -
 come = {"Left:Shoulder-X": 90.0, "Left:Elbow-X" : 180.0,  "Right:Shoulder-X": -90.0, "Right:Elbow-X" : 180.0 }
 
 
-pose_list = {"Forward": forward,
-             "Backward": backward,
-             "Stop": stop,
-             "Come": come}
+pose_list = {"move forward": forward,
+             "move backward": backward,
+             "cancel": stop,
+             "hail": come}

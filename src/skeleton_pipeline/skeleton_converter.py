@@ -43,7 +43,7 @@ class SkeletonConverter():
                 pass
         for id in ['Left:Elbow-X', 'Left:Shoulder-X', 'Left:Hip-X', 'Left:Knee-X']:
             try:
-                model[id] = -self.converter.get_angle1(id)
+                model[id] = self.converter.get_angle1(id)
             except:
                 pass
         outmsg = Joints()

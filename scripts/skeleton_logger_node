@@ -8,5 +8,4 @@ from skeleton_pipeline.skeleton_logger import SkeletonLogger
 if __name__ == '__main__':
     rospy.myargv(argv=sys.argv)
     se = SkeletonLogger()
-    se.service.start()
     rospy.spin()

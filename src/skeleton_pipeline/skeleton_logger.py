@@ -5,17 +5,15 @@ import sys
 import rospy
 from image_recognition_msgs.msg import Recognitions
 from sensor_msgs.msg import Image
+from std_msgs.msg import String
 from rasberry_hri.msg import Joints, Joint, Pose, Log
 
-from converter import Converter
-from utils import get_model_prototype
 
 
 
 class SkeletonLogger():
 
     def __init__(self):
-        self.converter = Converter()
         rospy.loginfo("SLS: Skeleton Logger Service starting")
         rospy.init_node('skeleton_logger_node', anonymous=False)
 
@@ -41,7 +39,7 @@ class SkeletonLogger():
                 outmsg = Log()
                 outmsg.header = header
                 outmsg.pose = self.pose
-                outmsg.angles = self.angles
+                outmsg.joints = self.angles
                 outmsg.image = self.image
                 self.publisher.publish(outmsg)
                 

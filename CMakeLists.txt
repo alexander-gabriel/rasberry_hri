@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   actionlib_msgs
   move_base_msgs
+  sensor_msgs
   #strands_navigation_msgs
   tf
   #topological_navigation
@@ -55,6 +56,7 @@ add_message_files(
  generate_messages(
    DEPENDENCIES
    std_msgs  # Or other packages containing msgs
+   sensor_msgs
  )
 
 
@@ -65,6 +67,7 @@ catkin_package(
                actionlib
                actionlib_msgs
                move_base_msgs
+               sensor_msgs
 
 #  DEPENDS system_lib
 )

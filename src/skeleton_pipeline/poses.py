@@ -12,7 +12,7 @@ come = {"Left:Shoulder-X": 90.0, "Left:Elbow-X" : 180.0,  "Right:Shoulder-X": 27
 
 pose_list = {"move forward": forward,
              "move backward": backward,
-             "turn right": turn_right,
-             "turn left": turn_left,
+             "rotate right": turn_right,
+             "rotate left": turn_left,
              "cancel": stop,
              "hail": come}

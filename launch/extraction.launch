@@ -21,5 +21,6 @@
         <!-- <node pkg="rasberry_hri" name="skeleton_stabilizer" type="skeleton_stabilizer_node" output="screen" /> -->
         <node pkg="rasberry_hri" name="skeleton_converter" type="skeleton_converter_node" output="screen" />
         <node pkg="rasberry_hri" name="skeleton_comparator" type="skeleton_comparator_node" output="screen" />
+        <node pkg="rasberry_hri" name="skeleton_logger" type="skeleton_logger_node" output="screen" />
     </group>
 </launch>

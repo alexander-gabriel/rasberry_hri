@@ -8,9 +8,9 @@ class Converter:
 
     def __init__(self):
         self.angle_joints = {'Right:Elbow-X' : ("RWrist", "RElbow", "RShoulder"),
-                             'Left:Elbow-X' : ("LWrist", "LElbow", "LShoulder"),
+                             'Left:Elbow-X' : ("LShoulder", "LElbow", "LWrist"),
                              'Right:Shoulder-X' : ("Neck", "RShoulder", "RElbow"),
-                             'Left:Shoulder-X' : ("Neck", "LShoulder", "LElbow"),
+                             'Left:Shoulder-X' : ("LElbow", "LShoulder", "Neck"),
                              'Right:Knee-X' : ("RAnkle", "RKnee", "RHip"),
                              'Left:Knee-X' : ("LAnkle", "LKnee", "LHip"),
                              'Right:Hip-X' : ("RKnee", "RHip", "LHip"),

@@ -68,7 +68,7 @@ class SkeletonLogger():
     def image_callback(self, msg):
         self.image = msg
         self.image_changed = True
-        self.send_maybe(msg.header):
+        self.send_maybe(msg.header)
 
 
     def snapshot_callback(self, msg):

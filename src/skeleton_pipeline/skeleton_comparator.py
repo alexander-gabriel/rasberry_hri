@@ -32,7 +32,7 @@ class SkeletonComparator():
                 self.last_detected_count[pose_label] = 1
             else:
                 self.last_detected_count[pose_label] +=  1
-            if self.last_detected_count[pose_label] > 9:
+            if self.last_detected_count[pose_label] > 4:
                 outmsg = Pose()
                 outmsg.header.stamp = msg.header.stamp
                 outmsg.pose = pose_label

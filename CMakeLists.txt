@@ -89,6 +89,7 @@ install(PROGRAMS
   scripts/skeleton_converter_node
   scripts/skeleton_stabilizer_node
   scripts/skeleton_comparator_node
+  scripts/robot_control_node
   scripts/skeleton_logger_node
   scripts/robot_control_node
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

@@ -21,7 +21,8 @@ class SkeletonExtractor:
 
         # realsense D415
         rospy.loginfo("SES: Subscribing to realsense D415")
-        rospy.Subscriber("/camera/color/image_raw", Image, self.callback_rgb)
+        rospy.Subscriber("/cv_camera/image_raw", Image, self.callback_rgb)
+        # rospy.Subscriber("/camera/color/image_raw", Image, self.callback_rgb)
         # rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.callback_depth)
         # rospy.Subscriber("/camera/infra1/image_rect_raw", Image, self.callback_infra1)
         # rospy.Subscriber("/camera/infra2/image_rect_raw", Image, self.callback_infra2)

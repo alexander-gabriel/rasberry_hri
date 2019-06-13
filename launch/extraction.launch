@@ -1,26 +1,38 @@
 <launch>
-    <group>
+  <arg name="model_folder" default="/home/alex/git/openpose/models/"/>
+  <arg name="publish_result" default="true"/>
+  <arg name="start_in_polytunnel" default="True"/>
+  <arg name="human_proximity_syncronization" default="False"/>
+  <group>
         <!-- <include file="$(find rasberry_hri)/launch/d415_camera.launch"/> -->
-        <include file="$(find realsense2_camera)/launch/rs_camera.launch"/>
+        <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch"/> -->
 
         <!-- Set to match the cameras that are launched in the include file (camera launch script) -->
-        <arg name="topic_prefixes" default="rsense"/> <!-- Separate topic_prefixes with commas -->
+        <!-- <arg name="topic_prefixes" default="rsense"/>--> <!-- Separate topic_prefixes with commas -->
 
         <node pkg="openpose_ros" name="openpose" type="openpose_ros_node" output="screen">
           <param name="net_input_width" value="352"/>
             <param name="net_input_height" value="208"/>
             <param name="net_output_width" value="1080"/>
             <param name="net_output_height" value="720"/>
-            <param name="model_folder" value="/home/rasberry/git/openpose/models/"/>
+            <param name="model_folder" value="$(arg model_folder)"/>
             <param name="pose_model" value="BODY_25"/>
-            <param name="publish_result" value="true"/>
+            <param name="publish_result" value="$(arg publish_result)"/>
             <param name="overlay_alpha" value="0.6"/>
         </node>
 
         <node pkg="rasberry_hri" name="skeleton_extractor" type="skeleton_extractor_node" output="screen" />
+
         <!-- <node pkg="rasberry_hri" name="skeleton_stabilizer" type="skeleton_stabilizer_node" output="screen" /> -->
         <node pkg="rasberry_hri" name="skeleton_converter" type="skeleton_converter_node" output="screen" />
+
         <node pkg="rasberry_hri" name="skeleton_comparator" type="skeleton_comparator_node" output="screen" />
+
         <node pkg="rasberry_hri" name="skeleton_logger" type="skeleton_logger_node" output="screen" />
+
+        <node pkg="rasberry_hri" type="robot_control_node" name="robot_control_node">
+          <param name="start_in_polytunnel" type="bool" value="$(arg start_in_polytunnel)"/>
+          <param name="human_proximity_syncronization" type="bool" value="$(arg human_proximity_syncronization)"/>
+        </node>
     </group>
 </launch>

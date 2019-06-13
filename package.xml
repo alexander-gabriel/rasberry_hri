@@ -32,7 +32,8 @@
   <!-- Dependencies can be catkin packages or system dependencies -->
   <!-- Examples: -->
   <!-- Use depend as a shortcut for packages that are both build and exec dependencies -->
-    <depend>realsense2_camera</depend>
+    <!-- <depend>realsense2_camera</depend> -->
+    <depend>dynamic_reconfigure</depend>
     <depend>openpose_ros</depend>
     <depend>actionlib</depend>
     <depend>image_recognition_msgs</depend>

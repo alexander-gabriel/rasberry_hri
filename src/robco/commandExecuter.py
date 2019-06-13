@@ -1,12 +1,14 @@
 #!/usr/bin/python
 
+import rospy
+
 from std_msgs.msg import String, Bool
 from actionlib_msgs.msg import GoalID
 from move_base_msgs.msg import MoveBaseActionGoal
 from commandTopological import CommandTopological
 from commandMoveBase import CommandMoveBase
 from commandVelocity import CommandVelocity
-from rasberry_han.safe_actions import DynamicReconfigurePolicy
+from safe_actions import DynamicReconfigurePolicy
 from rasberry_hri.msg import Command
 
 
@@ -70,7 +72,7 @@ class CommandExecuter:
             rospy.logwarn("unblock multiplexer")
             self.publishers["lock_all"].publish(Bool(data=False))
         elif "cancel"  in goal.data:
-            self.publishers["topological_navigation/cancel"].publish(GoalID()
+            self.publishers["topological_navigation/cancel"].publish(GoalID())
             self.publishers["move_base/cancel"].publish(GoalID())
         else:
             rospy.logerr("Move Command {:} not found".format(goal.data))

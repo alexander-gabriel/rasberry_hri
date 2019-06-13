@@ -19,9 +19,10 @@ class SkeletonExtractor:
         self.interface = rospy.ServiceProxy('recognize', Recognize)
         self.service = Openpose(self.interface)
 
-        # realsense D415
-        rospy.loginfo("SES: Subscribing to realsense D415")
-        rospy.Subscriber("/cv_camera/image_raw", Image, self.callback_rgb)
+
+        camera = rospy.get_param("~camera", "/camera/color/image_raw")
+        rospy.loginfo("SES: Subscribing to {:}".format(camera))
+        rospy.Subscriber(camera, Image, self.callback_rgb)
         # rospy.Subscriber("/camera/color/image_raw", Image, self.callback_rgb)
         # rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.callback_depth)
         # rospy.Subscriber("/camera/infra1/image_rect_raw", Image, self.callback_infra1)

@@ -1,5 +1,6 @@
 <launch>
-  <arg name="model_folder" default="/home/alex/git/openpose/models/"/>
+  <arg name="model_folder" default="/home/rasberry/git/openpose/models/"/>
+  <arg name="camera" default="/camera/color/image_raw"/>
   <arg name="publish_result" default="true"/>
   <arg name="start_in_polytunnel" default="True"/>
   <arg name="human_proximity_syncronization" default="False"/>
@@ -21,7 +22,10 @@
             <param name="overlay_alpha" value="0.6"/>
         </node>
 
-        <node pkg="rasberry_hri" name="skeleton_extractor" type="skeleton_extractor_node" output="screen" />
+        <node pkg="rasberry_hri" name="skeleton_extractor" type="skeleton_extractor_node" output="screen">
+          <param name="camera" value="$(arg camera)"/>
+        </node>
+
 
         <!-- <node pkg="rasberry_hri" name="skeleton_stabilizer" type="skeleton_stabilizer_node" output="screen" /> -->
         <node pkg="rasberry_hri" name="skeleton_converter" type="skeleton_converter_node" output="screen" />

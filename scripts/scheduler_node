@@ -1,0 +1,140 @@
+#! /usr/bin/python
+import rospy
+
+
+
+class Belief:
+
+
+
+class Goal:
+
+  conditions = [] # list of beliefs that can be checked against the knowledge base
+  subgoals = [] # list of subgoals (only if there is no action to be performed)
+  consequences = [] # list of resulting beliefs
+  action = None # action to be performed (only if there are no subgoals)
+
+
+  def is_achievable(self):
+    return False # compare world_state against conditions at current state (consider subgoals, actions)
+
+
+  def is_achieved(self):
+    return False # compare world_state against consequences (cache result)
+
+  def get_action_queue(self):
+    try:
+      return self.action_queue
+    except AttributeError:
+      try:
+        self.action_queue = [self.action]
+      except AttributeError:
+        self.action_queue = []
+        for subgoal in self.subgoals:
+          self.action_queue += subgoal.get_action_queue()
+      return self.action_queue
+
+
+  def get_next_action(self):
+    return self.get_action_queue()[0]
+
+
+  def perform_action(self):
+    action = self.get_action_queue().pop()
+    action.perform()
+
+
+  def get_cost(self):
+    try:
+      return self.cost
+    except AttributeError:
+      try:
+        self.cost = self.action.get_cost()
+      except AttributeError:
+        self.cost = 0
+        for subgoal in self.subgoals:
+          self.cost += subgoal.get_cost()
+      return self.cost
+
+
+  def get_gain(self):
+    try:
+      return self.gain
+    except AttributeError:
+      try:
+        self.gain = self.action.gain
+      except AttributeError:
+        self.gain = 0
+        for subgoal in self.subgoals:
+          self.gain += subgoal.get_gain()
+      return self.gain
+
+
+class BDISystem:
+
+  goals = []
+  intentions = []
+  world_state = None
+
+
+  def generate_options(self):
+    # consider result of current intention
+    desires = []
+    for goal in self.goals:
+      if not goal.is_achievable():
+        desires.append(goal)
+    for goal in self.intentions:
+      if goal in desires and goal.is_achieved():
+        desires.remove(goal)
+    return desires
+
+
+  def filter(desires):
+    return intentions # select next intention
+
+
+  def perform_action(self):
+    next_goal = None
+    min_cost = None
+    for goal in self.intentions:
+      action = goal.get_next_action()
+      cost = action.get_cost()
+      if cost < min_cost:
+        next_goal = goal
+        min_cost = cost
+    next_goal.perform_action()
+
+
+
+
+  def loop(self):
+    desires = self.generate_options()
+    self.intention = self.filter(desires)
+    self.select_action()
+
+
+
+def spin():
+    """
+    Blocks until ROS node is shutdown. Yields activity to other threads.
+    @raise ROSInitException: if node is not in a properly initialized state
+    """
+
+    if not rospy.core.is_initialized():
+        raise rospy.exceptions.ROSInitException("client code must call rospy.init_node() first")
+    logdebug("node[%s, %s] entering spin(), pid[%s]", rospy.core.get_caller_id(), rospy.core.get_node_uri(), os.getpid())
+    try:
+        while not rospy.core.is_shutdown():
+            loop()
+            rospy.rostime.wallsleep(0.5)
+    except KeyboardInterrupt:
+        logdebug("keyboard interrupt, shutting down")
+        rospy.core.signal_shutdown('keyboard interrupt')
+
+
+
+
+if '__main__' == __name__:
+    rospy.init_node("scheduler")
+
+    spin()

@@ -1,6 +1,6 @@
 #! /usr/bin/python
 import rospy
-
+from pracmln import MLN, Database, MLNQuery
 
 
 class Belief:
@@ -70,11 +70,76 @@ class Goal:
       return self.gain
 
 
+class WorldState():
+
+  def __init__(self):
+    self.mln = MLN(mlnfile='test.mln', grammar='PRACGrammar', logic='FirstOrderLogic')
+    self.db = Database(mln)
+    self.query = MLNQuery(mln=self.mln, db=self.db)
+
+
+  def _load(self, filename='test.db'):
+    dbs = Database.load(self.mln, filename)
+
+
+  def get_probability(self, belief, threshhold):
+    return self.db.query(belief, threshhold):
+
+
+  def set_probability(self, belief, strength):
+    self.db[belief] = strength
+
+
+  def abandon_belief(self, belief):
+    del self.db[belief]
+
+
+  def reason(self):
+    result = self.query.run()
+    print(result)
+
+
+  def print(self):
+    self.db.write()
+
+
+  def add_constant(self, domain, constants):
+    self.mln.constant(domain, constants)
+
+
+  def add_predicate(self, predicate):
+    self.mln.declare_predicate(predicate)
+
+
+  def add_formula(self, formula, weight, fixweight=True):
+    self.mln.formula(formula=formula, weight=weight, fixweight=fixweight, unique_templvars=None)
+
+
+  def ground(self, closedWorld=False):
+    return self.mln.ground(self.db, closedWorld)
+
+
+  def learn(self):
+    self.mln.learn([self.db], method=<class 'pracmln.mln.learning.bpll.BPLL'>, **params)
+
+
+  def _materialize(self):
+    self.mln.materialize([self.db])
+
+
+  def save(self):
+    with open("test.db", "w") as file:
+      self.db.write(file)
+    self.mln.tofile("test.mln")
+
+
 class BDISystem:
 
   goals = []
   intentions = []
-  world_state = None
+
+  def __init__(self):
+    self.world_state = WorldState()
 
 
   def generate_options(self):
@@ -105,13 +170,10 @@ class BDISystem:
     next_goal.perform_action()
 
 
-
-
   def loop(self):
     desires = self.generate_options()
     self.intention = self.filter(desires)
     self.select_action()
-
 
 
 def spin():
@@ -133,8 +195,8 @@ def spin():
 
 
 
-
 if '__main__' == __name__:
     rospy.init_node("scheduler")
-
-    spin()
+    bdi = BDISystem()
+    bdi.spin()
+    bdi.world_state.

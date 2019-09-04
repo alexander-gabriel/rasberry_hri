@@ -5,198 +5,264 @@ from pracmln.utils.project import PRACMLNConfig, MLNProject
 
 MLN_FILENAME = "lcas_bdi.mln"
 DB_FILENAME = "lcas_bdi.db"
+TRUTH_THRESHOLD = 0.5
+
+
+class Action:
+    conditions = []
+    consequences = []
+
+
+class OrderedConsistentSet:
+
+    def __init__(self):
+        self.items = []
+
+    def append(self, item):
+        if not item in self.items:
+            if item.startwith("!"):
+                self.items.remove(item[1:])
+            else:
+                self.items.remove("!" + item)
+            self.items.append(item)
+
+    def __contains__(self, key):
+        return key in self.items
+
 
 
 class Goal:
 
-  conditions = [] # list of beliefs that can be checked against the knowledge base
-  subgoals = [] # list of subgoals (only if there is no action to be performed)
-  consequences = [] # list of resulting beliefs
-  action = None # action to be performed (only if there are no subgoals)
+    subgoals = [] # list of subgoals (only if there is no action to be performed)
+    action = None # action to be performed (only if there are no subgoals)
+
+    def __init__(self, world_state):
+        self.world_state = world_state
+
+    def get_conditions(self):
+        try:
+            return self.action.conditions
+        except AttributeError:
+            try:
+                return self.conditions
+            except AttributeError:
+                self.conditions = OrderedConsistentSet()
+                consequences = OrderedConsistentSet()
+                for subgoal in self.subgoals:
+                    new_conditions = subgoal.get_conditions()
+                    for condition in new_conditions:
+                        if not condition in consequences:
+                            self.conditions.append(condition)
+                    consequences.append(subgoal.get_consequences())
+                return self.conditions
+
+    def get_consequences(self):
+        try:
+            return self.action.consequences
+        except AttributeError:
+            try:
+                return self.consequences
+            except AttributeError:
+                self.consequences = OrderedConsistentSet()
+                for subgoal in self.subgoals:
+                    self.consequences.append(subgoal.get_consequences)
+                return self.consequences
+
+    def is_achievable(self):
+        for condition in self.get_conditions:
+            if self.world_state.truth(condition) < TRUTH_THRESHOLD:
+                return False
+        return True # TODO consider subgoal conditions
 
 
-  def is_achievable(self):
-    return False # compare world_state against conditions at current state (consider subgoals, actions)
+    def is_achieved(self):
+        for consequence in self.consequences:
+            if self.world_state.truth(consequence) < TRUTH_THRESHOLD:
+                return False
+        return True cache result
 
 
-  def is_achieved(self):
-    return False # compare world_state against consequences (cache result)
-
-  def get_action_queue(self):
-    try:
-      return self.action_queue
-    except AttributeError:
-      try:
-        self.action_queue = [self.action]
-      except AttributeError:
-        self.action_queue = []
-        for subgoal in self.subgoals:
-          self.action_queue += subgoal.get_action_queue()
-      return self.action_queue
+    def get_action_queue(self):
+        try:
+            return self.action_queue
+        except AttributeError:
+            try:
+                self.action_queue = [self.action]
+        except AttributeError:
+            self.action_queue = []
+            for subgoal in self.subgoals:
+                self.action_queue += subgoal.get_action_queue()
+        return self.action_queue
 
 
-  def get_next_action(self):
-    return self.get_action_queue()[0]
+    def get_next_action(self):
+        return self.get_action_queue()[0]
 
 
-  def perform_action(self):
-    action = self.get_action_queue().pop()
-    action.perform()
+    def perform_action(self):
+        action = self.get_action_queue().pop()
+        action.perform()
 
 
-  def get_cost(self):
-    try:
-      return self.cost
-    except AttributeError:
-      try:
-        self.cost = self.action.get_cost()
-      except AttributeError:
-        self.cost = 0
-        for subgoal in self.subgoals:
-          self.cost += subgoal.get_cost()
-      return self.cost
+    def get_cost(self):
+        try:
+            return self.cost
+        except AttributeError:
+            try:
+                self.cost = self.action.get_cost()
+            except AttributeError:
+                self.cost = 0
+                for subgoal in self.subgoals:
+                    self.cost += subgoal.get_cost()
+        return self.cost
 
 
-  def get_gain(self):
-    try:
-      return self.gain
-    except AttributeError:
-      try:
-        self.gain = self.action.gain
-      except AttributeError:
-        self.gain = 0
-        for subgoal in self.subgoals:
-          self.gain += subgoal.get_gain()
-      return self.gain
+    def get_gain(self):
+        try:
+            return self.gain
+        except AttributeError:
+            try:
+                self.gain = self.action.gain
+            except AttributeError:
+                self.gain = 0
+                for subgoal in self.subgoals:
+                    self.gain += subgoal.get_gain()
+        return self.gain
+
 
 
 class WorldState():
 
-  def __init__(self):
-    self.mln = MLN(mlnfile=MLN_FILENAME, grammar='PRACGrammar', logic='FirstOrderLogic')
-    self.db = Database(mln)
-    self.config = PRACMLNConfig()
-    self.config["use_emln"] = self.use_emln.get()
-    self.config['mln'] = self.mln_container.selected_file.get().strip().lstrip('*')
-    self.config['emln'] = self.emln_container.selected_file.get().strip().lstrip('*')
-    self.config["db"] = self.db_container.selected_file.get().strip().lstrip('*')
-    self.config["method"] = InferenceMethods.id('Enumeration-Ask (exact)')
-    self.config["params"] = self.params.get().strip()
-    self.config["queries"] = self.query.get()
-    self.config["output_filename"] = self.output_filename.get().strip()
-    self.config["cw"] = self.closed_world.get()
-    self.config["cw_preds"] = self.cwPreds.get()
-    self.config['profile'] = self.profile.get()
-    self.config['logic'] = self.selected_logic.get()
-    self.config['grammar'] = 'PRACGrammar'
-    self.config['multicore'] = self.multicore.get()
-    self.config['save'] = self.save.get()
-    self.config['ignore_unknown_preds'] = self.ignore_unknown_preds.get()
-    self.config['verbose'] = self.verbose.get()
-    self.config['window_loc'] = self.master.winfo_geometry()
-    self.config['dir'] = self.dir
-    self.query = MLNQuery(mln=self.mln, db=self.db, config=self.config)
-    self.query.method = 'WCSP (exact MPE with toulbar2)'
-    self.query.db = self.db
-    self.query.mln = self.mln
+    def __init__(self):
+        self.mln = MLN(mlnfile=MLN_FILENAME, grammar='PRACGrammar', logic='FirstOrderLogic')
+        self.db = Database(mln)
+        self.config = PRACMLNConfig()
+        self.config["use_emln"] = self.use_emln.get()
+        self.config['mln'] = self.mln_container.selected_file.get().strip().lstrip('*')
+        self.config['emln'] = self.emln_container.selected_file.get().strip().lstrip('*')
+        self.config["db"] = self.db_container.selected_file.get().strip().lstrip('*')
+        self.config["method"] = InferenceMethods.id('Enumeration-Ask (exact)')
+        self.config["params"] = self.params.get().strip()
+        self.config["queries"] = self.query.get()
+        self.config["output_filename"] = self.output_filename.get().strip()
+        self.config["cw"] = self.closed_world.get()
+        self.config["cw_preds"] = self.cwPreds.get()
+        self.config['profile'] = self.profile.get()
+        self.config['logic'] = self.selected_logic.get()
+        self.config['grammar'] = 'PRACGrammar'
+        self.config['multicore'] = self.multicore.get()
+        self.config['save'] = self.save.get()
+        self.config['ignore_unknown_preds'] = self.ignore_unknown_preds.get()
+        self.config['verbose'] = self.verbose.get()
+        self.config['window_loc'] = self.master.winfo_geometry()
+        self.config['dir'] = self.dir
+        self.query = MLNQuery(mln=self.mln, db=self.db, config=self.config)
+        self.query.method = 'WCSP (exact MPE with toulbar2)'
+        self.query.db = self.db
+        self.query.mln = self.mln
 
 
-  def _load(self, filename=DB_FILENAME):
-    dbs = Database.load(self.mln, filename)
+    def _load(self, filename=DB_FILENAME):
+        dbs = Database.load(self.mln, filename)
 
 
-  def get_probability(self, belief, threshhold):
-    return self.db.query(belief, threshhold):
+    def get_probability(self, belief, threshhold):
+        return self.db.query(belief, threshhold):
 
 
-  def set_probability(self, belief, strength):
-    self.db[belief] = strength
+    def set_probability(self, belief, strength):
+        self.db[belief] = strength
 
 
-  def abandon_belief(self, belief):
-    del self.db[belief]
+    def abandon_belief(self, belief):
+        del self.db[belief]
 
 
-  def reason(self):
-    result = self.query.run()
-    print(result)
+    def reason(self):
+        result = self.query.run()
+        print(result)
 
 
-  def print(self):
-    self.db.write()
+    def print(self):
+      self.db.write()
 
 
-  def add_constant(self, domain, constants):
-    self.mln.constant(domain, constants)
+    def truth(self, atom):
+        return self.mln.truth(atom)
 
 
-  def add_predicate(self, predicate):
-    self.mln.declare_predicate(predicate)
+    def add_constant(self, domain, constants):
+        self.mln.constant(domain, constants)
 
 
-  def add_formula(self, formula, weight, fixweight=True):
-    self.mln.formula(formula=formula, weight=weight, fixweight=fixweight, unique_templvars=None)
+    def add_predicate(self, predicate):
+        self.mln.declare_predicate(predicate)
 
 
-  def ground(self, closedWorld=False):
-    return self.mln.ground(self.db, closedWorld)
+    def add_formula(self, formula, weight, fixweight=True):
+        self.mln.formula(formula=formula, weight=weight, fixweight=fixweight, unique_templvars=None)
 
 
-  def learn(self):
-    self.mln.learn([self.db], method=<class 'pracmln.mln.learning.bpll.BPLL'>, **params)
+    def ground(self, closedWorld=False):
+        return self.mln.ground(self.db, closedWorld)
 
 
-  def _materialize(self):
-    self.mln.materialize([self.db])
+    def learn(self):
+        self.mln.learn([self.db], method=<class 'pracmln.mln.learning.bpll.BPLL'>, **params)
 
 
-  def save(self):
-    with open(DB_FILENAME, "w") as file:
-      self.db.write(file)
-    self.mln.tofile(MLN_FILENAME)
+    def _materialize(self):
+        self.mln.materialize([self.db])
+
+
+    def save(self):
+        with open(DB_FILENAME, "w") as file:
+            self.db.write(file)
+        self.mln.tofile(MLN_FILENAME)
+
 
 
 class BDISystem:
 
-  goals = []
-  intentions = []
+    goals = []
+    intentions = []
 
-  def __init__(self):
-    self.world_state = WorldState()
-
-
-  def generate_options(self):
-    # consider result of current intention
-    desires = []
-    for goal in self.goals:
-      if not goal.is_achievable():
-        desires.append(goal)
-    for goal in self.intentions:
-      if goal in desires and goal.is_achieved():
-        desires.remove(goal)
-    return desires
+    def __init__(self):
+        self.world_state = WorldState()
 
 
-  def filter(desires):
-    return intentions # select next intention
+    def generate_options(self):
+        # consider result of current intention
+        desires = []
+        for goal in self.goals:
+            if not goal.is_achievable(self.world_state):
+                desires.append(goal)
+        for goal in self.intentions:
+            if goal in desires and goal.is_achieved():
+                desires.remove(goal)
+        return desires
 
 
-  def perform_action(self):
-    next_goal = None
-    min_cost = None
-    for goal in self.intentions:
-      action = goal.get_next_action()
-      cost = action.get_cost()
-      if cost < min_cost:
-        next_goal = goal
-        min_cost = cost
-    next_goal.perform_action()
+    def filter(desires):
+        return intentions # select next intention
 
 
-  def loop(self):
-    desires = self.generate_options()
-    self.intention = self.filter(desires)
-    self.select_action()
+    def perform_action(self):
+        next_goal = None
+        min_cost = None
+        for goal in self.intentions:
+            action = goal.get_next_action()
+            cost = action.get_cost()
+            if cost < min_cost:
+                next_goal = goal
+                min_cost  = cost
+        next_goal.perform_action()
+
+
+    def loop(self):
+        desires = self.generate_options()
+        self.intention = self.filter(desires)
+        self.select_action()
 
 
 def spin():

@@ -1,10 +1,10 @@
 #! /usr/bin/python
 import rospy
 from pracmln import MLN, Database, MLNQuery
+from pracmln.utils.project import PRACMLNConfig, MLNProject
 
-
-class Belief:
-
+MLN_FILENAME = "lcas_bdi.mln"
+DB_FILENAME = "lcas_bdi.db"
 
 
 class Goal:
@@ -73,12 +73,35 @@ class Goal:
 class WorldState():
 
   def __init__(self):
-    self.mln = MLN(mlnfile='test.mln', grammar='PRACGrammar', logic='FirstOrderLogic')
+    self.mln = MLN(mlnfile=MLN_FILENAME, grammar='PRACGrammar', logic='FirstOrderLogic')
     self.db = Database(mln)
-    self.query = MLNQuery(mln=self.mln, db=self.db)
+    self.config = PRACMLNConfig()
+    self.config["use_emln"] = self.use_emln.get()
+    self.config['mln'] = self.mln_container.selected_file.get().strip().lstrip('*')
+    self.config['emln'] = self.emln_container.selected_file.get().strip().lstrip('*')
+    self.config["db"] = self.db_container.selected_file.get().strip().lstrip('*')
+    self.config["method"] = InferenceMethods.id('Enumeration-Ask (exact)')
+    self.config["params"] = self.params.get().strip()
+    self.config["queries"] = self.query.get()
+    self.config["output_filename"] = self.output_filename.get().strip()
+    self.config["cw"] = self.closed_world.get()
+    self.config["cw_preds"] = self.cwPreds.get()
+    self.config['profile'] = self.profile.get()
+    self.config['logic'] = self.selected_logic.get()
+    self.config['grammar'] = 'PRACGrammar'
+    self.config['multicore'] = self.multicore.get()
+    self.config['save'] = self.save.get()
+    self.config['ignore_unknown_preds'] = self.ignore_unknown_preds.get()
+    self.config['verbose'] = self.verbose.get()
+    self.config['window_loc'] = self.master.winfo_geometry()
+    self.config['dir'] = self.dir
+    self.query = MLNQuery(mln=self.mln, db=self.db, config=self.config)
+    self.query.method = 'WCSP (exact MPE with toulbar2)'
+    self.query.db = self.db
+    self.query.mln = self.mln
 
 
-  def _load(self, filename='test.db'):
+  def _load(self, filename=DB_FILENAME):
     dbs = Database.load(self.mln, filename)
 
 
@@ -128,9 +151,9 @@ class WorldState():
 
 
   def save(self):
-    with open("test.db", "w") as file:
+    with open(DB_FILENAME, "w") as file:
       self.db.write(file)
-    self.mln.tofile("test.mln")
+    self.mln.tofile(MLN_FILENAME)
 
 
 class BDISystem:

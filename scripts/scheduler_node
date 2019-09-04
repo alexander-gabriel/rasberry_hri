@@ -56,6 +56,7 @@ class Goal:
                     consequences.append(subgoal.get_consequences())
                 return self.conditions
 
+
     def get_consequences(self):
         try:
             return self.action.consequences
@@ -68,18 +69,19 @@ class Goal:
                     self.consequences.append(subgoal.get_consequences)
                 return self.consequences
 
+
     def is_achievable(self):
-        for condition in self.get_conditions:
+        for condition in self.get_conditions():
             if self.world_state.truth(condition) < TRUTH_THRESHOLD:
                 return False
-        return True # TODO consider subgoal conditions
+        return True
 
 
     def is_achieved(self):
-        for consequence in self.consequences:
+        for consequence in self.get_consequences():
             if self.world_state.truth(consequence) < TRUTH_THRESHOLD:
                 return False
-        return True cache result
+        return True #TODO cache result
 
 
     def get_action_queue(self):

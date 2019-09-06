@@ -1,0 +1,8 @@
+is_a(Peter, Human)
+!has_requested_crate(Peter)
+is_a(Thorvald019, Robot)
+is_a(Plant001, Plant)
+
+// pe - th - pl
+behind(Plant001, Thorvald019)
+before(Peter, Thorvald019)

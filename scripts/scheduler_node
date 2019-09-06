@@ -1,19 +1,13 @@
 #! /usr/bin/python
-import rospy
+# import rospy
 from pracmln import MLN, Database, MLNQuery
+from pracmln.mln import Predicate
 from pracmln.utils.project import PRACMLNConfig, MLNProject
-
 MLN_FILENAME = "lcas_bdi.mln"
 DB_FILENAME = "lcas_bdi.db"
 TRUTH_THRESHOLD = 0.5
-
-
-
-class Action:
-    conditions = []
-    consequences = []
-
-
+VERBOSE = False
+INF = float('inf')
 
 class OrderedConsistentSet:
 
@@ -23,15 +17,39 @@ class OrderedConsistentSet:
 
     def append(self, item):
         if not item in self.items:
-            if item.startwith("!"):
-                self.items.remove(item[1:])
-            else:
-                self.items.remove("!" + item)
+            try:
+                if item.startswith("!"):
+                    self.items.remove(item[1:])
+                else:
+                    self.items.remove("!" + item)
+            except ValueError:
+                pass
             self.items.append(item)
+
+
+    def __iadd__(self, other):
+        for item in other:
+            self.append(item)
+        return self
 
 
     def __contains__(self, key):
         return key in self.items
+
+
+    def __str__(self):
+        return self.items.__str__()
+
+
+    def __iter__(self):
+        return self.items.__iter__()
+
+
+
+class Action:
+
+    conditions = []
+    consequences = []
 
 
 
@@ -58,7 +76,7 @@ class Goal:
                     for condition in new_conditions:
                         if not condition in consequences:
                             self.conditions.append(condition)
-                    consequences.append(subgoal.get_consequences())
+                    consequences += subgoal.get_consequences()
                 return self.conditions
 
 
@@ -71,14 +89,20 @@ class Goal:
             except AttributeError:
                 self.consequences = OrderedConsistentSet()
                 for subgoal in self.subgoals:
-                    self.consequences.append(subgoal.get_consequences)
+                    self.consequences += subgoal.get_consequences()
                 return self.consequences
 
 
     def is_achievable(self):
+        query = ""
         for condition in self.get_conditions():
-            if self.world_state.truth(condition) < TRUTH_THRESHOLD:
-                return False
+            query += condition + " ^ "
+        query = query[:-3]
+        result = self.world_state.check(query)
+        print(query)
+        print(result.result_dict())
+            # if self.world_state.truth(condition) < TRUTH_THRESHOLD:
+            #     return False
         return True
 
 
@@ -95,10 +119,10 @@ class Goal:
         except AttributeError:
             try:
                 self.action_queue = [self.action]
-        except AttributeError:
-            self.action_queue = []
-            for subgoal in self.subgoals:
-                self.action_queue += subgoal.get_action_queue()
+            except AttributeError:
+                self.action_queue = []
+                for subgoal in self.subgoals:
+                    self.action_queue += subgoal.get_action_queue()
         return self.action_queue
 
 
@@ -142,39 +166,14 @@ class WorldState():
 
     def __init__(self):
         self.mln = MLN(mlnfile=MLN_FILENAME, grammar='PRACGrammar', logic='FirstOrderLogic')
-        self.db = Database(mln)
-        self.config = PRACMLNConfig()
-        self.config["use_emln"] = self.use_emln.get()
-        self.config['mln'] = self.mln_container.selected_file.get().strip().lstrip('*')
-        self.config['emln'] = self.emln_container.selected_file.get().strip().lstrip('*')
-        self.config["db"] = self.db_container.selected_file.get().strip().lstrip('*')
-        self.config["method"] = InferenceMethods.id('Enumeration-Ask (exact)')
-        self.config["params"] = self.params.get().strip()
-        self.config["queries"] = self.query.get()
-        self.config["output_filename"] = self.output_filename.get().strip()
-        self.config["cw"] = self.closed_world.get()
-        self.config["cw_preds"] = self.cwPreds.get()
-        self.config['profile'] = self.profile.get()
-        self.config['logic'] = self.selected_logic.get()
-        self.config['grammar'] = 'PRACGrammar'
-        self.config['multicore'] = self.multicore.get()
-        self.config['save'] = self.save.get()
-        self.config['ignore_unknown_preds'] = self.ignore_unknown_preds.get()
-        self.config['verbose'] = self.verbose.get()
-        self.config['window_loc'] = self.master.winfo_geometry()
-        self.config['dir'] = self.dir
-        self.query = MLNQuery(mln=self.mln, db=self.db, config=self.config)
-        self.query.method = 'WCSP (exact MPE with toulbar2)'
-        self.query.db = self.db
-        self.query.mln = self.mln
-
-
-    def _load(self, filename=DB_FILENAME):
-        dbs = Database.load(self.mln, filename)
+        self.db = Database(self.mln, dbfile=DB_FILENAME)
+        self.query = MLNQuery(mln=self.mln, db=self.db, verbose=VERBOSE)
+        self.query._config['method'] = 'WCSP (exact MPE with toulbar2)'
+        self.query._config['multicore'] = True
 
 
     def get_probability(self, belief, threshhold):
-        return self.db.query(belief, threshhold):
+        return self.db.query(belief, threshhold)
 
 
     def set_probability(self, belief, strength):
@@ -186,12 +185,22 @@ class WorldState():
 
 
     def reason(self):
+        self.query._config['queries'] = None
         result = self.query.run()
-        print(result)
+        for evidence, truth in result.result_dict().items():
+            bdi.world_state.db.add(evidence, truth)
+
+
+    def check(self, queries):
+        self.query._config['queries'] = queries
+        result = self.query.run()
+        # for evidence, truth in result.result_dict().items():
+        #     bdi.world_state.db.add(evidence, truth)
+        return result
 
 
     def print(self):
-      self.db.write()
+        self.db.write()
 
 
     def truth(self, atom):
@@ -210,22 +219,37 @@ class WorldState():
         self.mln.formula(formula=formula, weight=weight, fixweight=fixweight, unique_templvars=None)
 
 
-    def ground(self, closedWorld=False):
-        return self.mln.ground(self.db, closedWorld)
+    def ground(self):
+        return self.mln.ground(self.db)
 
 
     def learn(self):
-        self.mln.learn([self.db], method=<class 'pracmln.mln.learning.bpll.BPLL'>, **params)
+        # 'WCSP (exact MPE with toulbar2)'
+        self.mln.learn([self.db], method="<class 'pracmln.mln.learning.bpll.BPLL'>", **params)
 
 
     def _materialize(self):
-        self.mln.materialize([self.db])
+        self.mln.materialize(self.db)
 
 
     def save(self):
         with open(DB_FILENAME, "w") as file:
-            self.db.write(file)
+            self.db.write(file, bars=False)
         self.mln.tofile(MLN_FILENAME)
+
+
+    def write_mln(self):
+        self.mln.write()
+
+
+    def write_evidence(self):
+        self.db.write()
+
+
+    def write(self):
+        self.write_mln()
+        print("-------------------------------------------------------------------")
+        self.write_evidence()
 
 
 
@@ -234,7 +258,8 @@ class BDISystem:
     goals = []
     intentions = []
 
-    def __init__(self):
+    def __init__(self, me):
+        self.me = me
         self.world_state = WorldState()
 
 
@@ -272,27 +297,74 @@ class BDISystem:
         self.select_action()
 
 
-def spin():
-    """
-    Blocks until ROS node is shutdown. Yields activity to other threads.
-    @raise ROSInitException: if node is not in a properly initialized state
-    """
-
-    if not rospy.core.is_initialized():
-        raise rospy.exceptions.ROSInitException("client code must call rospy.init_node() first")
-    logdebug("node[%s, %s] entering spin(), pid[%s]", rospy.core.get_caller_id(), rospy.core.get_node_uri(), os.getpid())
-    try:
-        while not rospy.core.is_shutdown():
-            loop()
-            rospy.rostime.wallsleep(0.5)
-    except KeyboardInterrupt:
-        logdebug("keyboard interrupt, shutting down")
-        rospy.core.signal_shutdown('keyboard interrupt')
+    def write(self):
+        self.world_state.write()
 
 
+    def save(self):
+        self.world_state.save()
+
+
+
+def setup(bdi, me):
+    bdi.world_state.add_formula("is_a({:}, Robot)".format(me), INF)
+
+    pickup = Action()
+    pickup.conditions = ["is_a(?x, Human)", "has_requested_crate(?x)", "in_front_of(?x, {:})".format(me)]
+    pickup.consequences = ["has_crate(?x)", "!has_requested_crate(?x)", "!has_crate({:})".format(me)]
+    pickup_goal = Goal(bdi.world_state)
+    pickup_goal.action = pickup
+
+    move_to = Action()
+    move_to.conditions = ["!in_front_of(?x, {:})".format(me), "can_reach({:}, ?x)".format(me)]
+    move_to.consequences = ["in_front_of(?x, {:})".format(me)]
+    move_to_goal = Goal(bdi.world_state)
+    move_to_goal.action = move_to
+
+    move_away = Action()
+    move_away.conditions = ["in_front_of(?x, {:})".format(me)]
+    move_away.consequences = ["!in_front_of(?x, {:})".format(me)]
+    move_away_goal = Goal(bdi.world_state)
+    move_away_goal.action = move_away
+
+    deliver_crate = Goal(bdi.world_state)
+    deliver_crate.subgoals.append(move_to_goal)
+    deliver_crate.subgoals.append(pickup_goal)
+    deliver_crate.subgoals.append(move_away_goal)
+
+    print(deliver_crate.is_achievable())
+
+# def spin():
+#     """
+#     Blocks until ROS node is shutdown. Yields activity to other threads.
+#     @raise ROSInitException: if node is not in a properly initialized state
+#     """
+#
+#     if not rospy.core.is_initialized():
+#         raise rospy.exceptions.ROSInitException("client code must call rospy.init_node() first")
+#     logdebug("node[%s, %s] entering spin(), pid[%s]", rospy.core.get_caller_id(), rospy.core.get_node_uri(), os.getpid())
+#     try:
+#         while not rospy.core.is_shutdown():
+#             loop()
+#             rospy.rostime.wallsleep(0.5)
+#     except KeyboardInterrupt:
+#         logdebug("keyboard interrupt, shutting down")
+#         rospy.core.signal_shutdown('keyboard interrupt')
 
 if '__main__' == __name__:
-    rospy.init_node("scheduler")
-    bdi = BDISystem()
-    bdi.spin()
-    bdi.world_state.
+    # rospy.init_node("scheduler")
+    bdi = BDISystem("Thorvald019")
+    bdi.world_state.add_formula("in_front_of(?x, ?y) => !in_front_of(?y, ?x)", INF)
+    bdi.world_state.add_formula("has_crate(?x) => !has_requested_crate(?x)", INF)
+    bdi.world_state.db.retract("!in_front_of(Peter, Thorvald)")
+    bdi.world_state.db.add("!has_requested_crate(Peter)")
+
+    # bdi.world_state.add_formula("is_a(Peter, Human)", 1.0)
+    bdi.write()
+    # bdi.write()
+    # print(bdi.world_state.query.mln.predicate("in_front_of"))
+    setup(bdi,"Thorvald019")
+    # bdi.world_state.reason()
+
+    # bdi.spin()
+    # bdi.save()

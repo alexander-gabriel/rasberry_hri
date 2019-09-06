@@ -1,0 +1,59 @@
+// domain declarations
+class = {Human, Robot, Plant, Object}
+role = {Supervisor, Picker}
+
+
+
+// predicate declarations
+are_close(thing,thing)
+before(thing,thing)
+behind(thing,thing)
+can_reach(thing,thing)
+carries_berries(thing)
+goto(thing,thing)
+has_crate(thing)
+has_requested_crate(thing)
+has_role(thing,role?)
+in_front_of(thing,thing)
+is_a(thing,class?)
+is_mobile(thing)
+left_of(thing,thing)
+right_of(thing,thing)
+wants_crate(thing)
+
+// formulas
+is_a(?x,Robot) => is_mobile(?x).
+is_a(?x,Robot) => !has_role(?x,?y).
+is_a(?x,Robot) => wants_crate(?x).
+is_a(?x,Plant) => !is_mobile(?x).
+(is_a(?x,Plant) v is_a(?x,Object)) => !has_crate(?x).
+(is_a(?x,Plant) v is_a(?x,Object)) => !wants_crate(?x).
+(is_a(?x,Plant) v is_a(?x,Object)) => !has_role(?x,?y).
+!is_a(?x,Plant) => !carries_berries(?x).
+is_a(?x,Human) => is_mobile(?x).
+(is_a(?x,Human) ^ has_crate(?x)) => has_role(?x,Picker).
+(is_a(?x,Human) ^ has_role(?x,Picker) ^ !has_crate(?x)) => wants_crate(?x).
+(is_a(?x,Human) ^ has_role(?x,Picker) ^ has_crate(?x)) => !wants_crate(?x).
+(is_a(?x,Human) ^ has_role(?x,Supervisor)) => !wants_crate(?x).
+is_a(?x,Object) => !is_mobile(?x).
+!before(?x,?x).
+!behind(?x,?x).
+!left_of(?x,?x).
+!right_of(?x,?x).
+before(?x,?y) <=> behind(?y,?x).
+left_of(?x,?y) <=> right_of(?y,?x).
+is_mobile(?x) => !can_reach(?x,?x).
+!is_mobile(?x) => !can_reach(?x,?y).
+((?x=/=?y) ^ (?y=/=?z) ^ (?x=/=?z) ^ is_mobile(?x) ^ behind(?x,?y) ^ behind(?z,?y)) => can_reach(?x,?z).
+((?x=/=?y) ^ (?y=/=?z) ^ (?x=/=?z) ^ is_mobile(?x) ^ before(?x,?y) ^ before(?z,?y)) => can_reach(?x,?z).
+((?x=/=?y) ^ (?y=/=?z) ^ (?x=/=?z) ^ is_mobile(?x) ^ behind(?x,?y) ^ before(?z,?y)) => !can_reach(?x,?z).
+((?x=/=?y) ^ (?y=/=?z) ^ (?x=/=?z) ^ is_mobile(?x) ^ before(?x,?y) ^ behind(?z,?y)) => !can_reach(?x,?z).
+(is_mobile(?x) ^ behind(?x,?y)) => can_reach(?x,?y).
+(is_mobile(?x) ^ before(?x,?y)) => can_reach(?x,?y).
+(is_a(?h,Human) ^ is_a(?r,Robot) ^ has_requested_crate(?h)) => goto(?r,?h).
+(is_a(?h,Human) ^ is_a(?r,Robot) ^ is_a(?c,Crate) ^ !has_crate(?h) ^ behind(?c,?r)) => goto(?r,?c).
+(is_a(?h,Human) ^ is_a(?r,Robot) ^ is_a(?p,Plant) ^ has_crate(?h) ^ !can_reach(?h,?p) ^ !has_requested_crate(?h)) => goto(?r,?p).
+before(?x,?y) => !before(?y,?x).
+behind(?x,?y) => !behind(?y,?x).
+left_of(?x,?y) => !left_of(?y,?x).
+right_of(?x,?y) => !right_of(?y,?x).

@@ -6,8 +6,12 @@ from pracmln.utils.project import PRACMLNConfig, MLNProject
 MLN_FILENAME = "lcas_bdi.mln"
 DB_FILENAME = "lcas_bdi.db"
 TRUTH_THRESHOLD = 0.5
+TARGET = "?target"
 VERBOSE = False
 INF = float('inf')
+
+MAX_COST = 1.0
+MIN_GAIN = 1.0
 
 class OrderedConsistentSet:
 
@@ -50,6 +54,16 @@ class Action:
 
     conditions = []
     consequences = []
+    label = ""
+    gain = 1.5
+
+    def perform(self, world_state, target):
+        print(self.label)
+        for consequence in self.consequences:
+            world_state.db.add(consequence.replace(TARGET, target))
+
+    def get_cost(self, target):
+        return 0.0 # devise cost calculation
 
 
 
@@ -57,9 +71,30 @@ class Goal:
 
     subgoals = [] # list of subgoals (only if there is no action to be performed)
     action = None # action to be performed (only if there are no subgoals)
+    instance = None
 
-    def __init__(self, world_state):
+    def __init__(self, world_state, subgoals=[], action=None):
         self.world_state = world_state
+        self.subgoals = subgoals
+        self.action = action
+        self.guide = self.get_instance_guide()
+
+
+    def get_instance_guide(self):
+        if not self.action is None:
+            for condition in self.action.conditions:
+                start = condition.find(TARGET)
+                if start != -1:
+                    end = start + len(TARGET)
+                    prefix = condition[:start]
+                    postfix = condition[end:]
+                    return (prefix, postfix)
+        else:
+            for subgoal in self.subgoals:
+                guide = subgoal.get_instance_guide()
+                if not guide is None:
+                    return guide
+            return None
 
 
     def get_conditions(self):
@@ -93,23 +128,34 @@ class Goal:
                 return self.consequences
 
 
-    def is_achievable(self):
+    def find_instances(self):
         query = ""
         for condition in self.get_conditions():
             query += condition + " ^ "
         query = query[:-3]
         result = self.world_state.check(query)
-        print(query)
-        print(result.result_dict())
-            # if self.world_state.truth(condition) < TRUTH_THRESHOLD:
-            #     return False
-        return True
+        targets = []
+        for key, value in result.results.items():
+            if not value is None:
+                # print("{:}: {:d}".format(key,value))
+                if not self.guide is None:
+                    start = key.find(self.guide[0]) + len(self.guide[0])
+                    end = key.find(self.guide[1])
+                    target = key[start:end]
+                    if not self.is_achieved(target):
+                        targets.append(target)
+        return targets
 
 
-    def is_achieved(self):
+    def is_achieved(self, target):
         for consequence in self.get_consequences():
-            if self.world_state.truth(consequence) < TRUTH_THRESHOLD:
-                return False
+            truth = self.world_state.db.truth(consequence.replace(TARGET, target))
+            if consequence.startswith("!"):
+                if truth is None or truth > TRUTH_THRESHOLD:
+                    return False
+            else:
+                if truth is None or truth <= TRUTH_THRESHOLD:
+                    return False
         return True #TODO cache result
 
 
@@ -117,9 +163,9 @@ class Goal:
         try:
             return self.action_queue
         except AttributeError:
-            try:
+            if not self.action is None:
                 self.action_queue = [self.action]
-            except AttributeError:
+            else:
                 self.action_queue = []
                 for subgoal in self.subgoals:
                     self.action_queue += subgoal.get_action_queue()
@@ -130,25 +176,25 @@ class Goal:
         return self.get_action_queue()[0]
 
 
-    def perform_action(self):
-        action = self.get_action_queue().pop()
-        action.perform()
+    def perform_action(self, target):
+        action = self.get_action_queue().pop(0)
+        action.perform(self.world_state, target)
 
 
-    def get_cost(self):
+    def get_cost(self, target):
         try:
             return self.cost
         except AttributeError:
             try:
-                self.cost = self.action.get_cost()
+                self.cost = self.action.get_cost(target)
             except AttributeError:
                 self.cost = 0
                 for subgoal in self.subgoals:
-                    self.cost += subgoal.get_cost()
+                    self.cost += subgoal.get_cost(target)
         return self.cost
 
 
-    def get_gain(self):
+    def get_gain(self, target):
         try:
             return self.gain
         except AttributeError:
@@ -157,7 +203,7 @@ class Goal:
             except AttributeError:
                 self.gain = 0
                 for subgoal in self.subgoals:
-                    self.gain += subgoal.get_gain()
+                    self.gain += subgoal.get_gain(target)
         return self.gain
 
 
@@ -165,7 +211,7 @@ class Goal:
 class WorldState():
 
     def __init__(self):
-        self.mln = MLN(mlnfile=MLN_FILENAME, grammar='PRACGrammar', logic='FirstOrderLogic')
+        self.mln = MLN(mlnfile=MLN_FILENAME, grammar='PRACGrammar', logic='FuzzyLogic')
         self.db = Database(self.mln, dbfile=DB_FILENAME)
         self.query = MLNQuery(mln=self.mln, db=self.db, verbose=VERBOSE)
         self.query._config['method'] = 'WCSP (exact MPE with toulbar2)'
@@ -264,37 +310,44 @@ class BDISystem:
 
 
     def generate_options(self):
-        # consider result of current intention
         desires = []
         for goal in self.goals:
-            if not goal.is_achievable(self.world_state):
-                desires.append(goal)
-        for goal in self.intentions:
-            if goal in desires and goal.is_achieved():
-                desires.remove(goal)
+            targets = goal.find_instances()
+            for target in targets:
+                desires.append((goal, target))
+        for intention in self.intentions:
+            if intention in desires and intention[0].is_achieved(intention[1]):
+                desires.remove(intention)
         return desires
 
 
-    def filter(desires):
-        return intentions # select next intention
+    def filter(self, desires):
+        intentions = []
+        for desire in desires:
+            gain = desire[0].get_gain(desire[1])
+            cost = desire[0].get_cost(desire[1])
+            if gain > MIN_GAIN and cost < MAX_COST:
+                intentions.append(desire)
+        return intentions
 
 
     def perform_action(self):
-        next_goal = None
-        min_cost = None
-        for goal in self.intentions:
-            action = goal.get_next_action()
-            cost = action.get_cost()
+        chosen_intention = None
+        min_cost = 999999
+        for intention in self.intentions:
+            action = intention[0].get_next_action()
+            cost = action.get_cost(intention[1])
             if cost < min_cost:
-                next_goal = goal
+                chosen_intention = intention
                 min_cost  = cost
-        next_goal.perform_action()
+        if not chosen_intention is None:
+            chosen_intention[0].perform_action(chosen_intention[1])
 
 
     def loop(self):
         desires = self.generate_options()
-        self.intention = self.filter(desires)
-        self.select_action()
+        self.intentions = self.filter(desires)
+        self.perform_action()
 
 
     def write(self):
@@ -305,34 +358,36 @@ class BDISystem:
         self.world_state.save()
 
 
+    def add_goal(self, goal):
+        self.goals.append(goal)
+
+
 
 def setup(bdi, me):
     bdi.world_state.add_formula("is_a({:}, Robot)".format(me), INF)
 
     pickup = Action()
-    pickup.conditions = ["is_a(?x, Human)", "has_requested_crate(?x)", "in_front_of(?x, {:})".format(me)]
-    pickup.consequences = ["has_crate(?x)", "!has_requested_crate(?x)", "!has_crate({:})".format(me)]
-    pickup_goal = Goal(bdi.world_state)
-    pickup_goal.action = pickup
+    pickup.label = "pickup"
+    pickup.conditions = ["has_requested_crate({:})".format(TARGET), "in_front_of({:},{:})".format(TARGET, me)]
+    pickup.consequences = ["has_crate({:})".format(TARGET), "!has_requested_crate({:})".format(TARGET), "!has_crate({:})".format(me)]
+    pickup_goal = Goal(bdi.world_state, [], pickup)
 
     move_to = Action()
-    move_to.conditions = ["!in_front_of(?x, {:})".format(me), "can_reach({:}, ?x)".format(me)]
-    move_to.consequences = ["in_front_of(?x, {:})".format(me)]
-    move_to_goal = Goal(bdi.world_state)
-    move_to_goal.action = move_to
+    move_to.label = "move to target"
+    move_to.conditions = ["!in_front_of({:},{:})".format(TARGET, me), "can_reach({:},{:})".format(me, TARGET)]
+    move_to.consequences = ["in_front_of({:},{:})".format(TARGET, me)]
+    move_to_goal = Goal(bdi.world_state, [], move_to)
 
     move_away = Action()
-    move_away.conditions = ["in_front_of(?x, {:})".format(me)]
-    move_away.consequences = ["!in_front_of(?x, {:})".format(me)]
-    move_away_goal = Goal(bdi.world_state)
-    move_away_goal.action = move_away
+    move_away.label = "move away from target"
+    move_away.conditions = ["in_front_of({:},{:})".format(TARGET, me)]
+    move_away.consequences = ["!in_front_of({:},{:})".format(TARGET, me)]
+    move_away_goal = Goal(bdi.world_state, [], move_away)
 
-    deliver_crate = Goal(bdi.world_state)
-    deliver_crate.subgoals.append(move_to_goal)
-    deliver_crate.subgoals.append(pickup_goal)
-    deliver_crate.subgoals.append(move_away_goal)
+    deliver_crate = Goal(bdi.world_state, [move_to_goal, pickup_goal, move_away_goal], None)
 
-    print(deliver_crate.is_achievable())
+    bdi.add_goal(deliver_crate)
+    # bdi.add_goal(pickup_goal)
 
 # def spin():
 #     """
@@ -356,14 +411,35 @@ if '__main__' == __name__:
     bdi = BDISystem("Thorvald019")
     bdi.world_state.add_formula("in_front_of(?x, ?y) => !in_front_of(?y, ?x)", INF)
     bdi.world_state.add_formula("has_crate(?x) => !has_requested_crate(?x)", INF)
-    bdi.world_state.db.retract("!in_front_of(Peter, Thorvald)")
-    bdi.world_state.db.add("!has_requested_crate(Peter)")
+
+
+
+    # bdi.world_state.db.retract("has_requested_crate(Peter)")
+    bdi.world_state.db.add("has_requested_crate(Peter)")
+
+    # bdi.world_state.db.retract("!has_crate(Peter)")
+    # bdi.world_state.db.add("has_crate(Peter)")
+
+    # bdi.world_state.db.retract("has_crate(Thorvald019)")
+    bdi.world_state.db.add("has_crate(Thorvald019)")
+
+    # bdi.world_state.db.retract("!in_front_of(Peter,Thorvald019)")
+    bdi.world_state.db.add("!in_front_of(Peter,Thorvald019)")
+
+    bdi.world_state.db.add("can_reach(Thorvald019,Peter)")
 
     # bdi.world_state.add_formula("is_a(Peter, Human)", 1.0)
-    bdi.write()
     # bdi.write()
     # print(bdi.world_state.query.mln.predicate("in_front_of"))
     setup(bdi,"Thorvald019")
+    bdi.world_state.db.write()
+    bdi.loop()
+    bdi.world_state.db.write()
+    bdi.loop()
+    bdi.world_state.db.write()
+    bdi.loop()
+    bdi.world_state.db.write()
+
     # bdi.world_state.reason()
 
     # bdi.spin()

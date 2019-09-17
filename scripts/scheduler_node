@@ -305,12 +305,15 @@ class WorldState():
 
 class BDISystem:
 
-    goals = []
-    intentions = []
+
 
     def __init__(self, me):
         self.me = me
         self.world_state = WorldState()
+        self.robot_track = []
+        self.goals = []
+        self.intentions = []
+        self.robot_position = None
 
 
     def generate_options(self):
@@ -349,7 +352,7 @@ class BDISystem:
 
 
     def loop(self):
-        self.update_beliefs()
+        # self.update_beliefs()
         desires = self.generate_options()
         self.intentions = self.filter(desires)
         self.perform_action()
@@ -357,8 +360,8 @@ class BDISystem:
 
     def update_beliefs(self):
         world = World_Trace()
-        robot_position = None
-        self.robot_track.append(robot_position)
+
+        self.robot_track.append(self.robot_position)
         world.add_object_state_series(self.robot_track)
         for person, position in self.latest_people_position.items():
             if not person in self.people_tracks:
@@ -370,15 +373,19 @@ class BDISystem:
         # request your QSRs
         qsrlib_response_message = qsrlib.request_qsrs(req_msg=qsrlib_request_message)
 
-        pretty_print_world_qsr_trace(which_qsr, qsrlib_response_message)
-
+        # pretty_print_world_qsr_trace(which_qsr, qsrlib_response_message)
+        t = qsrlib_response_message.qsrs.get_sorted_timestamps()[-1]
+        for k, v in zip(qsrlib_response_message.qsrs.trace[t].qsrs.keys(),
+                        qsrlib_response_message.qsrs.trace[t].qsrs.values()):
+            print(k)
+            print(v)
         #TODO: parse result and update beliefs
-
 
 
     def robot_position_callback(self, tf):
         #Object_State(name="o1", timestamp=0, x=1., y=1., width=5., length=8.)
-        pass
+        self.robot_position = None #TODO get robot position
+
 
     def people_tracker_callback(self, people):
         #Object_State(name="o1", timestamp=0, x=1., y=1., width=5., length=8.)
@@ -447,6 +454,7 @@ def pretty_print_world_qsr_trace(which_qsr, qsrlib_response_message):
           + " and computed at " + str(qsrlib_response_message.req_finished_at))
     print("---")
     print("Response is:")
+    print(qsrlib_response_message.qsrs.get_last_state())
     for t in qsrlib_response_message.qsrs.get_sorted_timestamps():
         foo = str(t) + ": "
         for k, v in zip(qsrlib_response_message.qsrs.trace[t].qsrs.keys(),
@@ -458,7 +466,7 @@ if '__main__' == __name__:
     # rospy.init_node("scheduler")
     qsrlib = QSRlib()
     options = sorted(qsrlib.qsrs_registry.keys())
-    which_qsr = "rcc8"#"tpcc"
+
     world = World_Trace()
     o1 = [Object_State(name="o1", timestamp=0, x=1., y=1., width=5., length=8.),
           Object_State(name="o1", timestamp=1, x=1., y=2., width=5., length=8.),
@@ -471,6 +479,7 @@ if '__main__' == __name__:
     world.add_object_state_series(o2)
 
     # make a QSRlib request message
+    which_qsr = "tpcc"#"rcc8"#"tpcc"
     qsrlib_request_message = QSRlib_Request_Message(which_qsr=which_qsr, input_data=world)
     # request your QSRs
     qsrlib_response_message = qsrlib.request_qsrs(req_msg=qsrlib_request_message)

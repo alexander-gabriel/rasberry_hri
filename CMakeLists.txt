@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   openpose_ros
   actionlib
+  qsr_lib
   std_msgs
   actionlib_msgs
   move_base_msgs
@@ -85,6 +86,7 @@ include_directories(
 
 
 install(PROGRAMS
+  scripts/scheduler_node
   scripts/skeleton_extractor_node
   scripts/skeleton_converter_node
   scripts/skeleton_stabilizer_node

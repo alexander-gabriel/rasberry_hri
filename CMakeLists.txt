@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   openpose_ros
   actionlib
+  qsr_lib
   std_msgs
   actionlib_msgs
   move_base_msgs

@@ -37,6 +37,7 @@
     <depend>openpose_ros</depend>
     <depend>actionlib</depend>
     <depend>image_recognition_msgs</depend>
+    <depend>qsr_lib</depend>
     <depend>actionlib_msgs</depend>
     <depend>move_base_msgs</depend>
     <depend>std_msgs</depend>

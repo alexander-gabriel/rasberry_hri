@@ -42,6 +42,7 @@ def pretty_print_world_qsr_trace(which_qsr, qsrlib_response_message):
           + " and computed at " + str(qsrlib_response_message.req_finished_at))
     print("---")
     print("Response is:")
+    print(qsrlib_response_message.qsrs.get_last_state())
     for t in qsrlib_response_message.qsrs.get_sorted_timestamps():
         foo = str(t) + ": "
         for k, v in zip(qsrlib_response_message.qsrs.trace[t].qsrs.keys(),

@@ -11,16 +11,16 @@ INF = float('inf')
 
 
 class BDISystem:
-
-    goals = []
-    intentions = []
-
+  
 
     def __init__(self, me):
         self.me = me
         self.world_state = WorldState()
         self.robot_track = []
         self.people_tracks = {}
+        self.goals = []
+        self.intentions = []
+        self.robot_position = None
 
 
     def generate_options(self):
@@ -67,8 +67,7 @@ class BDISystem:
 
     def update_beliefs(self):
         world = World_Trace()
-        robot_position = None
-        self.robot_track.append(robot_position)
+        self.robot_track.append(self.robot_position)
         world.add_object_state_series(self.robot_track)
         for person, position in self.latest_people_position.items():
             if not person in self.people_tracks:
@@ -80,7 +79,13 @@ class BDISystem:
         # request your QSRs
         qsrlib_response_message = qsrlib.request_qsrs(req_msg=qsrlib_request_message)
 
-        pretty_print_world_qsr_trace(which_qsr, qsrlib_response_message)
+
+        # pretty_print_world_qsr_trace(which_qsr, qsrlib_response_message)
+        t = qsrlib_response_message.qsrs.get_sorted_timestamps()[-1]
+        for k, v in zip(qsrlib_response_message.qsrs.trace[t].qsrs.keys(),
+                        qsrlib_response_message.qsrs.trace[t].qsrs.values()):
+            print(k)
+            print(v)
 
         #TODO: parse result and update beliefs
 

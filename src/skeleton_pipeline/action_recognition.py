@@ -3,9 +3,10 @@ import rospy
 from openpose import Openpose
 
 from sensor_msgs.msg import Image
-from image_recognition_msgs.srv import Recognize, Recognitions
+from image_recognition_msgs.srv import Recognize
+from image_recognition_msgs.msg import Recognitions
 
-from rasberry_hri.msg import Joint, Action, Command
+from rasberry_hri.msg import Action, Command
 
 from converter import Converter
 from classifiers import MinimumDifferenceClassifier
@@ -17,8 +18,13 @@ class ActionRecognition:
 
 
     def __init__(self):
+
+        topic = rospy.get_param('robot_control', '/lcas/hri/robot_control')
         self.converter = Converter()
         self.classifier = MinimumDifferenceClassifier()
+        self.interface = rospy.ServiceProxy('recognize', Recognize)
+        rospy.loginfo("SES: Waiting for openpose_ros_node")
+        # rospy.wait_for_service('recognize')
         self.service = Openpose(self.interface, self.openpose_callback)
 
         self.last_detected_count = {}
@@ -28,10 +34,8 @@ class ActionRecognition:
         camera = rospy.get_param("~camera", "/camera/color/image_raw")
         self.action_publisher = rospy.Publisher('/lcas/hri/actions', Action, queue_size=10)
         self.command_publisher = rospy.Publisher(topic, Command, queue_size=10)
-        self.interface = rospy.ServiceProxy('recognize', Recognize)
 
-        rospy.loginfo("SES: Waiting for openpose_ros_node")
-        rospy.wait_for_service('recognize')
+
 
         rospy.loginfo("SES: Subscribing to {:}".format(camera))
         rospy.Subscriber(camera, Image, self.callback_rgb)

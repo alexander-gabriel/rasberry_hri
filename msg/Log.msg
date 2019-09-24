@@ -1,4 +1,4 @@
 std_msgs/Header header
-rasberry_hri/Joints joints
-rasberry_hri/Pose pose
+rasberry_hri/Action action
+geometry_msgs/Pose pose
 sensor_msgs/Image image

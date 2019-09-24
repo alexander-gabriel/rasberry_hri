@@ -3,19 +3,22 @@ from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
 from qsrlib_io.world_trace import Object_State, World_Trace
 
 import actionlib
-from topological_navigation.msg import GotoNodeGoal
+from topological_navigation.msg import GotoNodeAction, GotoNodeGoal
 from rasberry_people_perception.topological_localiser import TopologicalNavLoc
 
 from bdi_system import BDISystem
 
 class Scheduler:
 
-    def __init__(self, robot_name, robot_control):
+    def __init__(self, robot_name):
+
+
         self.robot_name = robot_name
-        self.robot_control = robot_control
+        self.robot_control = actionlib.SimpleActionClient('topological_navigation', GotoNodeAction)
+        self.robot_control.wait_for_server()
 
         self.qsrlib = QSRlib()
-        self.options = sorted(qsrlib.qsrs_registry.keys())
+        self.options = sorted(self.qsrlib.qsrs_registry.keys())
         self.which_qsr = "rcc8"#"tpcc"
 
         self.locator = TopologicalNavLoc()

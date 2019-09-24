@@ -16,6 +16,9 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   actionlib_msgs
   move_base_msgs
+  geometry_msgs
+  rasberry_people_perception
+  rasberry_navigation
   sensor_msgs
   #strands_navigation_msgs
   tf

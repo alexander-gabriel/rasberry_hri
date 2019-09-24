@@ -1,6 +1,6 @@
 import rospy
 
-from rasberry_hri.msg import Joints, Joint, Pose, Command
+from rasberry_hri.msg import Joints, Joint, Action, Command
 from classifiers import MinimumDifferenceClassifier
 
 from utils import get_model_prototype
@@ -13,7 +13,7 @@ class SkeletonComparator():
         topic = rospy.get_param('robot_control', '/lcas/hri/robot_control')
 
         self.classifier = MinimumDifferenceClassifier()
-        self.pose_publisher = rospy.Publisher('/lcas/hri/poses', Pose, queue_size=10)
+        self.action_publisher = rospy.Publisher('/lcas/hri/actions', Action, queue_size=10)
         self.command_publisher = rospy.Publisher(topic, Command, queue_size=10)
 
         rospy.loginfo("SkelComp: Subscribing to /lcas/hri/joints/angles")
@@ -23,23 +23,24 @@ class SkeletonComparator():
 
     def angle_callback(self, msg):
         model = get_model_prototype()
-        pose = dict()
+        action = dict()
         for joint in msg.joints:
-            pose[joint.label] = joint.angle
-        pose_label, error = self.classifier.classify(pose)
+            action[joint.label] = joint.angle
+        action_label, error = self.classifier.classify(action)
         if error < self.classifier.limit:
-            if not pose_label in self.last_detected_count:
-                self.last_detected_count[pose_label] = 1
+            if not action_label in self.last_detected_count:
+                self.last_detected_count[action_label] = 1
             else:
-                self.last_detected_count[pose_label] +=  1
-            if self.last_detected_count[pose_label] > 4:
-                outmsg = Pose()
+                self.last_detected_count[action_label] +=  1
+            if self.last_detected_count[action_label] > 4:
+                outmsg = Action()
                 outmsg.header.stamp = msg.header.stamp
-                outmsg.pose = pose_label
-                self.pose_publisher.publish(outmsg)
+                outmsg.action = action_label
+                outmsg.pose = msg.pose
+                self.action_publisher.publish(outmsg)
                 outmsg = Command()
                 outmsg.header.stamp = msg.header.stamp
-                outmsg.command = pose_label
+                outmsg.command = action_label
                 self.command_publisher.publish(outmsg)
 
         else:

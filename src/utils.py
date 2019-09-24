@@ -1,4 +1,40 @@
 
+class OrderedConsistentSet:
+
+    def __init__(self):
+        self.items = []
+
+
+    def append(self, item):
+        if not item in self.items:
+            try:
+                if item.startswith("!"):
+                    self.items.remove(item[1:])
+                else:
+                    self.items.remove("!" + item)
+            except ValueError:
+                pass
+            self.items.append(item)
+
+
+    def __iadd__(self, other):
+        for item in other:
+            self.append(item)
+        return self
+
+
+    def __contains__(self, key):
+        return key in self.items
+
+
+    def __str__(self):
+        return self.items.__str__()
+
+
+    def __iter__(self):
+        return self.items.__iter__()
+
+
 def get_model_prototype():
     return {
         'Neck-X': -1.0,

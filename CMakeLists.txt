@@ -31,10 +31,10 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  Joint.msg
-  Joints.msg
   Log.msg
-  Pose.msg
+#  Joint.msg
+#  Joints.msg
+  Action.msg
   Command.msg
 )
 
@@ -85,12 +85,15 @@ include_directories(
 
 
 install(PROGRAMS
-  scripts/skeleton_extractor_node
-  scripts/skeleton_converter_node
-  scripts/skeleton_stabilizer_node
-  scripts/skeleton_comparator_node
+  scripts/action_recognition_node
   scripts/robot_control_node
-  scripts/skeleton_logger_node
+  scripts/scheduler_node
+#  scripts/skeleton_extractor_node
+#  scripts/skeleton_converter_node
+#  scripts/skeleton_stabilizer_node
+#  scripts/skeleton_comparator_node
+
+#  scripts/skeleton_logger_node
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   ${USE_SOURCE_PERMISSIONS}
 )

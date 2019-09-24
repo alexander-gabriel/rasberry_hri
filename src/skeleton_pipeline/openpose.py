@@ -16,10 +16,11 @@ class Openpose(threading.Thread):
     RGB = True
     THERMAL = False
 
-    def __init__(self, service):
+    def __init__(self, service, callback):
         threading.Thread.__init__(self)
+        self.callback = callback
         self.service = service
-        self.publisher = rospy.Publisher('/lcas/hri/joints/positions/raw', Recognitions, queue_size=10)
+        # self.publisher = rospy.Publisher('/lcas/hri/joints/positions/raw', Recognitions, queue_size=10)
         self.died = False
         self.last_processed = Openpose.RGB
         self.latest_rgb = deque(maxlen=1)
@@ -33,11 +34,11 @@ class Openpose(threading.Thread):
                 if self.last_processed == Openpose.RGB and self.latest_rgb:
                     latest = self.latest_rgb.pop()
                     response = self.service(latest)
-                    self.send_message(response, "RGB", latest.header.stamp)
+                    self.callback(latest.header.stamp, "RGB", response)
                 elif self.last_processed == Openpose.THERMAL and self.latest_thermal:
                     latest = self.latest_thermal.pop()
                     response = self.service(latest)
-                    self.send_message(response, "THERMAL", latest.header.stamp)
+                    self.callback(latest.header.stamp, "THERMAL", response)
                 else:
                     sleep(0.025)
 
@@ -48,9 +49,9 @@ class Openpose(threading.Thread):
                 rospy.signal_shutdown("killed")
 
 
-    def send_message(self, response, category, timestamp):
-        msg = Recognitions()
-        msg.recognitions = response.recognitions
-        msg.header.frame_id = category
-        msg.header.stamp = timestamp
-        self.publisher.publish(msg)
+    # def send_message(self, response, category, timestamp):
+    #     msg = Recognitions()
+    #     msg.recognitions = response.recognitions
+    #     msg.header.frame_id = category
+    #     msg.header.stamp = timestamp
+    #     self.publisher.publish(msg)

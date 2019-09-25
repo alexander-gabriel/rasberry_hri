@@ -7,9 +7,6 @@ from bdi.scheduler import Scheduler
 # from geometry_msgs.msg import Pose, PoseStamped
 from topological_navigation.msg import GotoNodeAction
 
-ROBOT_NAME = "Thorvald019"
-
-
 # def setup(bdi, me):
 #     bdi.world_state.add_formula("is_a({:}, Robot)".format(me), INF)
 #
@@ -85,8 +82,8 @@ ROBOT_NAME = "Thorvald019"
 
 if __name__ == '__main__':
     rospy.init_node("scheduler")
-
-
-    scheduler = Scheduler(ROBOT_NAME)
-    # scheduler.spin()
+    robot_id = rospy.names.get_namespace().strip("/")
+    rospy.loginfo("SES: Robot name is: {:}".format(robot_id))
+    scheduler = Scheduler(robot_id)
+    scheduler.spin()
     # scheduler.save()

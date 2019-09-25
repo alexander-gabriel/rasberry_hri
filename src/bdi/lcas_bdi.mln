@@ -1,25 +1,73 @@
 // domain declarations
-class = {Human, Robot, Plant, Object}
+class = {Human, Robot, Plant, Object, Place}
 role = {Supervisor, Picker}
 
 
 
 // predicate declarations
-are_close(thing,thing)
-before(thing,thing)
-behind(thing,thing)
-can_reach(thing,thing)
-carries_berries(thing)
-goto(thing,thing)
-has_crate(thing)
-has_requested_crate(thing)
-has_role(thing,role?)
-in_front_of(thing,thing)
 is_a(thing,class?)
 is_mobile(thing)
+has_role(thing,role?)
+
+is_at(thing,thing)
+is_near(thing,thing)
+carries_berries(thing)
+is_facing(thing,thing)
+
+
+//tpcc
+
+sam(thing,thing) // same position
+dou(thing,thing) //same position
+tri(thing,thing) //same position
+// left back: less left than back; back left: less back than left <- importance increasing to the right
+
+//close
+clb(thing,thing) // close left back
+cbl(thing,thing) // close back left
+csl(thing,thing) // close straight left  -- left
+cfl(thing,thing) // close front left
+clf(thing,thing) // close left front
+csf(thing,thing) // close straight front  -- before
+crf(thing,thing) // close right front
+cfr(thing,thing) // close front right
+csr(thing,thing) // close straight right  -- right
+cbr(thing,thing) // close back right
+crb(thing,thing) // close right back
+csb(thing,thing) // close straight back  -- behind
+
+//distant
+dlb(thing,thing) // distant left back
+dbl(thing,thing) // distant back left
+dsl(thing,thing) // distant straight left  -- left
+dfl(thing,thing) // distant front left
+dlf(thing,thing) // distant left front
+dsf(thing,thing) // distant straight front  -- before
+drf(thing,thing) // distant right front
+dfr(thing,thing) // distant front right
+dsr(thing,thing) // distant straight right  -- right
+dbr(thing,thing) // distant back right
+drb(thing,thing) // distant right back
+dsb(thing,thing) // distant straight back -- behind
+
+
+
+before(thing,thing)
+behind(thing,thing)
+in_front_of(thing,thing)
 left_of(thing,thing)
 right_of(thing,thing)
+can_reach(thing,thing)
+
+
+goto(thing,thing)
+
+
+has_crate(thing)
 wants_crate(thing)
+has_requested_crate(thing)
+
+
 
 // formulas
 is_a(?x,Robot) => is_mobile(?x).
@@ -53,7 +101,10 @@ is_mobile(?x) => !can_reach(?x,?x).
 (is_a(?h,Human) ^ is_a(?r,Robot) ^ has_requested_crate(?h)) => goto(?r,?h).
 (is_a(?h,Human) ^ is_a(?r,Robot) ^ is_a(?c,Crate) ^ !has_crate(?h) ^ behind(?c,?r)) => goto(?r,?c).
 (is_a(?h,Human) ^ is_a(?r,Robot) ^ is_a(?p,Plant) ^ has_crate(?h) ^ !can_reach(?h,?p) ^ !has_requested_crate(?h)) => goto(?r,?p).
+has_crate(?x) => !has_requested_crate(?x).
 before(?x,?y) => !before(?y,?x).
 behind(?x,?y) => !behind(?y,?x).
 left_of(?x,?y) => !left_of(?y,?x).
 right_of(?x,?y) => !right_of(?y,?x).
+in_front_of(?x,?y) => !in_front_of(?y,?x).
+sam(?x,?y) => is_at(?x,?y).

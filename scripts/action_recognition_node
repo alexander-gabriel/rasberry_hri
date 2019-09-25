@@ -6,7 +6,8 @@ import rospy
 
 from skeleton_pipeline.action_recognition import ActionRecognition
 
+
 if __name__ == '__main__':
     rospy.myargv(argv=sys.argv)
-    sm = ActionRecognition()
+    ar = ActionRecognition()
     rospy.spin()

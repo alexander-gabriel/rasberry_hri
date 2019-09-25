@@ -11,7 +11,7 @@
   <arg name="reconfigure_edges" default="true" />
 
 
-  <group>
+  <group ns="$(arg robot_name)">
         <!-- <include file="$(find rasberry_hri)/launch/d415_camera.launch"/> -->
         <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch"/> -->
 
@@ -34,14 +34,13 @@
         </node>
 
 
-        <node pkg="rasberry_hri" type="robot_control_node" name="robot_control_node">
+        <node pkg="rasberry_hri" name="robot_control" type="robot_control_node" >
           <param name="start_in_polytunnel" type="bool" value="$(arg start_in_polytunnel)"/>
           <param name="human_proximity_syncronization" type="bool" value="$(arg human_proximity_syncronization)"/>
         </node>
 
 
-        <node pkg="rasberry_hri" name="scheduler_node" type="scheduler_node" output="screen">
-          <param name="camera" value="$(arg camera)"/>
+        <node pkg="rasberry_hri" name="scheduler" type="scheduler_node" output="screen">
         </node>
     </group>
 </launch>

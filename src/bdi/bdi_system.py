@@ -1,6 +1,10 @@
 
+from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
+from qsrlib_io.world_trace import World_Trace
+
 from utils import OrderedConsistentSet
 from world_state import WorldState
+
 
 MAX_COST = 1.0
 MIN_GAIN = 1.0
@@ -11,7 +15,7 @@ INF = float('inf')
 
 
 class BDISystem:
-  
+
 
     def __init__(self, me):
         self.me = me
@@ -21,6 +25,10 @@ class BDISystem:
         self.goals = []
         self.intentions = []
         self.robot_position = None
+        self.latest_people_positions = {}
+        self.qsrlib = QSRlib()
+        self.options = sorted(self.qsrlib.qsrs_registry.keys())
+        self.which_qsr = "rcc8"#"tpcc"
 
 
     def generate_options(self):
@@ -67,9 +75,10 @@ class BDISystem:
 
     def update_beliefs(self):
         world = World_Trace()
-        self.robot_track.append(self.robot_position)
-        world.add_object_state_series(self.robot_track)
-        for person, position in self.latest_people_position.items():
+        if not self.robot_position is None:
+            self.robot_track.append(self.robot_position)
+            world.add_object_state_series(self.robot_track)
+        for person, position in self.latest_people_positions.items():
             if not person in self.people_tracks:
                 self.people_tracks[person] = [position]
             else:
@@ -77,16 +86,17 @@ class BDISystem:
             world.add_object_state_series(self.people_tracks[person])
         qsrlib_request_message = QSRlib_Request_Message(which_qsr="tpcc", input_data=world)
         # request your QSRs
-        qsrlib_response_message = qsrlib.request_qsrs(req_msg=qsrlib_request_message)
+        qsrlib_response_message = self.qsrlib.request_qsrs(req_msg=qsrlib_request_message)
 
 
         # pretty_print_world_qsr_trace(which_qsr, qsrlib_response_message)
-        t = qsrlib_response_message.qsrs.get_sorted_timestamps()[-1]
-        for k, v in zip(qsrlib_response_message.qsrs.trace[t].qsrs.keys(),
-                        qsrlib_response_message.qsrs.trace[t].qsrs.values()):
-            print(k)
-            print(v)
-
+        try:
+            t = qsrlib_response_message.qsrs.get_sorted_timestamps()[-1]
+            for k, v in zip(qsrlib_response_message.qsrs.trace[t].qsrs.keys(), qsrlib_response_message.qsrs.trace[t].qsrs.values()):
+                print(k)
+                print(v)
+        except IndexError:
+            pass
         #TODO: parse result and update beliefs
 
 

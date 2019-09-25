@@ -1,10 +1,13 @@
-
+import rospkg
+from os.path import join
 from pracmln import MLN, Database, MLNQuery
 from pracmln.mln import Predicate
 from pracmln.utils.project import PRACMLNConfig, MLNProject
 
-MLN_FILENAME = "lcas_bdi.mln"
-DB_FILENAME = "lcas_bdi.db"
+rospack = rospkg.RosPack()
+path = join(rospack.get_path('rasberry_hri'), 'src', 'bdi')
+MLN_FILENAME = join(path, "lcas_bdi.mln")
+DB_FILENAME = join(path, "lcas_bdi.db")
 VERBOSE = False
 INFERENCE_METHOD = 'WCSP (exact MPE with toulbar2)'
 
@@ -14,6 +17,7 @@ class WorldState():
 
 
     def __init__(self):
+
         self.mln = MLN(mlnfile=MLN_FILENAME, grammar='PRACGrammar', logic='FuzzyLogic')
         self.db = Database(self.mln, dbfile=DB_FILENAME)
         self.query = MLNQuery(mln=self.mln, db=self.db, verbose=VERBOSE)

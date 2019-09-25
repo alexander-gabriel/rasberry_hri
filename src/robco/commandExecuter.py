@@ -14,7 +14,7 @@ from rasberry_hri.msg import Command
 
 class CommandExecuter:
     def __init__(self):
-        print "call something"
+
         self.in_polytunnel = rospy.get_param("~start_in_polytunnel", False)
         self.human_proximity_syncronization = rospy.get_param("~human_proximity_syncronization", False)
         self.monitor_dyn_reconfig = None
@@ -24,7 +24,7 @@ class CommandExecuter:
         self.publishers["topological_navigation/cancel"] = rospy.Publisher("topological_navigation/cancel", GoalID, queue_size=1)
         self.publishers["move_base/cancel"] = rospy.Publisher("move_base/cancel", GoalID, queue_size=1)
 
-        rospy.Subscriber("/lcas/hri/robot_control", Command, self.execute_action, queue_size=1)
+        rospy.Subscriber("movement_control", Command, self.execute_action, queue_size=1)
         rospy.Subscriber("in_polytunnel", Bool, self.in_polytunnel_cb)
         rospy.Subscriber("current_node", String, self.current_node_cb)
         rospy.Subscriber("/move_base/goal", MoveBaseActionGoal, self.move_base_fb)

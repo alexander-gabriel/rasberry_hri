@@ -1,4 +1,13 @@
 
+from contextlib import contextmanager
+
+@contextmanager
+def suppress(*exceptions):
+    try:
+        yield
+    except exceptions:
+        pass
+
 class OrderedConsistentSet:
 
     def __init__(self):

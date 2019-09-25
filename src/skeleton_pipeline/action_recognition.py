@@ -18,8 +18,6 @@ class ActionRecognition:
 
 
     def __init__(self):
-
-        topic = rospy.get_param('robot_control', '/lcas/hri/robot_control')
         self.converter = Converter()
         self.classifier = MinimumDifferenceClassifier()
         self.interface = rospy.ServiceProxy('recognize', Recognize)
@@ -32,8 +30,8 @@ class ActionRecognition:
         rospy.loginfo("SES: ActionRecognition Node starting")
         rospy.init_node('action_recognition_node', anonymous=False)
         camera = rospy.get_param("~camera", "/camera/color/image_raw")
-        self.action_publisher = rospy.Publisher('/lcas/hri/actions', Action, queue_size=10)
-        self.command_publisher = rospy.Publisher(topic, Command, queue_size=10)
+        self.action_publisher = rospy.Publisher('human_actions', Action, queue_size=10)
+        self.command_publisher = rospy.Publisher('movement_control', Command, queue_size=10)
 
 
 
@@ -59,6 +57,8 @@ class ActionRecognition:
             outmsg = Action()
             outmsg.header.stamp = timestamp
             outmsg.action = action
+            #TODO: identify picker
+            outmsg.id = "picker01"
             outmsg.pose = msg.pose
             self.action_publisher.publish(outmsg)
             outmsg = Command()

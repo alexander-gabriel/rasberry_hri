@@ -43,6 +43,12 @@ class OrderedConsistentSet:
     def __iter__(self):
         return self.items.__iter__()
 
+def wp2sym(waypoint):
+    return waypoint.lower()
+
+def sym2wp(symbol):
+    return symbol.replace("waypoint", "WayPoint")
+
 
 def get_model_prototype():
     return {

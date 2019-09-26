@@ -1,8 +1,13 @@
+import time
+import rospy
 
+from pyparsing import ParseException
 from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
-from qsrlib_io.world_trace import World_Trace
+from qsrlib_io.world_trace import Object_State,World_Trace
 
-from utils import OrderedConsistentSet
+from rasberry_people_perception.topological_localiser import TopologicalNavLoc
+
+from utils import OrderedConsistentSet, suppress
 from world_state import WorldState
 
 
@@ -18,6 +23,7 @@ class BDISystem:
 
 
     def __init__(self, me):
+        rospy.loginfo("BDI: Initializing BDI System")
         self.me = me
         self.world_state = WorldState()
         self.robot_track = []
@@ -25,10 +31,16 @@ class BDISystem:
         self.goals = []
         self.intentions = []
         self.robot_position = None
-        self.latest_people_positions = {}
+        self.latest_people_msgs = {}
+        self.latest_people_nodes = {}
         self.qsrlib = QSRlib()
         self.options = sorted(self.qsrlib.qsrs_registry.keys())
         self.which_qsr = "rcc8"#"tpcc"
+        self.locator = TopologicalNavLoc()
+        time.sleep(1)
+        for node in self.locator.tmap.nodes:
+            self.world_state.add_belief("is_a({:},Place)".format(node.name))
+        time.sleep(3)
 
 
     def generate_options(self):
@@ -78,7 +90,25 @@ class BDISystem:
         if not self.robot_position is None:
             self.robot_track.append(self.robot_position)
             world.add_object_state_series(self.robot_track)
-        for person, position in self.latest_people_positions.items():
+        for person, msg in self.latest_people_msgs.items():
+            position = Object_State(name=person, timestamp=msg.header.stamp.to_sec(), x=msg.pose.position.x, y=msg.pose.position.y, width=0.6, length=0.4)
+            (current_node, closest_node) = self.locator.localise_pose(msg)
+            with suppress(KeyError):
+                latest_node = self.latest_people_nodes[person]
+                try:
+                    self.world_state.abandon_belief("{:}({:},{:})".format(latest_node[0], person, latest_node[1]))
+                    rospy.logdebug("retracted: {:}({:},{:})".format(latest_node[0], person, latest_node[1]))
+                except ParseException:
+                    rospy.loginfo("error!: {:}({:},{:})".format(latest_node[0], person, latest_node[1]))
+
+            if current_node != "none":
+                self.latest_people_nodes[person] = ("is_at", current_node)
+                self.world_state.add_belief("is_at({:},{:})".format(person, current_node))
+                rospy.logdebug("added is_at({:},{:})".format(person, current_node))
+            else:
+                self.latest_people_nodes[person] = ("is_near", closest_node)
+                self.world_state.add_belief("is_near({:},{:})".format(person, closest_node))
+                rospy.logdebug("added is_near({:},{:})".format(person, closest_node))
             if not person in self.people_tracks:
                 self.people_tracks[person] = [position]
             else:
@@ -87,6 +117,12 @@ class BDISystem:
         qsrlib_request_message = QSRlib_Request_Message(which_qsr="tpcc", input_data=world)
         # request your QSRs
         qsrlib_response_message = self.qsrlib.request_qsrs(req_msg=qsrlib_request_message)
+        for t in qsrlib_response_message.qsrs.get_sorted_timestamps():
+            foo = str(t) + ": "
+            for k, v in zip(qsrlib_response_message.qsrs.trace[t].qsrs.keys(),
+                            qsrlib_response_message.qsrs.trace[t].qsrs.values()):
+                foo += str(k) + ":" + str(v.qsr) + "; "
+            rospy.loginfo(foo)
 
 
         # pretty_print_world_qsr_trace(which_qsr, qsrlib_response_message)
@@ -125,7 +161,7 @@ class Action:
     def perform(self, world_state, target):
         print(self.label)
         for consequence in self.consequences:
-            world_state.db.add(consequence.replace(TARGET, target))
+            world_state.add_belief(consequence.replace(TARGET, target))
 
 
     def get_cost(self, target):
@@ -216,7 +252,7 @@ class Goal:
 
     def is_achieved(self, target):
         for consequence in self.get_consequences():
-            truth = self.world_state.db.truth(consequence.replace(TARGET, target))
+            truth = self.world_state.truth(consequence.replace(TARGET, target))
             if consequence.startswith("!"):
                 if truth is None or truth > TRUTH_THRESHOLD:
                     return False

@@ -13,6 +13,7 @@ is_at(thing,thing)
 is_near(thing,thing)
 carries_berries(thing)
 is_facing(thing,thing)
+leads_to(thing,thing)
 
 
 //tpcc

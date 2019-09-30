@@ -5,17 +5,21 @@ from pyparsing import ParseException
 from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
 from qsrlib_io.world_trace import Object_State,World_Trace
 
-from rasberry_people_perception.topological_localiser import TopologicalNavLoc
+from topological_navigation.tmap_utils import get_distance
 
+from rasberry_people_perception.topological_localiser import TopologicalNavLoc
+from topological_navigation.route_search import TopologicalRouteSearch
 from utils import OrderedConsistentSet, suppress
 from world_state import WorldState
-
+from goals import MoveGoal, GiveCrateGoal, DeliverGoal
 
 MAX_COST = 1.0
 MIN_GAIN = 1.0
 TRUTH_THRESHOLD = 0.5
 TARGET = "?target"
+ME = "?me"
 INF = float('inf')
+SPEED = 0.55
 
 
 
@@ -28,7 +32,7 @@ class BDISystem:
         self.world_state = WorldState()
         self.robot_track = []
         self.people_tracks = {}
-        self.goals = []
+        self.goals = [DeliverGoal]
         self.intentions = []
         self.robot_position = None
         self.latest_people_msgs = {}
@@ -38,44 +42,64 @@ class BDISystem:
         self.which_qsr = "rcc8"#"tpcc"
         self.locator = TopologicalNavLoc()
         time.sleep(1)
+        self.links = {}
+        self.node_positions = {}
+        self.route_search = TopologicalRouteSearch(self.locator.tmap)
         for node in self.locator.tmap.nodes:
             self.world_state.add_belief("is_a({:},Place)".format(node.name))
+            self.node_positions[node.name] = node.pose
+            for edge in node.edges:
+                self.links["_".join([node.name, edge.node])] = 0
+                self.world_state.add_belief("leads_to({:},{:})".format(node.name, edge.node))
+        for link in self.links.keys():
+            nodes = link.split("_")
+            self.links[link] = get_distance(self.node_positions[nodes[0]], self.node_positions[nodes[1]])
+        self.world_state.add_belief("is_a(picker01,Human)")
+        self.world_state.add_belief("has_role(picker01,Picker)")
+        self.world_state.add_belief("has_requested_crate(picker01)")
+        self.world_state.add_belief("has_crate({:})".format(self.me))
+        rospy.loginfo("BDI: Initialized BDI System")
         time.sleep(3)
 
 
     def generate_options(self):
+        rospy.loginfo("Generating Options")
         desires = []
         for goal in self.goals:
-            targets = goal.find_instances()
-            for target in targets:
-                desires.append((goal, target))
+            args_list = goal.find_instances(self.world_state)
+            rospy.loginfo(args_list)
+            for args in args_list:
+                rospy.loginfo(args)
+                desires.append(goal.instantiate(world_state, args))
         for intention in self.intentions:
-            if intention in desires and intention[0].is_achieved(intention[1]):
+            if intention in desires and intention.is_achieved():
                 desires.remove(intention)
         return desires
 
 
     def filter(self, desires):
+        rospy.loginfo("BDI: Filtering desires")
         intentions = []
         for desire in desires:
-            gain = desire[0].get_gain(desire[1])
-            cost = desire[0].get_cost(desire[1])
+            gain = desire.get_gain(desire[1])
+            cost = desire.get_cost(desire[1])
             if gain > MIN_GAIN and cost < MAX_COST:
                 intentions.append(desire)
         return intentions
 
 
     def perform_action(self):
+        rospy.loginfo("BDI: Acting")
         chosen_intention = None
         min_cost = 999999
         for intention in self.intentions:
-            action = intention[0].get_next_action()
-            cost = action.get_cost(intention[1])
+            action = intention.get_next_action()
+            cost = action.get_cost()
             if cost < min_cost:
                 chosen_intention = intention
                 min_cost  = cost
         if not chosen_intention is None:
-            chosen_intention[0].perform_action(chosen_intention[1])
+            chosen_intention.perform_action(self.world_state)
 
 
     def loop(self):
@@ -86,6 +110,7 @@ class BDISystem:
 
 
     def update_beliefs(self):
+        rospy.loginfo("BDI: Updating beliefs")
         world = World_Trace()
         if not self.robot_position is None:
             self.robot_track.append(self.robot_position)
@@ -146,165 +171,3 @@ class BDISystem:
 
     def add_goal(self, goal):
         self.goals.append(goal)
-
-
-
-
-class Action:
-
-    conditions = []
-    consequences = []
-    label = ""
-    gain = 1.5
-
-
-    def perform(self, world_state, target):
-        print(self.label)
-        for consequence in self.consequences:
-            world_state.add_belief(consequence.replace(TARGET, target))
-
-
-    def get_cost(self, target):
-        return 0.0 # devise cost calculation
-
-
-
-class Goal:
-
-    subgoals = [] # list of subgoals (only if there is no action to be performed)
-    action = None # action to be performed (only if there are no subgoals)
-    instance = None
-
-
-    def __init__(self, world_state, subgoals=[], action=None):
-        self.world_state = world_state
-        self.subgoals = subgoals
-        self.action = action
-        self.guide = self.get_instance_guide()
-
-
-    def get_instance_guide(self):
-        if not self.action is None:
-            for condition in self.action.conditions:
-                start = condition.find(TARGET)
-                if start != -1:
-                    end = start + len(TARGET)
-                    prefix = condition[:start]
-                    postfix = condition[end:]
-                    return (prefix, postfix)
-        else:
-            for subgoal in self.subgoals:
-                guide = subgoal.get_instance_guide()
-                if not guide is None:
-                    return guide
-            return None
-
-
-    def get_conditions(self):
-        try:
-            return self.action.conditions
-        except AttributeError:
-            try:
-                return self.conditions
-            except AttributeError:
-                self.conditions = OrderedConsistentSet()
-                consequences = OrderedConsistentSet()
-                for subgoal in self.subgoals:
-                    new_conditions = subgoal.get_conditions()
-                    for condition in new_conditions:
-                        if not condition in consequences:
-                            self.conditions.append(condition)
-                    consequences += subgoal.get_consequences()
-                return self.conditions
-
-
-    def get_consequences(self):
-        try:
-            return self.action.consequences
-        except AttributeError:
-            try:
-                return self.consequences
-            except AttributeError:
-                self.consequences = OrderedConsistentSet()
-                for subgoal in self.subgoals:
-                    self.consequences += subgoal.get_consequences()
-                return self.consequences
-
-
-    def find_instances(self):
-        query = ""
-        for condition in self.get_conditions():
-            query += condition + " ^ "
-        query = query[:-3]
-        result = self.world_state.check(query)
-        targets = []
-        for key, value in result.results.items():
-            if not value is None:
-                # print("{:}: {:d}".format(key,value))
-                if not self.guide is None:
-                    start = key.find(self.guide[0]) + len(self.guide[0])
-                    end = key.find(self.guide[1])
-                    target = key[start:end]
-                    if not self.is_achieved(target):
-                        targets.append(target)
-        return targets
-
-
-    def is_achieved(self, target):
-        for consequence in self.get_consequences():
-            truth = self.world_state.truth(consequence.replace(TARGET, target))
-            if consequence.startswith("!"):
-                if truth is None or truth > TRUTH_THRESHOLD:
-                    return False
-            else:
-                if truth is None or truth <= TRUTH_THRESHOLD:
-                    return False
-        return True #TODO cache result
-
-
-    def get_action_queue(self):
-        try:
-            return self.action_queue
-        except AttributeError:
-            if not self.action is None:
-                self.action_queue = [self.action]
-            else:
-                self.action_queue = []
-                for subgoal in self.subgoals:
-                    self.action_queue += subgoal.get_action_queue()
-        return self.action_queue
-
-
-    def get_next_action(self):
-        return self.get_action_queue()[0]
-
-
-    def perform_action(self, target):
-        action = self.get_action_queue().pop(0)
-        action.perform(self.world_state, target)
-
-
-    def get_cost(self, target):
-        try:
-            return self.cost
-        except AttributeError:
-            try:
-                self.cost = self.action.get_cost(target)
-            except AttributeError:
-                self.cost = 0
-                for subgoal in self.subgoals:
-                    self.cost += subgoal.get_cost(target)
-        return self.cost
-
-
-    def get_gain(self, target):
-        try:
-            return self.gain
-        except AttributeError:
-            try:
-                self.gain = self.action.gain
-            except AttributeError:
-                self.gain = 0
-                for subgoal in self.subgoals:
-                    self.gain += subgoal.get_gain(target)
-        return self.gain

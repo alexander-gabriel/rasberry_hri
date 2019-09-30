@@ -53,8 +53,9 @@ class Scheduler:
         rospy.logdebug("node[%s, %s] entering spin(), pid[%s]", rospy.core.get_caller_id(), rospy.core.get_node_uri(), os.getpid())
         try:
             while not rospy.core.is_shutdown():
+                rospy.loginfo("Looping")
                 self.bdi.loop()
-                rospy.rostime.wallsleep(0.01)
+                rospy.rostime.wallsleep(1)
         except KeyboardInterrupt:
             rospy.logdebug("keyboard interrupt, shutting down")
             rospy.core.signal_shutdown('keyboard interrupt')

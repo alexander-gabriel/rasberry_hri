@@ -1,6 +1,6 @@
 import rospy
 
-from actions import MoveAction, GiveCrateAction
+from actions import MoveAction, MoveToAction, GiveCrateAction
 from utils import OrderedConsistentSet, suppress
 
 class Goal(object):
@@ -51,19 +51,25 @@ class Goal(object):
             except AttributeError:
                 cls.condition_templates = OrderedConsistentSet()
                 consequences = OrderedConsistentSet()
+
                 for subgoal in cls.subgoal_templates:
                     new_conditions = subgoal.get_condition_templates()
+                    consequences += subgoal.get_consequence_templates()
+                    # rospy.loginfo("new conditions:")
+                    # rospy.loginfo(new_conditions)
+                    # rospy.loginfo("new consequences:")
+                    # rospy.loginfo(consequences)
                     for condition in new_conditions:
                         if not condition in consequences:
                             cls.condition_templates.append(condition)
-                    consequences += subgoal.get_consequence_templates()
+
                 return cls.condition_templates
 
 
     @classmethod
     def get_consequence_templates(cls):
         try:
-            return cls.action_template.consequences
+            return cls.action_template.consequence_templates
         except AttributeError:
             try:
                 return cls.consequences
@@ -198,10 +204,10 @@ class MoveGoal(Goal):
 
 class MoveTo(Goal):
 
-    action_template = MoveAction
+    action_template = MoveToAction
 
-    def __init__(self, world_state, me, target):
-        super(MoveToGoal, self).__init__(world_state, [me, target])
+    def __init__(self, world_state, me, target, origin, destination):
+        super(MoveToGoal, self).__init__(world_state, [me, target, origin, destination])
 
 
 class GiveCrateGoal(Goal):
@@ -220,5 +226,5 @@ class DeliverGoal(Goal):
 
     def __init__(self, world_state, me, picker, origin, destination):
         super(DeliverGoal, self).__init__(world_state, [me, picker, origin, destination])
-        self.subgoals.append(MoveGoal(world_state, me, origin, destination))
+        self.subgoals.append(MoveToGoal(world_state, me, picker, origin, destination))
         self.subgoals.append(GiveCrateGoal(world_state, me, picker))

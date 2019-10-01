@@ -54,8 +54,9 @@ class BDISystem:
         for link in self.links.keys():
             nodes = link.split("_")
             self.links[link] = get_distance(self.node_positions[nodes[0]], self.node_positions[nodes[1]])
-        self.world_state.add_belief("is_a(picker01,Human)")
-        self.world_state.add_belief("has_role(picker01,Picker)")
+        for picker in ["picker01", "picker02"]:
+            self.world_state.add_belief("is_a({:},Human)".format(picker))
+            self.world_state.add_belief("has_role({:},Picker)".format(picker))
         self.world_state.add_belief("has_requested_crate(picker01)")
         self.world_state.add_belief("has_crate({:})".format(self.me))
         rospy.loginfo("BDI: Initialized BDI System")
@@ -121,7 +122,8 @@ class BDISystem:
             with suppress(KeyError):
                 latest_node = self.latest_people_nodes[person]
                 try:
-                    self.world_state.abandon_belief("{:}({:},{:})".format(latest_node[0], person, latest_node[1]))
+                    if current_node != "none":
+                        self.world_state.abandon_belief("{:}({:},{:})".format(latest_node[0], person, latest_node[1]))
                     rospy.logdebug("retracted: {:}({:},{:})".format(latest_node[0], person, latest_node[1]))
                 except ParseException:
                     rospy.loginfo("error!: {:}({:},{:})".format(latest_node[0], person, latest_node[1]))
@@ -130,10 +132,10 @@ class BDISystem:
                 self.latest_people_nodes[person] = ("is_at", current_node)
                 self.world_state.add_belief("is_at({:},{:})".format(person, current_node))
                 rospy.logdebug("added is_at({:},{:})".format(person, current_node))
-            else:
-                self.latest_people_nodes[person] = ("is_near", closest_node)
-                self.world_state.add_belief("is_near({:},{:})".format(person, closest_node))
-                rospy.logdebug("added is_near({:},{:})".format(person, closest_node))
+            # else:
+            #     self.latest_people_nodes[person] = ("is_near", closest_node)
+            #     self.world_state.add_belief("is_near({:},{:})".format(person, closest_node))
+            #     rospy.logdebug("added is_near({:},{:})".format(person, closest_node))
             if not person in self.people_tracks:
                 self.people_tracks[person] = [position]
             else:

@@ -46,17 +46,35 @@ class MoveAction(Action):
     #         self.consequences.append(consequence.replace("?destination", destination).replace(ME, me))
 
 
+class MoveToAction(Action):
+
+    label = "MoveTo"
+    condition_templates = ["is_at(?me,?origin)", "is_at(?target,?destination)"]
+    consequence_templates = ["is_at(?me,?destination)", "is_at(?target,?destination)", "colocated(?me,?target)", "colocated(?target,?me)" ]
+    placeholders = ["me", "target", "origin", "destination"] # in same order as constructor arguments
+    gain = 10
+
+
+    def __init__(self, world_state, me, target, origin, destination):
+        super(MoveToAction, self).__init__(world_state, [me, target, origin, destination])
+    #     for condition in self.condition_templates:
+    #         self.conditions.append(condition.replace("?origin", origin).replace(ME, me))
+    #     for consequence in self.consequence_templates:
+    #         self.consequences.append(consequence.replace("?destination", destination).replace(ME, me))
+
+
+
 class GiveCrateAction(Action):
 
     label = "Give Crate"
-    condition_templates = ["sam(?me,?picker)", "!has_crate(?picker)", "has_requested_crate(?picker)"]
-    consequence_templates = ["sam(?me,?picker)", "has_crate(?picker)", "!has_requested_crate(?picker)"]
-    placeholders = ["me", "picker"] # in same order as constructor arguments
+    condition_templates = ["colocated(?me,?target)", "!has_crate(?target)", "has_requested_crate(?target)"]
+    consequence_templates = ["colocated(?me,?target)", "has_crate(?target)", "!has_requested_crate(?target)"]
+    placeholders = ["me", "target"] # in same order as constructor arguments
     gain = 100
 
 
-    def __init__(self, world_state, me, picker):
-        super(GiveCrateAction, self).__init__(world_state, [me, picker])
+    def __init__(self, world_state, me, target):
+        super(GiveCrateAction, self).__init__(world_state, [me, target])
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?picker", picker).replace(ME, me))
     #     for consequence in self.consequence_templates:

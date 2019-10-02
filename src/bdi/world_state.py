@@ -1,10 +1,11 @@
 from threading import Lock
-
-import rospkg
 from os.path import join
-from pracmln import MLN, Database, MLNQuery
-from pracmln.mln import Predicate
-from pracmln.utils.project import PRACMLNConfig, MLNProject
+
+import rospy
+import rospkg
+
+from probcog.MLN import MLN, Database
+
 
 rospack = rospkg.RosPack()
 path = join(rospack.get_path('rasberry_hri'), 'src', 'bdi')
@@ -20,44 +21,42 @@ class WorldState():
 
     def __init__(self):
 
-        self.mln = MLN(mlnfile=MLN_FILENAME, grammar='PRACGrammar', logic='FuzzyLogic')
+        self.mln = MLN(MLN_FILENAME)
         self.lock = Lock()
         self.db = Database(self.mln, dbfile=DB_FILENAME)
-        self.query = MLNQuery(mln=self.mln, db=self.db, verbose=VERBOSE)
-        self.query._config['method'] = INFERENCE_METHOD
-        self.query._config['multicore'] = True
 
 
-    def get_probability(self, belief, threshhold):
+    def get_probability(self, belief):
         self.lock.acquire()
-        return self.db.query(belief, threshhold)
+        probability = self.db.evidence[belief]
         self.lock.release()
+        return probability
 
 
-    def set_probability(self, belief, strength):
+    def set_probability(self, belief, truth):
         self.lock.acquire()
-        self.db[belief] = strength
+        self.db.readContent("{:f} {:}".format(truth, belief))
         self.lock.release()
 
 
     def abandon_belief(self, belief):
         self.lock.acquire()
-        del self.db[belief]
+        del self.db.evidence[belief]
         self.lock.release()
 
 
     def reason(self):
-        self.query._config['queries'] = None
-        result = self.query.run()
+        mrf = self.mln.groundMRF(self.db)
+        result = mrf.inferMCSAT([], verbose=False)
         self.lock.acquire()
-        for evidence, truth in result.result_dict().items():
-            self.db.add(evidence, truth)
+        for belief, truth in result.result_dict().items():
+            self.db.evidence[belief] = truth
         self.lock.release()
 
 
     def check(self, queries):
-        self.query._config['queries'] = queries
-        result = self.query.run()
+        mrf = self.mln.groundMRF(self.db)
+        result = mrf.inferMCSAT(queries, verbose=False)
         # self.lock.acquire()
         # for evidence, truth in result.result_dict().items():
         #     bdi.world_state.db.add(evidence, truth)
@@ -110,6 +109,7 @@ class WorldState():
 
 
     def save(self):
+        raise NotImplementedError
         with open(DB_FILENAME, "w") as file:
             self.lock.acquire()
             self.db.write(file, bars=False)
@@ -123,7 +123,7 @@ class WorldState():
 
     def write_evidence(self):
         self.lock.acquire()
-        self.db.write()
+        print(self.db.evidence)
         self.lock.release()
 
 

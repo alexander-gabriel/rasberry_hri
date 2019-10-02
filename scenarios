@@ -1,43 +1,42 @@
-1.0 is_a(picker01A,Human)
-1.0 has_requested_crate(picker01A)
-1.0 is_at(picker01A,waypoint3A)
+1.0 is_a(Picker01A,Human)
+1.0 has_requested_crate(Picker01A)
+1.0 is_at(Picker01A,Waypoint3A)
 
-1.0 is_a(thorvald_001A,Robot)
-1.0 is_at(thorvald_001A,waypoint2A)
+1.0 is_a(Thorvald_001A,Robot)
+1.0 is_at(Thorvald_001A,Waypoint2A)
 
 
 
-1.0 is_a(picker01B,Human)
-1.0 has_crate(picker01B)
-1.0 is_at(picker01B,waypoint1B)
+1.0 is_a(Picker01B,Human)
+1.0 has_crate(Picker01B)
+1.0 is_at(Picker01B,Waypoint1B)
 
-1.0 is_a(thorvald_001B,Robot)
-1.0 is_at(thorvald_001B,waypoint2B)
+1.0 is_a(Thorvald_001B,Robot)
+1.0 is_at(Thorvald_001B,Waypoint2B)
 
 1.0 is_a(plant1B,Plant)
-1.0 is_at(plant1B,waypoint3B)
+1.0 is_at(plant1B,Waypoint3B)
 
 
 
-1.0 is_a(picker01C,Human)
-1.0 !has_crate(picker01C)
-1.0 is_at(picker01C,waypoint1C)
+1.0 is_a(Picker01C,Human)
+1.0 !has_crate(Picker01C)
+1.0 is_at(Picker01C,Waypoint1C)
 
-1.0 is_a(thorvald_001C,Robot)
-1.0 is_at(thorvald_001C,waypoint2C)
+1.0 is_a(Thorvald_001C,Robot)
+1.0 is_at(Thorvald_001C,Waypoint2C)
 
 1.0 is_a(crate1C,Crate)
-1.0 is_at(crate1C,waypoint3C)
+1.0 is_at(crate1C,Waypoint3C)
 
 
 
 
-1.0 leads_to(waypoint1A,waypoint2A)
-1.0 leads_to(waypoint2A,waypoint3A)
+1.0 leads_to(Waypoint1A,Waypoint2A)
+1.0 leads_to(Waypoint2A,Waypoint3A)
 
-1.0 leads_to(waypoint1B,waypoint2B)
-1.0 leads_to(waypoint2B,waypoint3B)
+1.0 leads_to(Waypoint1B,Waypoint2B)
+1.0 leads_to(Waypoint2B,Waypoint3B)
 
-1.0 leads_to(waypoint1C,waypoint2C)
-1.0 leads_to(waypoint2C,waypoint3C)
-
+1.0 leads_to(Waypoint1C,Waypoint2C)
+1.0 leads_to(Waypoint2C,Waypoint3C)

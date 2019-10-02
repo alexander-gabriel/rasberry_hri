@@ -1,7 +1,6 @@
 import time
 import rospy
 
-from pyparsing import ParseException
 from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
 from qsrlib_io.world_trace import Object_State,World_Trace
 
@@ -46,21 +45,18 @@ class BDISystem:
         self.node_positions = {}
         self.route_search = TopologicalRouteSearch(self.locator.tmap)
         for node in self.locator.tmap.nodes:
-            self.world_state.add_belief("is_a({:},Place)".format(node.name))
+            self.world_state.add_belief("is_a({:},Place)".format(node.name.capitalize()))
             self.node_positions[node.name] = node.pose
             for edge in node.edges:
                 self.links["_".join([node.name, edge.node])] = 0
-                self.world_state.add_belief("leads_to({:},{:})".format(node.name, edge.node))
+                self.world_state.add_belief("leads_to({:},{:})".format(node.name.capitalize(), edge.node.capitalize()))
         for link in self.links.keys():
             nodes = link.split("_")
             self.links[link] = get_distance(self.node_positions[nodes[0]], self.node_positions[nodes[1]])
         for picker in ["picker01", "picker02"]:
-            self.world_state.add_belief("is_a({:},Human)".format(picker))
-            self.world_state.add_belief("has_role({:},Picker)".format(picker))
-        self.world_state.add_belief("has_requested_crate(picker01)")
-        self.world_state.add_belief("has_crate({:})".format(self.me))
+            self.world_state.add_belief("is_a({:},Human)".format(picker.capitalize()))
+        self.world_state.add_belief("has_requested_crate(Picker01)")
         rospy.loginfo("BDI: Initialized BDI System")
-        time.sleep(3)
 
 
     def generate_options(self):
@@ -125,7 +121,7 @@ class BDISystem:
                     if current_node != "none":
                         self.world_state.abandon_belief("{:}({:},{:})".format(latest_node[0], person, latest_node[1]))
                     rospy.logdebug("retracted: {:}({:},{:})".format(latest_node[0], person, latest_node[1]))
-                except ParseException:
+                except Exception:
                     rospy.loginfo("error!: {:}({:},{:})".format(latest_node[0], person, latest_node[1]))
 
             if current_node != "none":

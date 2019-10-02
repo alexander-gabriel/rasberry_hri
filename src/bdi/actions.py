@@ -32,8 +32,8 @@ class Action:
 class MoveAction(Action):
 
     label = "Move"
-    condition_templates = ["is_at(?me,?origin)"]
-    consequence_templates = ["is_at(?me,?destination)"]
+    condition_templates = ["is_at(me,origin)"]
+    consequence_templates = ["is_at(me,destination)"]
     placeholders = ["me", "origin", "destination"] # in same order as constructor arguments
     gain = 0
 
@@ -49,8 +49,8 @@ class MoveAction(Action):
 class MoveToAction(Action):
 
     label = "MoveTo"
-    condition_templates = ["is_at(?me,?origin)", "is_at(?target,?destination)"]
-    consequence_templates = ["is_at(?me,?destination)", "is_at(?target,?destination)", "colocated(?me,?target)", "colocated(?target,?me)" ]
+    condition_templates = ["is_at(me,origin)", "is_at(target,destination)"]
+    consequence_templates = ["is_at(me,destination)", "is_at(target,destination)", "colocated(me,target)", "colocated(target,me)" ]
     placeholders = ["me", "target", "origin", "destination"] # in same order as constructor arguments
     gain = 10
 
@@ -67,8 +67,8 @@ class MoveToAction(Action):
 class GiveCrateAction(Action):
 
     label = "Give Crate"
-    condition_templates = ["colocated(?me,?target)", "!has_crate(?target)", "has_requested_crate(?target)"]
-    consequence_templates = ["colocated(?me,?target)", "has_crate(?target)", "!has_requested_crate(?target)"]
+    condition_templates = ["colocated(me,target)", "!has_crate(target)", "has_requested_crate(target)"]
+    consequence_templates = ["colocated(me,target)", "has_crate(target)", "!has_requested_crate(target)"]
     placeholders = ["me", "target"] # in same order as constructor arguments
     gain = 100
 

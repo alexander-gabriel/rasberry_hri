@@ -1,0 +1,4 @@
+is_a(Thorvald_001,Robot)
+is_a(Picker01,Human)
+is_a(Picker02,Human)
+has_requested_crate(Picker01)

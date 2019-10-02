@@ -1,63 +1,3 @@
-class = {Human, Robot, Plant, Object, Crate}
-
-
-// --- predicates ---
-
-is_a(thing,class!)
-is_mobile(thing)
-
-//tpcc
-sam(place,place) // same position
-dou(place,place) //same position
-tri(place,place) //same position
-// left back: less left than back; back left: less back than left <- importance increasing to the right
-
-//close
-clb(place,place) // close left back
-cbl(place,place) // close back left
-csl(place,place) // close straight left  -- left
-cfl(place,place) // close front left
-clf(place,place) // close left front
-csf(place,place) // close straight front  -- before
-crf(place,place) // close right front
-cfr(place,place) // close front right
-csr(place,place) // close straight right  -- right
-cbr(place,place) // close back right
-crb(place,place) // close right back
-csb(place,place) // close straight back  -- behind
-
-//distant
-dlb(place,place) // distant left back
-dbl(place,place) // distant back left
-dsl(place,place) // distant straight left  -- left
-dfl(place,place) // distant front left
-dlf(place,place) // distant left front
-dsf(place,place) // distant straight front  -- before
-drf(place,place) // distant right front
-dfr(place,place) // distant front right
-dsr(place,place) // distant straight right  -- right
-dbr(place,place) // distant back right
-drb(place,place) // distant right back
-dsb(place,place) // distant straight back -- behind
-
-// location predicates
-is_at(thing,place!)
-colocated(thing,thing)
-can_reach(thing,thing)
-moveTo(thing,thing)
-is_near(thing,thing)
-is_facing(thing,thing)
-leads_to(place,place)
-free_path(place,place)
-linked(place,place)
-carries_berries(place)
-
-
-// crate status predicates
-has_crate(thing)
-has_requested_crate(thing)
-
-
 ///formulas
 
 
@@ -114,3 +54,4 @@ is_a(human,Human) ^ is_a(robot,Robot) ^ is_a(plant,Plant) ^ has_crate(human) ^ !
 // approach setting
 
 is_a(human,Human) ^ is_a(robot,Robot) ^ is_a(crate,Crate) ^ !has_crate(human) ^ can_reach(human,robot) ^ !can_reach(human,crate) ^ can_reach(robot,crate) => moveTo(robot,crate).
+

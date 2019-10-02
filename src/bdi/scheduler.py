@@ -26,13 +26,10 @@ class Scheduler:
         self.robot_id = robot_id
         self.robot_control = actionlib.SimpleActionClient('topological_navigation', GotoNodeAction)
         self.robot_control.wait_for_server()
+        rospy.loginfo("SCH: Found Robot Countrol Server")
         self.latest_robot_node = None
         self.bdi = BDISystem(self.robot_id)
-
-        self.bdi.world_state.add_belief("is_a({:},Robot)".format(self.robot_id))
-
-
-
+        self.bdi.world_state.add_belief("is_a({:},Robot)".format(self.robot_id.capitalize()))
         self.robot_sub = rospy.Subscriber('robot_pose', Pose, self.robot_position_coordinate_callback)
         self.robot_sub = rospy.Subscriber('current_node', String, self.robot_position_node_callback)
         #TODO: move to multiple pickers
@@ -68,20 +65,20 @@ class Scheduler:
     def robot_position_node_callback(self, msg):
         if not self.latest_robot_node is None:
             # rospy.loginfo("retracting is_at({:},{:})".format(self.robot_id, self.latest_robot_node))
-            self.bdi.world_state.abandon_belief("is_at({:},{:})".format(self.robot_id, self.latest_robot_node))
-            rospy.logdebug("retracted is_at({:},{:})".format(self.robot_id, self.latest_robot_node))
+            self.bdi.world_state.abandon_belief("is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node.capitalize()))
+            rospy.logdebug("retracted is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node.capitalize()))
         if msg.data != "none":
             self.latest_robot_node = wp2sym(msg.data)
-            self.bdi.world_state.add_belief("is_at({:},{:})".format(self.robot_id, self.latest_robot_node))
-            rospy.logdebug("added is_at({:},{:})".format(self.robot_id, self.latest_robot_node))
+            self.bdi.world_state.add_belief("is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node.capitalize()))
+            rospy.logdebug("added is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node.capitalize()))
         else:
             self.latest_robot_node = None
 
 
     def human_intention_callback(self, msg):
         # TODO: match detected person to symbol
-        self.bdi.world_state.add_belief("{:}({:})".format(msg.action, msg.id))
-        rospy.logdebug("added {:}({:})".format(msg.action, msg.id))
+        self.bdi.world_state.add_belief("{:}({:})".format(msg.action, msg.id.capitalize()))
+        rospy.logdebug("added {:}({:})".format(msg.action, msg.id.capitalize()))
 
 
     def people_tracker_callback(self, msg, id):

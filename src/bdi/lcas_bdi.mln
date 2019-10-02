@@ -1,10 +1,9 @@
-class = {Human, Robot, Plant, Object, Place, Crate}
-role = {Supervisor, Picker}
+class = {Human, Robot, Plant, Object, Crate}
 
 
 // --- predicates ---
 
-is_a(thing,class?)
+is_a(thing,class!)
 is_mobile(thing)
 has_role(thing,role?)
 
@@ -42,128 +41,77 @@ dbr(place,place) // distant back right
 drb(place,place) // distant right back
 dsb(place,place) // distant straight back -- behind
 
-
 // location predicates
-is_at(thing,place)
+is_at(thing,place!)
 colocated(thing,thing)
 can_reach(thing,thing)
-goto(thing,thing)
+moveTo(thing,thing)
 is_near(thing,thing)
 is_facing(thing,thing)
 leads_to(place,place)
+free_path(place,place)
 linked(place,place)
 carries_berries(place)
 
 
 // crate status predicates
 has_crate(thing)
-wants_crate(thing)
 has_requested_crate(thing)
 
 
+///formulas
 
-// --- formulas ---
 
+//basic abilities and desires
+
+#fixweight
+is_a(?mobile,Robot) v is_a(?mobile,Human) <=> is_mobile(?mobile).
+#fixweight
+!is_a(?nonhuman,Human) => !(has_requested_crate(?nonhuman) v has_crate(?nonhuman)).
 
 //location reasoning
 
-!leads_to(?place1,?place1).
+#fixweight
+?place1=?place2 => (!leads_to(?place1,?place2) ^ !free_path(?place1,?place2)).
 
 #fixweight
 leads_to(?place1,?place2) => linked(?place1,?place2).
 #fixweight
-linked(?place1,?place2) ^ linked(?place2,?place3) => linked(?place1,?place3).
+linked(?place1,?place2) ^ linked(?place2,?place3) ^ ?place1=/=?place3 => linked(?place1,?place3).
+
+leads_to(?place1,?place2) ^ !(EXIST ?thing (is_at(?thing,?place2))) ^ (free_path(?place2,?place3) v ?place2=place3) => free_path(?place1,?place3).
 
 #fixweight
-is_at(?mobile,?place1) ^ is_mobile(?mobile) ^ is_at(?object,?place2) ^ linked(?place1,?place2) => can_reach(?mobile,?object).
+?mobile=/=?object ^ is_at(?mobile,?place1) ^ is_mobile(?mobile) ^ is_at(?object,?place2) ^ (free_path(?place1,?place2) v leads_to(?place1,?place2)) => can_reach(?mobile,?object).
+#fixweight
+is_at(?thing,?place1) ^ is_at(?object,?place2) ^ (!(free_path(?place1,?place2) v leads_to(?place1,?place2)) v !is_mobile(?thing)) => !can_reach(?thing,?object).
 
 #fixweight
-is_at(?thing1,?place1) ^ is_at(?thing2,?place1) ^ ?thing1 =/= ?thing2 => colocated(?thing1, ?thing2) ^ colocated(?thing2, ?thing1).
-
-//basic abilities and desires
-
-
+?thing1=/=?thing2 ^ is_at(?thing1,?place1) ^ is_at(?thing2,?place1) => colocated(?thing1,?thing2).
 #fixweight
-is_a(?plant,Plant) => !is_mobile(?plant).
-#fixweight
-is_a(?plant,Plant) => !has_crate(?plant).
-#fixweight
-is_a(?plant,Plant) => !wants_crate(?plant).
-#fixweight
-is_a(?plant,Plant) => !has_role(?plant,?y).
-
-
-
-
-#fixweight
-is_a(?object,Object) => !is_mobile(?object).
-#fixweight
-is_a(?object,Object) => !has_crate(?object).
-#fixweight
-is_a(?object,Object) => !wants_crate(?object).
-#fixweight
-is_a(?object,Object) => !has_role(?object,?y).
-
-
-
-#fixweight
-is_a(?place,Place) => !is_mobile(?place).
-#fixweight
-is_a(?place,Place) => !wants_crate(?place).
-#fixweight
-is_a(?place,Place) => !has_role(?place,?y).
-
-
-
-#fixweight
-is_a(?robot,Robot) => is_mobile(?robot).
-#fixweight
-is_a(?robot,Robot) => !has_role(?robot,?y).
-#fixweight
-is_a(?robot, Robot) => !has_requested_crate(?robot).
-
-
-
-#fixweight
-is_a(?human,Human) => is_mobile(?human).
-
-
-
-// mobility
-
-#fixweight
-is_mobile(?mobile) => !can_reach(?mobile,?mobile).
-#fixweight
-!is_mobile(?mobile) => !can_reach(?mobile,?thing).
+?thing1=/=?thing2 ^ ?place1=/=?place2 ^ is_at(?thing1,?place1) ^ is_at(?thing2,?place2) => !colocated(?thing1,?thing2).
 
 
 // crate logic
 
-#fixweight
-(is_a(?human,Human) ^ has_role(?human,Picker) ^ !has_crate(?human)) => wants_crate(?human).
-#fixweight
-(is_a(?human,Human) ^ has_role(?human,Picker) ^ has_crate(?human)) => !wants_crate(?human).
-#fixweight
-has_crate(?mobile) => !has_requested_crate(?mobile).
 
 
-// roles
 #fixweight
-(is_a(?human,Human) ^ has_crate(?human)) => has_role(?human,Picker).
+has_crate(?human) => !has_requested_crate(?human).
 
+// -- scenarios --
+
+// bring crate
 #fixweight
-has_role(?human,Supervisor) => !wants_crate(?human).
+is_a(?human,Human) ^ is_a(?robot,Robot) ^ has_requested_crate(?human) ^ can_reach(?robot,?human) => moveTo(?robot,?human).
+is_a(?human,Human) ^ is_a(?robot,Robot) ^ (!has_requested_crate(?human) v !can_reach(?robot,?human)) => !moveTo(?robot,?human).
 
-// bring crate setting
+
+// make way
 #fixweight
-(is_a(?human,Human) ^ is_a(?robot,Robot) ^ has_requested_crate(?human)) => goto(?robot,?human).
-
-
-// make way setting
-#fixweight
-(is_a(?human,Human) ^ is_a(?robot,Robot) ^ has_crate(?human) ^ is_a(?plant,Plant) ^ !can_reach(?human,?plant) ^ !has_requested_crate(?human)) => goto(?robot,?plant).
+is_a(?human,Human) ^ is_a(?robot,Robot) ^ is_a(?plant,Plant) ^ has_crate(?human) ^ !can_reach(?human,?plant) ^ can_reach(?robot, ?plant) ^ can_reach(?human,?robot) => moveTo(?robot,?plant).
 
 
 // approach setting
 #fixweight
-(is_a(?human,Human) ^ is_a(?robot,Robot) ^ is_at(?robot,?place1) ^ is_a(?crate, Crate) ^ is_at(?crate,?place2) ^ !has_crate(?human) ^ (csb(?place1,?place2)v dsb(?place1,?place2))) => goto(?robot,?crate).
+is_a(?human,Human) ^ is_a(?robot,Robot) ^ is_a(?crate,Crate) ^ !has_crate(?human) ^ can_reach(?human,?robot) ^ !can_reach(?human,?crate) ^ can_reach(?robot,?crate) => moveTo(?robot,?crate).

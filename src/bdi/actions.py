@@ -1,6 +1,8 @@
+from robot_control import RobotControl
 
 class Action:
 
+    robco = RobotControl()
     label = "Abstract"
 
     def __init__(self, world_state, args):
@@ -20,8 +22,8 @@ class Action:
         for condition in self.conditions:
             if not condition in self.consequences:
                 self.world_state.abandon_belief(condition)
-        for consequence in self.consequences:
-            self.world_state.add_belief(consequence)
+        # for consequence in self.consequences:
+        #     self.world_state.add_belief(consequence)
 
 
     def get_cost(self):
@@ -40,10 +42,15 @@ class MoveAction(Action):
 
     def __init__(self, world_state, me, origin, destination):
         super(MoveAction, self).__init__(world_state, [me, origin, destination])
+        self.destination = destination
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?origin", origin).replace(ME, me))
     #     for consequence in self.consequence_templates:
     #         self.consequences.append(consequence.replace("?destination", destination).replace(ME, me))
+
+    def perform(self):
+        super(Action, self).perform()
+        self.robco.move_to(self.destination)
 
 
 class MoveToAction(Action):
@@ -57,10 +64,15 @@ class MoveToAction(Action):
 
     def __init__(self, world_state, me, target, origin, destination):
         super(MoveToAction, self).__init__(world_state, [me, target, origin, destination])
+        self.destination = destination
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?origin", origin).replace(ME, me))
     #     for consequence in self.consequence_templates:
     #         self.consequences.append(consequence.replace("?destination", destination).replace(ME, me))
+
+    def perform(self):
+        super(Action, self).perform()
+        self.robco.move_to(self.destination)
 
 
 

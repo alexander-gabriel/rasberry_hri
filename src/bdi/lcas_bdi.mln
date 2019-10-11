@@ -43,12 +43,12 @@ dsb(place,place) // distant straight back -- behind
 // location predicates
 is_at(thing,place!)
 colocated(thing,thing)
-can_reach(thing,thing)
+//can_reach(thing,thing)
 moveTo(thing,thing)
-is_near(thing,thing)
-is_facing(thing,thing)
+//is_near(thing,thing)
+//is_facing(thing,thing)
 leads_to(place,place)
-free_path(place,place)
+//free_path(place,place)
 linked(place,place)
 carries_berries(place)
 
@@ -71,19 +71,19 @@ is_a(mobile,Robot) v is_a(mobile,Human) <=> is_mobile(mobile).
 //location reasoning
 
 
-place1=place2 => (!leads_to(place1,place2) ^ !free_path(place1,place2)).
-
+//place1=place2 => (!leads_to(place1,place2) ^ !free_path(place1,place2)).
+place1=place2 => !leads_to(place1,place2)
 
 leads_to(place1,place2) => linked(place1,place2).
 
 linked(place1,place2) ^ linked(place2,place3) ^ !(place1=place3) => linked(place1,place3).
 
-leads_to(place1,place2) ^ !(EXIST thing (is_at(thing,place2))) ^ (free_path(place2,place3) v place2=place3) => free_path(place1,place3).
+//leads_to(place1,place2) ^ !(EXIST thing (is_at(thing,place2))) ^ (free_path(place2,place3) v place2=place3) => free_path(place1,place3).
 
 
-!(mobile=object) ^ is_at(mobile,place1) ^ is_mobile(mobile) ^ is_at(object,place2) ^ (free_path(place1,place2) v leads_to(place1,place2)) => can_reach(mobile,object).
+//!(mobile=object) ^ is_at(mobile,place1) ^ is_mobile(mobile) ^ is_at(object,place2) ^ (free_path(place1,place2) v leads_to(place1,place2)) => can_reach(mobile,object).
 
-is_at(thing,place1) ^ is_at(object,place2) ^ (!(free_path(place1,place2) v leads_to(place1,place2)) v !is_mobile(thing)) => !can_reach(thing,object).
+//is_at(thing,place1) ^ is_at(object,place2) ^ (!(free_path(place1,place2) v leads_to(place1,place2)) v !is_mobile(thing)) => !can_reach(thing,object).
 
 
 !(thing1=thing2) ^ is_at(thing1,place1) ^ is_at(thing2,place1) => colocated(thing1,thing2).
@@ -101,16 +101,36 @@ has_crate(human) => !has_requested_crate(human).
 // -- scenarios --
 
 // bring crate
+//is_a(human,Human) ^ is_a(robot,Robot) ^ (!has_requested_crate(human) v !can_reach(robot,human)) => !moveTo(robot,human).
+//is_a(human,Human) ^ is_a(robot,Robot) ^ has_requested_crate(human) ^ can_reach(robot,human) => moveTo(robot,human).
+is_a(human,Human) ^ is_a(robot,Robot) ^ has_requested_crate(human) => moveTo(robot,human).
 
-is_a(human,Human) ^ is_a(robot,Robot) ^ has_requested_crate(human) ^ can_reach(robot,human) => moveTo(robot,human).
-is_a(human,Human) ^ is_a(robot,Robot) ^ (!has_requested_crate(human) v !can_reach(robot,human)) => !moveTo(robot,human).
 
 
 // make way
+//is_a(human,Human) ^ is_a(robot,Robot) ^ has_crate(human) ^ !(EXIST place (carries_berries(place1) ^ can_reach(human,place1))) ^ carries_berries(place2) ^can_reach(robot, place2) ^ can_reach(human,robot) => moveTo(robot,place2).
+//is_a(human,Human) ^ is_a(robot,Robot) ^ has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ carries_berries(place3) ^ linked(place1,place2) ^ leads_to(place2,place3) => moveTo(robot,place3).
+is_a(human,Human) ^ is_a(robot,Robot) ^ has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ carries_berries(place3) ^ dsb(place1,place2) ^ dsf(place2,place3) => moveTo(robot,place3).
+is_a(human,Human) ^ is_a(robot,Robot) ^ has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ carries_berries(place3) ^ csb(place1,place2) ^ dsf(place2,place3) => moveTo(robot,place3).
+is_a(human,Human) ^ is_a(robot,Robot) ^ has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ carries_berries(place3) ^ dsb(place1,place2) ^ csf(place2,place3) => moveTo(robot,place3).
+is_a(human,Human) ^ is_a(robot,Robot) ^ has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ carries_berries(place3) ^ csb(place1,place2) ^ csf(place2,place3) => moveTo(robot,place3).
 
-is_a(human,Human) ^ is_a(robot,Robot) ^ is_a(plant,Plant) ^ has_crate(human) ^ !can_reach(human,plant) ^ can_reach(robot, plant) ^ can_reach(human,robot) => moveTo(robot,plant).
-
+is_a(human,Human) ^ is_a(robot,Robot) ^ has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ carries_berries(place3) ^ dsb(place2,place3) ^ dsf(place1,place2) => moveTo(robot,place3).
+is_a(human,Human) ^ is_a(robot,Robot) ^ has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ carries_berries(place3) ^ csb(place2,place3) ^ dsf(place1,place2) => moveTo(robot,place3).
+is_a(human,Human) ^ is_a(robot,Robot) ^ has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ carries_berries(place3) ^ dsb(place2,place3) ^ csf(place1,place2) => moveTo(robot,place3).
+is_a(human,Human) ^ is_a(robot,Robot) ^ has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ carries_berries(place3) ^ csb(place2,place3) ^ csf(place1,place2) => moveTo(robot,place3).
 
 // approach setting
 
-is_a(human,Human) ^ is_a(robot,Robot) ^ is_a(crate,Crate) ^ !has_crate(human) ^ can_reach(human,robot) ^ !can_reach(human,crate) ^ can_reach(robot,crate) => moveTo(robot,crate).
+//is_a(human,Human) ^ is_a(robot,Robot) ^ is_a(crate,Crate) ^ !has_crate(human) ^ can_reach(human,robot) ^ !can_reach(human,crate) ^ can_reach(robot,crate) => moveTo(robot,crate).
+//is_a(human,Human) ^ is_a(robot,Robot) ^ is_a(crate,Crate) ^ !has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ is_at(crate,place3) ^ linked(place1,place2) ^ leads_to(place2,place3) => moveTo(robot,crate).
+
+is_a(human,Human) ^ is_a(robot,Robot) ^ is_a(crate,Crate) ^ !has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ is_at(crate,place3) ^ dsb(place1,place2) ^ dsf(place2,place3) => moveTo(robot,crate).
+is_a(human,Human) ^ is_a(robot,Robot) ^ is_a(crate,Crate) ^ !has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ is_at(crate,place3) ^ csb(place1,place2) ^ dsf(place2,place3) => moveTo(robot,crate).
+is_a(human,Human) ^ is_a(robot,Robot) ^ is_a(crate,Crate) ^ !has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ is_at(crate,place3) ^ dsb(place1,place2) ^ csf(place2,place3) => moveTo(robot,crate).
+is_a(human,Human) ^ is_a(robot,Robot) ^ is_a(crate,Crate) ^ !has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ is_at(crate,place3) ^ csb(place1,place2) ^ csf(place2,place3) => moveTo(robot,crate).
+
+is_a(human,Human) ^ is_a(robot,Robot) ^ is_a(crate,Crate) ^ !has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ is_at(crate,place3) ^ dsb(place2,place3) ^ dsf(place1,place2) => moveTo(robot,crate).
+is_a(human,Human) ^ is_a(robot,Robot) ^ is_a(crate,Crate) ^ !has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ is_at(crate,place3) ^ csb(place2,place3) ^ dsf(place1,place2) => moveTo(robot,crate).
+is_a(human,Human) ^ is_a(robot,Robot) ^ is_a(crate,Crate) ^ !has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ is_at(crate,place3) ^ dsb(place2,place3) ^ csf(place1,place2) => moveTo(robot,crate).
+is_a(human,Human) ^ is_a(robot,Robot) ^ is_a(crate,Crate) ^ !has_crate(human) ^ is_at(human,place1) ^ is_at(robot,place2) ^ is_at(crate,place3) ^ csb(place2,place3) ^ csf(place1,place2) => moveTo(robot,crate).

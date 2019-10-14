@@ -10,7 +10,7 @@ from rasberry_hri.msg import Action, Command
 
 from converter import Converter
 from classifiers import MinimumDifferenceClassifier
-from utils import get_model_prototype
+from utils import get_angle_prototype, get_position_prototype
 
 
 
@@ -51,27 +51,37 @@ class ActionRecognition:
 
 
     def openpose_callback(self, timestamp, source, response):
-        joints = self.get_angles(response.recognitions)
-        action = get_action(joints)
+        angles = self.get_angles(response.recognitions)
+        positions = self.get_positions(response.recognitions)
+        action = self.get_action(angles, positions)
         if action is not None:
             outmsg = Action()
             outmsg.header.stamp = timestamp
             outmsg.action = action
             #TODO: identify picker
             outmsg.id = "picker01"
-            outmsg.pose = msg.pose
             self.action_publisher.publish(outmsg)
-            outmsg = Command()
-            outmsg.header.stamp = timestamp
-            outmsg.command = action
-            self.command_publisher.publish(outmsg)
+            # outmsg = Command()
+            # outmsg.header.stamp = timestamp
+            # outmsg.command = action
+            # self.command_publisher.publish(outmsg)
+
+
+    def get_positions(self, recognitions):
+        self.converter.create_index_map(recognitions)
+        # convert x/y offsets to values relative to some reference point (neck?)
+        # adjust joint number and setup and labels
+        model = get_position_prototype()
+        for id in model.keys():
+            model[id] = self.converter.get_position(id)
+        return model
 
 
     def get_angles(self, recognitions):
         self.converter.create_index_map(recognitions)
         # convert x/y offsets to values relative to some reference point (neck?)
         # adjust joint number and setup and labels
-        model = get_model_prototype()
+        model = get_angle_prototype()
         for id in ['Neck-Z', 'Upper-Spine-X', 'Mid-Spine-X', 'Lower-Spine-X']:
             try:
                 model[id] = self.converter.get_angle2(id)
@@ -88,9 +98,6 @@ class ActionRecognition:
                 model[id] = self.converter.get_angle1(id)
             except:
                 pass
-        joints = []
-        for label,angle in model.items():
-            joints.append(joint)
         # self.publisher.publish(outmsg)
         # if msg.header.frame_id == "RGB":
         #     self.model.add_sample(CATEGORY_JOINTS_OPENPOSE_2D_RGB, msg.header.stamp, model)
@@ -99,15 +106,11 @@ class ActionRecognition:
         # else:
         #     print("unknown category")
         #self.model.classify(inp)
-        return joints
+        return model
 
 
-    def get_action(self, joints):
-        model = get_model_prototype()
-        action = dict()
-        for joint in joints:
-            action[joint.label] = joint.angle
-        action_label, error = self.classifier.classify(action)
+    def get_action(self, angles, positions):
+        action_label, error = self.classifier.classify(angles, positions)
         if error < self.classifier.limit:
             if not action_label in self.last_detected_count:
                 self.last_detected_count[action_label] = 1

@@ -10,7 +10,7 @@ from rasberry_people_perception.topological_localiser import TopologicalNavLoc
 from topological_navigation.route_search import TopologicalRouteSearch
 from utils import OrderedConsistentSet, suppress
 from world_state import WorldState
-from goals import MoveGoal, GiveCrateGoal, DeliverGoal
+from goals import ExchangeGoal, DeliverGoal, Evade1Goal, Evade2Goal
 
 MAX_COST = 1.0
 MIN_GAIN = 1.0
@@ -31,7 +31,7 @@ class BDISystem:
         self.world_state = WorldState()
         self.robot_track = []
         self.people_tracks = {}
-        self.goals = [DeliverGoal]
+        self.goals = [ExchangeGoal, DeliverGoal, Evade1Goal, Evade2Goal]
         self.intentions = []
         self.robot_position = None
         self.latest_people_msgs = {}

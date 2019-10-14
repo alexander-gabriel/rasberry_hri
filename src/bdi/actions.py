@@ -76,11 +76,68 @@ class MoveToAction(Action):
 
 
 
+class Evade1Action(Action):
+
+    label = "Evade1"
+    condition_templates = ["is_at(human,place1)", "is_at(robot,origin)", "leads_to(place1,origin)", "leads_to(origin,destination)" "!(has_crate(target))", "seen_picking(target)"]
+    consequence_templates = ["is_at(me,destination)", "leads_to(place1,origin)", "leads_to(origin,destination)" "!(has_crate(target))", "seen_picking(target)"]
+    placeholders = ["me", "target", "origin", "destination"] # in same order as constructor arguments
+    gain = 10
+
+
+    def __init__(self, world_state, me, target, origin, destination):
+        super(MoveToAction, self).__init__(world_state, [me, target, origin, destination])
+        self.destination = destination
+
+    def perform(self):
+        super(Action, self).perform()
+        self.robco.move_to(self.destination)
+
+
+
+class Evade2Action(Action):
+
+    label = "Evade2"
+    condition_templates = ["is_at(human,place1)", "is_at(robot,origin)", "leads_to(place1,origin)", "leads_to(origin,destination)" "!(has_crate(target))", "seen_picking(target)"]
+    consequence_templates = ["is_at(me,destination)", "leads_to(place1,origin)", "leads_to(origin,destination)" "!(seen_picking(target))", "has_crate(target)"]
+    placeholders = ["me", "target", "origin", "destination"] # in same order as constructor arguments
+    gain = 10
+
+
+    def __init__(self, world_state, me, target, origin, destination):
+        super(MoveToAction, self).__init__(world_state, [me, target, origin, destination])
+        self.destination = destination
+
+    def perform(self):
+        super(Action, self).perform()
+        self.robco.move_to(self.destination)
+
+
 class GiveCrateAction(Action):
 
     label = "Give Crate"
-    condition_templates = ["colocated(me,target)", "!has_crate(target)", "has_requested_crate(target)"]
-    consequence_templates = ["colocated(me,target)", "has_crate(target)", "!has_requested_crate(target)"]
+    condition_templates = ["colocated(me,target)", "!(seen_picking(target))", "!(has_crate(target))"]
+    consequence_templates = ["colocated(me,target)", "has_crate(target)"]
+    placeholders = ["me", "target"] # in same order as constructor arguments
+    gain = 100
+
+
+    def __init__(self, world_state, me, target):
+        super(GiveCrateAction, self).__init__(world_state, [me, target])
+    #     for condition in self.condition_templates:
+    #         self.conditions.append(condition.replace("?picker", picker).replace(ME, me))
+    #     for consequence in self.consequence_templates:
+    #         self.consequences.append(consequence.replace("?picker", picker).replace(ME, me))
+
+    def get_cost(self):
+        return 5
+
+
+class ExchangeCrateAction(Action):
+
+    label = "Exchange Crate"
+    condition_templates = ["colocated(me,target)", "seen_picking(target)", "has_crate(target)"]
+    consequence_templates = ["colocated(me,target)", "has_crate(target)", "!(seen_picking(target)"]
     placeholders = ["me", "target"] # in same order as constructor arguments
     gain = 100
 

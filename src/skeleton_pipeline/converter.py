@@ -20,6 +20,8 @@ class Converter:
                              'Lower-Spine-X' : ("RHip", "LHip", "Neck"),
                              'Neck-Z' : ("REar", "LEar", "Neck")}
 
+        self.position_table = {}
+
         self.label_table = {'RBigToe': 'Right:BigToe',
                                 'LBigToe': 'Left:BigToe',
                                 'RSmallToe': 'Right:SmallToe',
@@ -54,6 +56,14 @@ class Converter:
         self.recognitions = recognitions
         for index, entry in enumerate(self.recognitions):
             self.index_map[entry.categorical_distribution.probabilities[0].label] = index
+        centerX = self.X("Neck")
+        centerY = self.Y("Neck")
+        self.positions = {}
+        for label in self.label_table.keys():
+            position = recognitions[self.index_map[label]].roi
+            new_label = self.label_table[label]
+            self.positions["{:}-X".format(new_label)] = position.x_offset - centerX
+            self.positions["{:}-Y".format(new_label)] = position.y_offset - centerY
 
 
     def X(self, label):
@@ -76,8 +86,8 @@ class Converter:
         return angle
 
 
-    def get_position(self, joint_name, model):
-        pass
+    def get_position(self, joint_name):
+        return self.positions[joint_name]
 
 
     def get_angle2(self, joint_name):

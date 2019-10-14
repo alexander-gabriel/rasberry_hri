@@ -1,6 +1,6 @@
 import rospy
 
-from actions import MoveAction, MoveToAction, GiveCrateAction
+from actions import MoveAction, MoveToAction, GiveCrateAction, ExchangeCrateAction, Evade1Action, Evade2Action
 from utils import OrderedConsistentSet, suppress
 
 class Goal(object):
@@ -202,6 +202,8 @@ class MoveGoal(Goal):
     def __init__(self, world_state, me, origin, destination):
         super(MoveGoal, self).__init__(world_state, [me, origin, destination])
 
+
+
 class MoveTo(Goal):
 
     action_template = MoveToAction
@@ -210,12 +212,40 @@ class MoveTo(Goal):
         super(MoveToGoal, self).__init__(world_state, [me, target, origin, destination])
 
 
+
 class GiveCrateGoal(Goal):
 
     action_template = GiveCrateAction
 
     def __init__(self, world_state, me, picker):
         super(GiveCrateGoal, self).__init__(world_state, [me, picker])
+
+
+
+class ExchangeCrateGoal(Goal):
+
+    action_template = ExchangeCrateAction
+
+    def __init__(self, world_state, me, picker):
+        super(ExchangeCrateGoal, self).__init__(world_state, [me, picker])
+
+
+
+class Evade1Goal(Goal):
+
+    action_template = Evade1Action
+
+    def __init__(self, world_state, me, picker, origin, destination):
+        super(Evade1Goal, self).__init__(world_state, [me, picker, origin, destination])
+
+
+
+class Evade2Goal(Goal):
+
+    action_template = Evade2Action
+
+    def __init__(self, world_state, me, picker, origin, destination):
+        super(Evade2Goal, self).__init__(world_state, [me, picker, origin, destination])
 
 
 
@@ -228,3 +258,17 @@ class DeliverGoal(Goal):
         super(DeliverGoal, self).__init__(world_state, [me, picker, origin, destination])
         self.subgoals.append(MoveToGoal(world_state, me, picker, origin, destination))
         self.subgoals.append(GiveCrateGoal(world_state, me, picker))
+        self.subgoals.append(MoveToGoal(world_state, me, picker, destination, origin))
+
+
+
+class ExchangeGoal(Goal):
+
+    action_template = None
+    subgoal_templates = [MoveGoal,ExchangeCrateGoal]
+
+    def __init__(self, world_state, me, picker, origin, destination):
+        super(ExchangeGoal, self).__init__(world_state, [me, picker, origin, destination])
+        self.subgoals.append(MoveToGoal(world_state, me, picker, origin, destination))
+        self.subgoals.append(ExchangeCrateGoal(world_state, me, picker))
+        self.subgoals.append(MoveToGoal(world_state, me, picker, destination, origin))

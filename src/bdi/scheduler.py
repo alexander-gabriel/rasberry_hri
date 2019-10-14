@@ -77,8 +77,14 @@ class Scheduler:
 
     def human_intention_callback(self, msg):
         # TODO: match detected person to symbol
-        self.bdi.world_state.add_belief("{:}({:})".format(msg.action, msg.id.capitalize()))
-        rospy.logdebug("added {:}({:})".format(msg.action, msg.id.capitalize()))
+        if msg.action == "has crate":
+            self.bdi.world_state.add_belief("has_crate({:})".format(msg.id.capitalize()))
+            rospy.logdebug("added has_crate({:})".format(msg.id.capitalize()))
+        elif msg.action == "picking berries left" or msg.action == "picking berries right":
+            self.bdi.world_state.add_belief("seen_picking({:})".format(msg.id.capitalize()))
+            rospy.logdebug("added seen_picking({:})".format(msg.id.capitalize()))
+        # self.bdi.world_state.add_belief("{:}({:})".format(msg.action, msg.id.capitalize()))
+        # rospy.logdebug("added {:}({:})".format(msg.action, msg.id.capitalize()))
 
 
     def people_tracker_callback(self, msg, id):

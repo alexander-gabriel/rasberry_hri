@@ -15,10 +15,24 @@ from goals import ExchangeGoal, DeliverGoal, Evade1Goal, Evade2Goal
 MAX_COST = 1.0
 MIN_GAIN = 1.0
 TRUTH_THRESHOLD = 0.5
-TARGET = "?target"
-ME = "?me"
+TARGET = "target"
+ME = "me"
 INF = float('inf')
 SPEED = 0.55
+
+# TODO test conditions
+# is_at(Thorvald,Waypoint4)
+# is_at(Picker,Waypoint3)
+# is_a(Picker,Human)
+# is_a(Thorvald,Robot)
+# seen_picking(Picker)
+# has_crate(Picker)
+#
+# leads_to(Waypoint1,Waypoint2)
+# leads_to(Waypoint2,Waypoint3)
+# leads_to(Waypoint3,Waypoint4)
+# leads_to(Waypoint4,Waypoint5)
+
 
 
 

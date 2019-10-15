@@ -25,7 +25,7 @@
 
 from Inference import Inference
 from probcog.MLN.methods import *
-import probcog.FOL
+import probcog.FOL as FOL
 
 class IPFPM(Inference):
     ''' the iterative proportional fitting procedure applied at the model level (IPFP-M) '''

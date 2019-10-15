@@ -39,9 +39,10 @@ SPEED = 0.55
 class BDISystem:
 
 
-    def __init__(self, me):
+    def __init__(self, me, robco):
         rospy.loginfo("BDI: Initializing BDI System")
         self.me = me
+        self.robco = robco
         self.world_state = WorldState()
         self.robot_track = []
         self.people_tracks = {}
@@ -54,7 +55,6 @@ class BDISystem:
         self.options = sorted(self.qsrlib.qsrs_registry.keys())
         self.which_qsr = "rcc8"#"tpcc"
         self.locator = TopologicalNavLoc()
-        time.sleep(1)
         self.links = {}
         self.node_positions = {}
         self.route_search = TopologicalRouteSearch(self.locator.tmap)
@@ -63,11 +63,11 @@ class BDISystem:
             self.node_positions[node.name] = node.pose
             for edge in node.edges:
                 self.links["_".join([node.name, edge.node])] = 0
-                self.world_state.add_belief("leads_to({:},{:})".format(node.name.capitalize(), edge.node.capitalize()))
+                #self.world_state.add_belief("leads_to({:},{:})".format(node.name.capitalize(), edge.node.capitalize()))
         for link in self.links.keys():
             nodes = link.split("_")
             self.links[link] = get_distance(self.node_positions[nodes[0]], self.node_positions[nodes[1]])
-        for picker in ["picker01", "picker02"]:
+        for picker in ["picker01"]:
             self.world_state.add_belief("is_a({:},Human)".format(picker.capitalize()))
         self.world_state.add_belief("has_requested_crate(Picker01)")
         rospy.loginfo("BDI: Initialized BDI System")
@@ -81,7 +81,7 @@ class BDISystem:
             rospy.loginfo(args_list)
             for args in args_list:
                 rospy.loginfo(args)
-                desires.append(goal.instantiate(world_state, args))
+                desires.append(goal.instantiate(world_state, args+self.robco))
         for intention in self.intentions:
             if intention in desires and intention.is_achieved():
                 desires.remove(intention)

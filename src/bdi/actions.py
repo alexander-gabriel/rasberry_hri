@@ -1,8 +1,6 @@
-from robot_control import RobotControl
 
 class Action:
 
-    robco = RobotControl()
     label = "Abstract"
 
     def __init__(self, world_state, args):
@@ -40,8 +38,9 @@ class MoveAction(Action):
     gain = 0
 
 
-    def __init__(self, world_state, me, origin, destination):
+    def __init__(self, world_state, me, origin, destination, robco):
         super(MoveAction, self).__init__(world_state, [me, origin, destination])
+        self.robco = robco
         self.destination = destination
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?origin", origin).replace(ME, me))
@@ -62,8 +61,9 @@ class MoveToAction(Action):
     gain = 10
 
 
-    def __init__(self, world_state, me, target, origin, destination):
+    def __init__(self, world_state, me, target, origin, destination, robco):
         super(MoveToAction, self).__init__(world_state, [me, target, origin, destination])
+        self.robco = robco
         self.destination = destination
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?origin", origin).replace(ME, me))
@@ -85,8 +85,9 @@ class Evade1Action(Action):
     gain = 10
 
 
-    def __init__(self, world_state, me, target, origin, destination):
+    def __init__(self, world_state, me, target, origin, destination, robco):
         super(MoveToAction, self).__init__(world_state, [me, target, origin, destination])
+        self.robco = robco
         self.destination = destination
 
     def perform(self):
@@ -104,8 +105,9 @@ class Evade2Action(Action):
     gain = 10
 
 
-    def __init__(self, world_state, me, target, origin, destination):
+    def __init__(self, world_state, me, target, origin, destination, robco):
         super(MoveToAction, self).__init__(world_state, [me, target, origin, destination])
+        self.robco = robco
         self.destination = destination
 
     def perform(self):

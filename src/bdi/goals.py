@@ -199,8 +199,8 @@ class MoveGoal(Goal):
 
     action_template = MoveAction
 
-    def __init__(self, world_state, me, origin, destination):
-        super(MoveGoal, self).__init__(world_state, [me, origin, destination])
+    def __init__(self, world_state, me, origin, destination, robco):
+        super(MoveGoal, self).__init__(world_state, [me, origin, destination, robco])
 
 
 
@@ -208,8 +208,8 @@ class MoveTo(Goal):
 
     action_template = MoveToAction
 
-    def __init__(self, world_state, me, target, origin, destination):
-        super(MoveToGoal, self).__init__(world_state, [me, target, origin, destination])
+    def __init__(self, world_state, me, target, origin, destination, robco):
+        super(MoveToGoal, self).__init__(world_state, [me, target, origin, destination, robco])
 
 
 
@@ -235,8 +235,8 @@ class Evade1Goal(Goal):
 
     action_template = Evade1Action
 
-    def __init__(self, world_state, me, picker, origin, destination):
-        super(Evade1Goal, self).__init__(world_state, [me, picker, origin, destination])
+    def __init__(self, world_state, me, picker, origin, destination, robco):
+        super(Evade1Goal, self).__init__(world_state, [me, picker, origin, destination, robco])
 
 
 
@@ -244,8 +244,8 @@ class Evade2Goal(Goal):
 
     action_template = Evade2Action
 
-    def __init__(self, world_state, me, picker, origin, destination):
-        super(Evade2Goal, self).__init__(world_state, [me, picker, origin, destination])
+    def __init__(self, world_state, me, picker, origin, destination, robco):
+        super(Evade2Goal, self).__init__(world_state, [me, picker, origin, destination, robco])
 
 
 
@@ -254,11 +254,11 @@ class DeliverGoal(Goal):
     action_template = None
     subgoal_templates = [MoveGoal,GiveCrateGoal]
 
-    def __init__(self, world_state, me, picker, origin, destination):
+    def __init__(self, world_state, me, picker, origin, destination, robco):
         super(DeliverGoal, self).__init__(world_state, [me, picker, origin, destination])
-        self.subgoals.append(MoveToGoal(world_state, me, picker, origin, destination))
+        self.subgoals.append(MoveToGoal(world_state, me, picker, origin, destination, robco))
         self.subgoals.append(GiveCrateGoal(world_state, me, picker))
-        self.subgoals.append(MoveToGoal(world_state, me, picker, destination, origin))
+        self.subgoals.append(MoveToGoal(world_state, me, picker, destination, origin, robco))
 
 
 
@@ -267,8 +267,8 @@ class ExchangeGoal(Goal):
     action_template = None
     subgoal_templates = [MoveGoal,ExchangeCrateGoal]
 
-    def __init__(self, world_state, me, picker, origin, destination):
+    def __init__(self, world_state, me, picker, origin, destinatio, robcon):
         super(ExchangeGoal, self).__init__(world_state, [me, picker, origin, destination])
-        self.subgoals.append(MoveToGoal(world_state, me, picker, origin, destination))
+        self.subgoals.append(MoveToGoal(world_state, me, picker, origin, destination, robco))
         self.subgoals.append(ExchangeCrateGoal(world_state, me, picker))
-        self.subgoals.append(MoveToGoal(world_state, me, picker, destination, origin))
+        self.subgoals.append(MoveToGoal(world_state, me, picker, destination, origin, robco))

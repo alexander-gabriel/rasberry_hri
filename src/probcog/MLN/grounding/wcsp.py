@@ -25,7 +25,7 @@ from bpll import BPLLGroundingFactory
 from collections import defaultdict
 from sys import stdout
 from probcog.FOL import Conjunction, GroundAtom, GroundLit, Lit
-import probcog.FOL
+import probcog.FOL as FOL
 
 
 class WCSPGroundingFactory(BPLLGroundingFactory):

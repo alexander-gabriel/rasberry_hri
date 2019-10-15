@@ -26,7 +26,7 @@
 import time
 import sys
 
-import probcog.FOL
+import probcog.FOL as FOL
 from probcog.MLN.util import *
 
 

@@ -15,6 +15,7 @@ from geometry_msgs.msg import Pose, PoseStamped
 from bdi_system import BDISystem
 from bdi_system import INF
 from utils import suppress, wp2sym, sym2wp
+from robot_control import RobotControl
 
 
 
@@ -28,7 +29,7 @@ class Scheduler:
         self.robot_control.wait_for_server()
         rospy.loginfo("SCH: Found Robot Countrol Server")
         self.latest_robot_node = None
-        self.bdi = BDISystem(self.robot_id)
+        self.bdi = BDISystem(self.robot_id, RobotControl(self.robot_control, self.robot_id))
         self.bdi.world_state.add_belief("is_a({:},Robot)".format(self.robot_id.capitalize()))
         self.robot_sub = rospy.Subscriber('robot_pose', Pose, self.robot_position_coordinate_callback)
         self.robot_sub = rospy.Subscriber('current_node', String, self.robot_position_node_callback)
@@ -65,8 +66,11 @@ class Scheduler:
     def robot_position_node_callback(self, msg):
         if not self.latest_robot_node is None:
             # rospy.loginfo("retracting is_at({:},{:})".format(self.robot_id, self.latest_robot_node))
-            self.bdi.world_state.abandon_belief("is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node.capitalize()))
-            rospy.logdebug("retracted is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node.capitalize()))
+            try:
+                self.bdi.world_state.abandon_belief("is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node.capitalize()))
+                rospy.logdebug("retracted is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node.capitalize()))
+            except:
+                 pass
         if msg.data != "none":
             self.latest_robot_node = wp2sym(msg.data)
             self.bdi.world_state.add_belief("is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node.capitalize()))

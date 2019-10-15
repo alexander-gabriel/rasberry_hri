@@ -12,7 +12,8 @@ path = join(rospack.get_path('rasberry_hri'), 'src', 'bdi')
 MLN_FILENAME = join(path, "lcas_bdi.mln")
 DB_FILENAME = join(path, "lcas_bdi.db")
 VERBOSE = False
-INFERENCE_METHOD = 'WCSP (exact MPE with toulbar2)'
+#INFERENCE_METHOD = 'WCSP (exact MPE with toulbar2)'
+INFERENCE_METHOD = 'MC-SAT'
 
 
 
@@ -35,6 +36,7 @@ class WorldState():
 
     def set_probability(self, belief, truth):
         self.lock.acquire()
+        rospy.loginfo("adding belief: {:f} {:}".format(truth, belief))
         self.db.readContent("{:f} {:}".format(truth, belief))
         self.lock.release()
 

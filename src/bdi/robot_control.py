@@ -1,15 +1,14 @@
-
-
+import rospy
+import actionlib
+from topological_navigation.msg import GotoNodeAction, GotoNodeGoal
 
 class RobotControl:
 
 
-    def __init__(self, robot_id):
+    def __init__(self, robot_control, robot_id="thorvald_014"):
         rospy.loginfo("ROBCO: Initializing Robot Control")
         self.robot_id = robot_id
-        self.robot_control = actionlib.SimpleActionClient('topological_navigation', GotoNodeAction)
-        self.robot_control.wait_for_server()
-        rospy.loginfo("SCH: Found Robot Countrol Server")
+        self.robot_control = robot_control
 
 
     def move_to(self, goal):

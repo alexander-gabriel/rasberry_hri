@@ -26,7 +26,7 @@
 import re
 import sys
 
-import probcog.FOL
+import probcog.FOL as FOL
 from util import *
 
 # math functions

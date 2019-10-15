@@ -23,7 +23,7 @@
 
 from DefaultGrounding import DefaultGroundingFactory
 from probcog.FOL import *
-import probcog.FOL
+import probcog.FOL as FOL
 from sys import stdout
 import time
 from collections import defaultdict

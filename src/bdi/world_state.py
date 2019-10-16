@@ -5,7 +5,7 @@ import rospy
 import rospkg
 
 from probcog.MLN import MLN, Database
-
+from probcog.MLN.util import strFormula
 
 rospack = rospkg.RosPack()
 path = join(rospack.get_path('rasberry_hri'), 'src', 'bdi')
@@ -20,8 +20,8 @@ INFERENCE_METHOD = 'MC-SAT'
 class WorldState():
 
 
-    def __init__(self):
-
+    def __init__(self, me):
+        self.me = me
         self.mln = MLN(MLN_FILENAME)
         self.lock = Lock()
         self.db = Database(self.mln, dbfile=DB_FILENAME)
@@ -57,13 +57,17 @@ class WorldState():
 
 
     def check(self, queries):
+        self.lock.acquire()
         mrf = self.mln.groundMRF(self.db)
-        result = mrf.inferMCSAT(queries, verbose=False)
-        # self.lock.acquire()
+        rospy.loginfo("Grounded MRF")
+        results = mrf.inferMCSAT(queries, verbose=False, details=False, maxSteps=10)
+        index = results.index(max(results))
+        max_prob = max(results)
+        formula = mrf.mcsat.queries[index]
         # for evidence, truth in result.result_dict().items():
         #     bdi.world_state.db.add(evidence, truth)
-        # self.lock.release()
-        return result
+        self.lock.release()
+        return (max_prob, formula)
 
 
     def write(self):

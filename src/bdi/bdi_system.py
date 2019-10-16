@@ -43,7 +43,7 @@ class BDISystem:
         rospy.loginfo("BDI: Initializing BDI System")
         self.me = me
         self.robco = robco
-        self.world_state = WorldState()
+        self.world_state = WorldState(self.me)
         self.robot_track = []
         self.people_tracks = {}
         self.goals = [ExchangeGoal, DeliverGoal, Evade1Goal, Evade2Goal]
@@ -58,8 +58,10 @@ class BDISystem:
         self.links = {}
         self.node_positions = {}
         self.route_search = TopologicalRouteSearch(self.locator.tmap)
+        for waypoint in [("T0-r4-c3", "T0-r4-c4"), ("T0-r4-c4", "T0-r4-c5"), ("T0-r4-c5", "T0-r4-c6"), ("T0-r4-c6", "To-r4-c7")]:
+            self.world_state.add_belief("leads_to({:},{:})".format(waypoint[0], waypoint[1]))
         for node in self.locator.tmap.nodes:
-            self.world_state.add_belief("is_a({:},Place)".format(node.name.capitalize()))
+            #self.world_state.add_belief("is_a({:},Place)".format(node.name.capitalize()))
             self.node_positions[node.name] = node.pose
             for edge in node.edges:
                 self.links["_".join([node.name, edge.node])] = 0

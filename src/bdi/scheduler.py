@@ -53,7 +53,7 @@ class Scheduler:
             while not rospy.core.is_shutdown():
                 rospy.loginfo("Looping")
                 self.bdi.loop()
-                rospy.rostime.wallsleep(1)
+                rospy.rostime.wallsleep(5)
         except KeyboardInterrupt:
             rospy.logdebug("keyboard interrupt, shutting down")
             rospy.core.signal_shutdown('keyboard interrupt')

@@ -24,20 +24,27 @@ class Goal(object):
             return None
 
 
-    def get_instance_guide(self):
-        if not self.action is None:
-            for condition in self.action.conditions:
-                start = condition.find(TARGET)
-                if start != -1:
-                    end = start + len(TARGET)
-                    prefix = condition[:start]
-                    postfix = condition[end:]
-                    return (prefix, postfix)
+    @classmethod
+    def get_instance_guide(cls):
+        if not cls.action_template is None:
+            for condition in cls.action_template.condition_templates:
+                borders = []
+                for placeholder in cls.action_template.placeholders:
+                    start = condition.find(placeholder)
+                    if start != -1:
+                        end = start + len(placeholder)
+                        prefix = condition[:start]
+                        postfix = condition[end:]
+                        borders.append((prefix, postfix))
+                return borders
         else:
-            for subgoal in self.subgoals:
-                guide = subgoal.get_instance_guide()
-                if not guide is None:
-                    return guide
+            try:
+                for subgoal in cls.subgoal_templates:
+                    guide = subgoal.get_instance_guide()
+                    if not guide is None:
+                        return guide
+            except AttributeError:
+                pass
             return None
 
 
@@ -115,12 +122,15 @@ class Goal(object):
         query = ""
         for condition in cls.get_condition_templates():
             query += condition + " ^ "
-        query = query[:-3]
+        query = [query[:-3].replace("me", world_state.me.capitalize())]
         rospy.loginfo("BDI: asking MLN system; query: {:}".format(query))
-        result = world_state.check(query)
+        prob, formula = world_state.check(query)
         rospy.loginfo("BDI: received result for query: {:}".format(query))
         targets = []
-        for key, value in result.results.items():
+        rospy.loginfo("{:f} {:}".format(prob, formula))
+        rospy.loginfo(cls.get_instance_guide())
+        for number in result:
+            rospy.loginfo(number)
             if not value is None:
                 rospy.loginfo("{:}: {:d}".format(key,value))
                 #TODO: return constructor arguments

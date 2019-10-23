@@ -56,10 +56,11 @@ class WorldState():
         self.lock.release()
 
 
-    def check(self, queries):
+    def check(self, queries, placeholders):
         self.lock.acquire()
         mrf = self.mln.groundMRF(self.db)
         rospy.loginfo("Grounded MRF")
+
         results = mrf.inferMCSAT(queries, verbose=False, details=False, maxSteps=10)
         index = results.index(max(results))
         max_prob = max(results)

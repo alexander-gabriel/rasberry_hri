@@ -24,6 +24,9 @@ class OrderedConsistentSet:
             except ValueError:
                 pass
             self.items.append(item)
+            return True
+        else:
+            return False
 
 
     def __iadd__(self, other):

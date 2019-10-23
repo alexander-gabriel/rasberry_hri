@@ -2,6 +2,7 @@
 class Action:
 
     label = "Abstract"
+    placeholders= []
 
     def __init__(self, world_state, args):
         self.conditions = []
@@ -22,6 +23,26 @@ class Action:
                 self.world_state.abandon_belief(condition)
         # for consequence in self.consequences:
         #     self.world_state.add_belief(consequence)
+
+
+    @classmethod
+    def get_instance_guide(cls):
+        try:
+            return cls.guide
+        except AttributeError:
+            cls.guide = []
+            for condition in cls.condition_templates:
+                borders = []
+                for placeholder in cls.placeholders:
+                    start = condition.find(placeholder)
+                    if start != -1:
+                        end = start + len(placeholder)
+                        prefix = condition[:start]
+                        postfix = condition[end:]
+                        borders.append((prefix, postfix))
+                cls.guide.append(borders)
+            return cls.guide
+
 
 
     def get_cost(self):

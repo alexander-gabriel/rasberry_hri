@@ -13,8 +13,6 @@ class Goal(object):
         self.world_state = world_state
         self.action = self.instantiate_action_template(world_state, args) # action to be performed (only if there are no subgoals)
 
-        # self.guide = self.get_instance_guide()
-
 
     @classmethod
     def instantiate_action_template(cls, world_state, args):
@@ -25,42 +23,20 @@ class Goal(object):
 
 
     @classmethod
-    def get_instance_guide(cls):
-        if not cls.action_template is None:
-            for condition in cls.action_template.condition_templates:
-                borders = []
-                for placeholder in cls.action_template.placeholders:
-                    start = condition.find(placeholder)
-                    if start != -1:
-                        end = start + len(placeholder)
-                        prefix = condition[:start]
-                        postfix = condition[end:]
-                        borders.append((prefix, postfix))
-                return borders
-        else:
-            try:
-                for subgoal in cls.subgoal_templates:
-                    guide = subgoal.get_instance_guide()
-                    if not guide is None:
-                        return guide
-            except AttributeError:
-                pass
-            return None
-
-
-    @classmethod
     def get_condition_templates(cls):
         try:
-            return cls.action_template.condition_templates
+            cls.guide = cls.action_template.get_instance_guide()
+            return cls.action_template.condition_templates,
         except AttributeError:
             try:
-                return cls.condition_templates
+                guide = cls.get_instance_guide()
+                return cls.condition_templates, guide
             except AttributeError:
                 cls.condition_templates = OrderedConsistentSet()
                 consequences = OrderedConsistentSet()
 
                 for subgoal in cls.subgoal_templates:
-                    new_conditions = subgoal.get_condition_templates()
+                    new_conditions, _ = subgoal.get_condition_templates()
                     consequences += subgoal.get_consequence_templates()
                     # rospy.loginfo("new conditions:")
                     # rospy.loginfo(new_conditions)
@@ -70,7 +46,7 @@ class Goal(object):
                         if not condition in consequences:
                             cls.condition_templates.append(condition)
 
-                return cls.condition_templates
+                return cls.condition_templates, guide
 
 
     @classmethod
@@ -120,11 +96,13 @@ class Goal(object):
     @classmethod
     def find_instances(cls, world_state):
         query = ""
-        for condition in cls.get_condition_templates():
+        placeholders = []
+        for condition, placeholder in cls.get_condition_templates():
             query += condition + " ^ "
+            placeholders.append(placeholder)
         query = [query[:-3].replace("me", world_state.me.capitalize())]
         rospy.loginfo("BDI: asking MLN system; query: {:}".format(query))
-        prob, formula = world_state.check(query)
+        prob, formula = world_state.check(query, placeholders)
         rospy.loginfo("BDI: received result for query: {:}".format(query))
         targets = []
         rospy.loginfo("{:f} {:}".format(prob, formula))

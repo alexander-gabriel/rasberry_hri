@@ -34,8 +34,8 @@ class Scheduler:
         self.robot_sub = rospy.Subscriber('robot_pose', Pose, self.robot_position_coordinate_callback)
         self.robot_sub = rospy.Subscriber('current_node', String, self.robot_position_node_callback)
         #TODO: move to multiple pickers
-        self.people_sub = rospy.Subscriber("/picker01/posestamped", PoseStamped, lambda msg: self.people_tracker_callback(msg, "picker01") )
-        self.people_sub = rospy.Subscriber("/picker02/posestamped", PoseStamped, lambda msg: self.people_tracker_callback(msg, "picker02") )
+        self.people_sub = rospy.Subscriber("/picker01/posestamped", PoseStamped, lambda msg: self.people_tracker_callback(msg, "Picker01") )
+        self.people_sub = rospy.Subscriber("/picker02/posestamped", PoseStamped, lambda msg: self.people_tracker_callback(msg, "Picker02") )
         rospy.Subscriber('human_actions', Action, self.human_intention_callback)
 
 
@@ -51,9 +51,8 @@ class Scheduler:
         rospy.logdebug("node[%s, %s] entering spin(), pid[%s]", rospy.core.get_caller_id(), rospy.core.get_node_uri(), os.getpid())
         try:
             while not rospy.core.is_shutdown():
-                rospy.loginfo("Looping")
                 self.bdi.loop()
-                rospy.rostime.wallsleep(5)
+                rospy.rostime.wallsleep(0.1)
         except KeyboardInterrupt:
             rospy.logdebug("keyboard interrupt, shutting down")
             rospy.core.signal_shutdown('keyboard interrupt')

@@ -72,24 +72,24 @@ has_requested_crate(thing)
 //location reasoning
 
 
-//place1=place2 => (!leads_to(place1,place2) ^ !free_path(place1,place2)).
-place1=place2 => !leads_to(place1,place2).
+//place1 = place2 => (!leads_to(place1,place2) ^ !free_path(place1,place2)).
+(place1 = place2) => !leads_to(place1,place2).
 
 //leads_to(place1,place2) => linked(place1,place2).
 
-//linked(place1,place2) ^ linked(place2,place3) ^ !place1=place3 => linked(place1,place3).
+//linked(place1,place2) ^ linked(place2,place3) ^ !(place1 = place3) => linked(place1,place3).
 
-//leads_to(place1,place2) ^ !(EXIST thing (is_at(thing,place2))) ^ (free_path(place2,place3) v place2=place3) => free_path(place1,place3).
+//leads_to(place1,place2) ^ !(EXIST thing (is_at(thing,place2))) ^ (free_path(place2,place3) v (place2 = place3)) => free_path(place1,place3).
 
 
-//!mobile=object ^ is_at(mobile,place1) ^ is_mobile(mobile) ^ is_at(object,place2) ^ (free_path(place1,place2) v leads_to(place1,place2)) => can_reach(mobile,object).
+//!(mobile = object) ^ is_at(mobile,place1) ^ is_mobile(mobile) ^ is_at(object,place2) ^ (free_path(place1,place2) v leads_to(place1,place2)) => can_reach(mobile,object).
 
 //is_at(thing,place1) ^ is_at(object,place2) ^ (!(free_path(place1,place2) v leads_to(place1,place2)) v !is_mobile(thing)) => !can_reach(thing,object).
 
 
-!(thing1=thing2) ^ is_at(thing1,place1) ^ is_at(thing2,place1) => colocated(thing1,thing2).
+//!(thing1 = thing2) ^ is_at(thing1,place1) ^ is_at(thing2,place1) => colocated(thing1,thing2).
 
-!(thing1=thing2) ^ !(place1=place2) ^ is_at(thing1,place1) ^ is_at(thing2,place2) => !colocated(thing1,thing2).
+//!(thing1 = thing2) ^ !(place1 = place2) ^ is_at(thing1,place1) ^ is_at(thing2,place2) => !colocated(thing1,thing2).
 
 
 // crate logic
@@ -108,15 +108,15 @@ place1=place2 => !leads_to(place1,place2).
 
 
 //meet
-is_a(human,Human) ^ is_a(robot,Robot) ^ is_at(human,place1) ^ has_crate(human) ^ seen_picking(human) => moveTo(robot,place1).
-is_a(human,Human) ^ is_a(robot,Robot) ^ is_at(human,place1) ^ !has_crate(human) ^ !seen_picking(human) => moveTo(robot,place1).
+//is_a(human,Human) ^ is_a(robot,Robot) ^ is_at(human,place1) ^ has_crate(human) ^ seen_picking(human) => moveTo(robot,place1).
+//is_a(human,Human) ^ is_a(robot,Robot) ^ is_at(human,place1) ^ !has_crate(human) ^ !seen_picking(human) => moveTo(robot,place1).
 
 //evade
-is_a(human,Human) ^ is_a(robot,Robot) ^ is_at(human,place1) ^ is_at(robot,place2) ^ leads_to(place1,place2) ^ leads_to(place2,place3) ^ !has_crate(human) ^ seen_picking(human) => moveTo(robot,place3).
-is_a(human,Human) ^ is_a(robot,Robot) ^ is_at(human,place1) ^ is_at(robot,place2) ^ leads_to(place1,place2) ^ leads_to(place2,place3) ^ has_crate(human) ^ !seen_picking(human) => moveTo(robot,place3).
+//is_a(human,Human) ^ is_a(robot,Robot) ^ is_at(human,place1) ^ is_at(robot,place2) ^ leads_to(place1,place2) ^ leads_to(place2,place3) ^ !has_crate(human) ^ seen_picking(human) => moveTo(robot,place3).
+//is_a(human,Human) ^ is_a(robot,Robot) ^ is_at(human,place1) ^ is_at(robot,place2) ^ leads_to(place1,place2) ^ leads_to(place2,place3) ^ has_crate(human) ^ !seen_picking(human) => moveTo(robot,place3).
 
-is_a(human,Human) ^ is_a(robot,Robot) ^ is_at(human,place1) ^ is_at(robot,place2) ^ leads_to(place2,place1) ^ leads_to(place3,place2) ^ !has_crate(human) ^ seen_picking(human) => moveTo(robot,place3).
-is_a(human,Human) ^ is_a(robot,Robot) ^ is_at(human,place1) ^ is_at(robot,place2) ^ leads_to(place2,place1) ^ leads_to(place3,place2) ^ has_crate(human) ^ !seen_picking(human) => moveTo(robot,place3).
+//is_a(human,Human) ^ is_a(robot,Robot) ^ is_at(human,place1) ^ is_at(robot,place2) ^ leads_to(place2,place1) ^ leads_to(place3,place2) ^ !has_crate(human) ^ seen_picking(human) => moveTo(robot,place3).
+//is_a(human,Human) ^ is_a(robot,Robot) ^ is_at(human,place1) ^ is_at(robot,place2) ^ leads_to(place2,place1) ^ leads_to(place3,place2) ^ has_crate(human) ^ !seen_picking(human) => moveTo(robot,place3).
 
 
 // make way

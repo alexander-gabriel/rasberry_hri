@@ -7,11 +7,14 @@ import rospkg
 from probcog.MLN import MLN, Database
 from probcog.MLN.util import strFormula
 
+from utils import suppress
+
 rospack = rospkg.RosPack()
 path = join(rospack.get_path('rasberry_hri'), 'src', 'bdi')
 MLN_FILENAME = join(path, "lcas_bdi.mln")
 DB_FILENAME = join(path, "lcas_bdi.db")
 VERBOSE = False
+MAX_STEPS = 10
 #INFERENCE_METHOD = 'WCSP (exact MPE with toulbar2)'
 INFERENCE_METHOD = 'MC-SAT'
 
@@ -36,14 +39,17 @@ class WorldState():
 
     def set_probability(self, belief, truth):
         self.lock.acquire()
-        rospy.loginfo("adding belief: {:f} {:}".format(truth, belief))
-        self.db.readContent("{:f} {:}".format(truth, belief))
+        with suppress(Exception):
+            self.db.readContent("{:f} {:}".format(truth, belief))
+        rospy.logdebug("WS: adding belief: {:f} {:}".format(truth, belief))
         self.lock.release()
 
 
     def abandon_belief(self, belief):
         self.lock.acquire()
-        del self.db.evidence[belief]
+        with suppress(KeyError):
+            del self.db.evidence[belief]
+        rospy.logdebug("WS: retracting belief: {:}".format(belief))
         self.lock.release()
 
 
@@ -56,17 +62,20 @@ class WorldState():
         self.lock.release()
 
 
-    def check(self, queries, placeholders):
+    def check(self, queries):
         self.lock.acquire()
-        mrf = self.mln.groundMRF(self.db)
-        rospy.loginfo("Grounded MRF")
+        max_prob = 0
+        formula = None
+        with suppress(Exception):
+            mrf = self.mln.groundMRF(self.db)
+            rospy.logdebug("Grounded MRF")
 
-        results = mrf.inferMCSAT(queries, verbose=False, details=False, maxSteps=10)
-        index = results.index(max(results))
-        max_prob = max(results)
-        formula = mrf.mcsat.queries[index]
-        # for evidence, truth in result.result_dict().items():
-        #     bdi.world_state.db.add(evidence, truth)
+            results = mrf.inferMCSAT(queries, verbose=False, details=False, maxSteps=MAX_STEPS)
+            index = results.index(max(results))
+            max_prob = max(results)
+            formula = mrf.mcsat.queries[index]
+            # for evidence, truth in result.result_dict().items():
+            #     bdi.world_state.db.add(evidence, truth)
         self.lock.release()
         return (max_prob, formula)
 

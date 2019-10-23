@@ -12,8 +12,8 @@ from utils import OrderedConsistentSet, suppress
 from world_state import WorldState
 from goals import ExchangeGoal, DeliverGoal, Evade1Goal, Evade2Goal
 
-MAX_COST = 1.0
-MIN_GAIN = 1.0
+MAX_COST = 10
+MIN_GAIN = 10
 TRUTH_THRESHOLD = 0.5
 TARGET = "target"
 ME = "me"
@@ -58,32 +58,29 @@ class BDISystem:
         self.links = {}
         self.node_positions = {}
         self.route_search = TopologicalRouteSearch(self.locator.tmap)
-        for waypoint in [("T0-r4-c3", "T0-r4-c4"), ("T0-r4-c4", "T0-r4-c5"), ("T0-r4-c5", "T0-r4-c6"), ("T0-r4-c6", "To-r4-c7")]:
+        for waypoint in [("WayPoint133", "WayPoint102"), ("WayPoint102", "WayPoint103"), ("WayPoint103", "WayPoint104"), ("WayPoint104", "WayPoint105"), ("WayPoint105", "WayPoint106")]:
             self.world_state.add_belief("leads_to({:},{:})".format(waypoint[0], waypoint[1]))
-        for node in self.locator.tmap.nodes:
-            #self.world_state.add_belief("is_a({:},Place)".format(node.name.capitalize()))
-            self.node_positions[node.name] = node.pose
-            for edge in node.edges:
-                self.links["_".join([node.name, edge.node])] = 0
-                #self.world_state.add_belief("leads_to({:},{:})".format(node.name.capitalize(), edge.node.capitalize()))
+        # for node in self.locator.tmap.nodes:
+        #     self.world_state.add_belief("is_a({:},Place)".format(node.name.capitalize()))
+        #     self.node_positions[node.name] = node.pose
+        #     for edge in node.edges:
+        #         self.links["_".join([node.name, edge.node])] = 0
+        #         self.world_state.add_belief("leads_to({:},{:})".format(node.name.capitalize(), edge.node.capitalize()))
         for link in self.links.keys():
             nodes = link.split("_")
             self.links[link] = get_distance(self.node_positions[nodes[0]], self.node_positions[nodes[1]])
-        for picker in ["picker01"]:
-            self.world_state.add_belief("is_a({:},Human)".format(picker.capitalize()))
-        self.world_state.add_belief("has_requested_crate(Picker01)")
+        for picker in ["Picker01" ,"Picker02"]:
+            self.world_state.add_belief("is_a({:},Human)".format(picker))
         rospy.loginfo("BDI: Initialized BDI System")
 
 
     def generate_options(self):
-        rospy.loginfo("Generating Options")
+        rospy.loginfo("Generating Behaviour Options")
         desires = []
         for goal in self.goals:
             args_list = goal.find_instances(self.world_state)
-            rospy.loginfo(args_list)
             for args in args_list:
-                rospy.loginfo(args)
-                desires.append(goal.instantiate(world_state, args+self.robco))
+                desires.append(goal(self.world_state, self.robco, args))
         for intention in self.intentions:
             if intention in desires and intention.is_achieved():
                 desires.remove(intention)
@@ -91,39 +88,45 @@ class BDISystem:
 
 
     def filter(self, desires):
-        rospy.loginfo("BDI: Filtering desires")
-        intentions = []
+        rospy.loginfo("BDI: Filtering Desires")
+        intentions = self.intentions or []
         for desire in desires:
-            gain = desire.get_gain(desire[1])
-            cost = desire.get_cost(desire[1])
+            gain = desire.get_gain()
+            cost = desire.get_cost()
+            rospy.loginfo("BDI: Got desire {:} with gain: {:d} and cost {:d}".format(desire.__class__.__name__, gain, cost))
             if gain > MIN_GAIN and cost < MAX_COST:
                 intentions.append(desire)
         return intentions
 
 
     def perform_action(self):
-        rospy.loginfo("BDI: Acting")
+        rospy.loginfo("BDI: Choosing Next Action")
         chosen_intention = None
         min_cost = 999999
         for intention in self.intentions:
             action = intention.get_next_action()
-            cost = action.get_cost()
-            if cost < min_cost:
-                chosen_intention = intention
-                min_cost  = cost
+            with suppress(AttributeError):
+                cost = action.get_cost()
+                if cost < min_cost:
+                    chosen_intention = intention
+                    min_cost  = cost
         if not chosen_intention is None:
-            chosen_intention.perform_action(self.world_state)
+            rospy.loginfo("BDI: Chosen Action from Plan: {:}".format(chosen_intention.__class__.__name__))
+            chosen_intention.perform_action()
 
 
     def loop(self):
+        rospy.loginfo("----- Started Loop -----")
         self.update_beliefs()
         desires = self.generate_options()
         self.intentions = self.filter(desires)
         self.perform_action()
+        rospy.loginfo("----- Ended Loop -----")
+
 
 
     def update_beliefs(self):
-        rospy.loginfo("BDI: Updating beliefs")
+        rospy.loginfo("BDI: Updating Beliefs")
         world = World_Trace()
         if not self.robot_position is None:
             self.robot_track.append(self.robot_position)
@@ -133,17 +136,11 @@ class BDISystem:
             (current_node, closest_node) = self.locator.localise_pose(msg)
             with suppress(KeyError):
                 latest_node = self.latest_people_nodes[person]
-                try:
-                    if current_node != "none":
-                        self.world_state.abandon_belief("{:}({:},{:})".format(latest_node[0], person, latest_node[1]))
-                    rospy.logdebug("retracted: {:}({:},{:})".format(latest_node[0], person, latest_node[1]))
-                except Exception:
-                    rospy.loginfo("error!: {:}({:},{:})".format(latest_node[0], person, latest_node[1]))
-
+                if current_node != "none":
+                    self.world_state.abandon_belief("{:}({:},{:})".format(latest_node[0], person, latest_node[1]))
             if current_node != "none":
                 self.latest_people_nodes[person] = ("is_at", current_node)
                 self.world_state.add_belief("is_at({:},{:})".format(person, current_node))
-                rospy.logdebug("added is_at({:},{:})".format(person, current_node))
             # else:
             #     self.latest_people_nodes[person] = ("is_near", closest_node)
             #     self.world_state.add_belief("is_near({:},{:})".format(person, closest_node))
@@ -163,7 +160,6 @@ class BDISystem:
                 foo += str(k) + ":" + str(v.qsr) + "; "
             rospy.loginfo(foo)
 
-
         # pretty_print_world_qsr_trace(which_qsr, qsrlib_response_message)
         try:
             t = qsrlib_response_message.qsrs.get_sorted_timestamps()[-1]
@@ -172,7 +168,6 @@ class BDISystem:
                 print(v)
         except IndexError:
             pass
-        #TODO: parse result and update beliefs
 
 
     def write(self):

@@ -1,3 +1,6 @@
-is_a(Picker01,Human)
-has_crate(Picker01)
-!seen_picking(Thorvald_014)
+
+//!has_crate(Picker01)
+//!seen_picking(Picker01)
+
+has_crate(Picker02)
+seen_picking(Picker02)

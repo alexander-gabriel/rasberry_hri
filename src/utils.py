@@ -47,7 +47,7 @@ class OrderedConsistentSet:
         return self.items.__iter__()
 
 def wp2sym(waypoint):
-    return waypoint.lower()
+    return waypoint.capitalize()
 
 def sym2wp(symbol):
     return symbol.replace("waypoint", "WayPoint")

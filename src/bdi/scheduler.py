@@ -117,6 +117,9 @@ class Scheduler:
                 foo += str(k) + ":" + str(v.qsr) + "; "
             rospy.loginfo(foo)
         world_qsr.trace[4].qsrs[self.robot_id.capitalize()+','+id].qsr['tpcc']
+        direction = ""
+        if direction in ["dsf","csf"]:
+            self.bdi.latest_people_msgs[id] = msg
         # self.bdi.latest_people_msgs[id] = msg
 
         # if current_node != "none":

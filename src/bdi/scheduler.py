@@ -27,8 +27,7 @@ class Scheduler:
     def __init__(self, robot_id):
         rospy.loginfo("SCH: Initializing Scheduler")
         self.robot_id = robot_id
-
-        rospy.loginfo("SCH: Wainting for Robot Control Server...")
+        rospy.loginfo("SCH: Waiting for Robot Control Server...")
         self.robot_control = actionlib.SimpleActionClient('topological_navigation', GotoNodeAction)
         self.robot_control.wait_for_server()
         rospy.loginfo("SCH: Found Robot Control Server")

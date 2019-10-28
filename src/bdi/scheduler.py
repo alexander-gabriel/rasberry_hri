@@ -10,6 +10,7 @@ import rospy
 import actionlib
 from rasberry_hri.msg import Action
 from topological_navigation.msg import GotoNodeAction, GotoNodeGoal
+from bayes_people_tracker.msg import PeopleTracker
 
 from std_msgs.msg import String
 from geometry_msgs.msg import Pose, PoseStamped
@@ -37,7 +38,7 @@ class Scheduler:
         # self.robot_sub = rospy.Subscriber('{:}/robot_pose'.format(self.robot_id), Pose, self.robot_position_coordinate_callback)
         self.robot_sub = rospy.Subscriber('/{:}/current_node'.format(self.robot_id), String, self.robot_position_node_callback)
         #TODO: move to multiple pickers
-        self.people_sub = rospy.Subscriber("/people_tracker/positions", PoseStamped, lambda msg: self.people_tracker_callback(msg, "Picker01") )
+        self.people_sub = rospy.Subscriber("/people_tracker/positions", PeopleTracker, lambda msg: self.people_tracker_callback(msg, "Picker01") )
         self.picker01_sub = rospy.Subscriber("/picker01/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker01") )
         self.picker02_sub = rospy.Subscriber("/picker02/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker02") )
         rospy.Subscriber('human_actions', Action, self.human_intention_callback)
@@ -98,12 +99,20 @@ class Scheduler:
 
     def people_tracker_callback(self, msg, id):
         id = "Picker01"
+        msg.angles
+        msg = PoseStamped()
+        res = [idx for idx, val in enumerate(msg.angles) if val > -0.5 and val < 0.5]
+        msg2.header = msg.header
+        for index in res:
+            msg2.pose = msg.poses[index]
+
+        
         world = World_Trace()
         things = []
         qsrlib_request_message = QSRlib_Request_Message(which_qsr="tpcc", input_data=world)
         # request your
 
-        position = Object_State(name=id, timestamp=msg.header.stamp.to_sec(), x=msg.pose.position.x, y=msg.pose.position.y, width=0.6, length=0.4)
+        position = Object_State(name=id, timestamp=msg2.header.stamp.to_sec(), x=msg2.pose.position.x, y=msg2.pose.position.y, width=0.6, length=0.4)
         things.append(position)
 
 

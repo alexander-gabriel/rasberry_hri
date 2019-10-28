@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   openpose_ros
+  bayes_people_tracker
   actionlib
   qsr_lib
   std_msgs

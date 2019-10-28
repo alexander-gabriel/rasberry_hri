@@ -4,3 +4,10 @@
 
 has_crate(Picker02)
 seen_picking(Picker02)
+
+
+leads_to(WayPoint133,WayPoint102)
+leads_to(WayPoint102,WayPoint103)
+leads_to(WayPoint103,WayPoint104)
+leads_to(WayPoint104,WayPoint105)
+leads_to(WayPoint105,WayPoint106)

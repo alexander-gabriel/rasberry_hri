@@ -34,6 +34,7 @@ class Scheduler:
         rospy.loginfo("SCH: Found Robot Control Server")
         self.latest_robot_node = None
         self.bdi = BDISystem(self.robot_id, RobotControl(self.robot_control, self.robot_id))
+        self.bdi.robco.move_to("WayPoint104")
         self.bdi.world_state.add_belief("is_a({:},Robot)".format(self.robot_id.capitalize()))
         # self.robot_sub = rospy.Subscriber('{:}/robot_pose'.format(self.robot_id), Pose, self.robot_position_coordinate_callback)
         self.robot_sub = rospy.Subscriber('/{:}/current_node'.format(self.robot_id), String, self.robot_position_node_callback)
@@ -44,7 +45,8 @@ class Scheduler:
         rospy.Subscriber('human_actions', Action, self.human_intention_callback)
         self.qsrlib = QSRlib()
         self.options = sorted(self.qsrlib.qsrs_registry.keys())
-        self.which_qsr = "rcc8"#"tpcc"
+        self.which_qsr = "tpcc"#"tpcc"
+        # self.bdi.robco.move_to("WayPoint105")
 
 
 
@@ -73,13 +75,13 @@ class Scheduler:
     def robot_position_node_callback(self, msg):
         if not self.latest_robot_node is None:
             try:
-                self.bdi.world_state.abandon_belief("is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node.capitalize()))
+                self.bdi.world_state.abandon_belief("is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node))
 
             except:
                  pass
         if msg.data != "none":
             self.latest_robot_node = wp2sym(msg.data)
-            self.bdi.world_state.add_belief("is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node.capitalize()))
+            self.bdi.world_state.add_belief("is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node))
         else:
             self.latest_robot_node = None
 
@@ -97,6 +99,7 @@ class Scheduler:
     def picker_tracker_callback(self, msg, id):
         self.bdi.latest_people_msgs[id] = msg
 
+
     def people_tracker_callback(self, msg, id):
         id = "Picker01"
         msg.angles
@@ -105,8 +108,6 @@ class Scheduler:
         msg2.header = msg.header
         for index in res:
             msg2.pose = msg.poses[index]
-
-        
         world = World_Trace()
         things = []
         qsrlib_request_message = QSRlib_Request_Message(which_qsr="tpcc", input_data=world)
@@ -114,7 +115,6 @@ class Scheduler:
 
         position = Object_State(name=id, timestamp=msg2.header.stamp.to_sec(), x=msg2.pose.position.x, y=msg2.pose.position.y, width=0.6, length=0.4)
         things.append(position)
-
 
         things.append(self.bdi.robot_track[-1])
 

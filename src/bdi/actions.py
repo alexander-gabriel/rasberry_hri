@@ -64,7 +64,8 @@ class MoveAction(Action):
 
     def perform(self):
         super(MoveAction, self).perform()
-        print(self.robco.move_to(self.destination))
+        result = self.robco.move_to(self.destination)
+        return result.success
 
 
 
@@ -89,48 +90,30 @@ class MoveToAction(Action):
 
     def perform(self):
         super(MoveToAction, self).perform()
-        self.robco.move_to(self.destination)
+        result = self.robco.move_to(self.destination)
+        return result.success
 
 
 
 
-class Evade1Action(Action):
+class EvadeAction(Action):
 
-    condition_templates = ["is_at(human,place1)", "is_at(me,origin)", "leads_to(place1,origin)", "leads_to(origin,destination)", "!(has_crate(picker))", "seen_picking(picker)"]
-    consequence_templates = ["is_at(me,destination)", "leads_to(place1,origin)", "leads_to(origin,destination)", "!(has_crate(picker))", "seen_picking(picker)"]
+    condition_templates = ["is_at(picker,place1)", "is_at(me,origin)", "leads_to(origin,place1)", "leads_to(destination,origin)", "has_crate(picker)", "!(seen_picking(picker))"]
+    consequence_templates = ["is_at(picker,place1)", "is_at(me,destination)",  "leads_to(origin,place1)", "leads_to(destination,origin)", "has_crate(picker)", "!(seen_picking(picker))"]
     placeholders = ["me", "picker", "origin", "destination"] # in same order as constructor arguments
     gain = 50
 
 
     def __init__(self, world_state, robco, args):
         # [me, picker, origin, destination]
-        super(Evade1Action, self).__init__(world_state, args)
+        super(EvadeAction, self).__init__(world_state, args)
         self.robco = robco
         self.destination = args[3]
 
     def perform(self):
-        super(Evade1Action, self).perform()
-        self.robco.move_to(self.destination)
-
-
-
-class Evade2Action(Action):
-
-    condition_templates = ["is_at(human,place1)", "is_at(me,origin)", "leads_to(place1,origin)", "leads_to(origin,destination)", "!(has_crate(picker))", "seen_picking(picker)", "is_a(picker,Human)"]
-    consequence_templates = ["is_at(me,destination)", "leads_to(place1,origin)", "leads_to(origin,destination)", "!(seen_picking(picker))", "has_crate(picker)", "is_a(picker,Human)"]
-    placeholders = ["me", "picker", "origin", "destination"] # in same order as constructor arguments
-    gain = 50
-
-
-    def __init__(self, world_state, robco, args):
-        # [me, picker, origin, destination]
-        super(Evade2Action, self).__init__(world_state, args)
-        self.robco = robco
-        self.destination = args[3]
-
-    def perform(self):
-        super(Evade2Action, self).perform()
-        self.robco.move_to(self.destination)
+        super(EvadeAction, self).perform()
+        result = self.robco.move_to(self.destination)
+        return result.success
 
 
 
@@ -163,6 +146,7 @@ class GiveCrateAction(Action):
         for consequence in self.consequences:
             self.world_state.add_belief(consequence)
         sleep(5)
+        return True
 
 
 
@@ -196,3 +180,4 @@ class ExchangeCrateAction(Action):
         for consequence in self.consequences:
             self.world_state.add_belief(consequence)
         sleep(5)
+        return True

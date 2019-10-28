@@ -14,7 +14,7 @@ path = join(rospack.get_path('rasberry_hri'), 'src', 'bdi')
 MLN_FILENAME = join(path, "lcas_bdi.mln")
 DB_FILENAME = join(path, "lcas_bdi.db")
 VERBOSE = False
-MAX_STEPS = 10
+MAX_STEPS = 40
 #INFERENCE_METHOD = 'WCSP (exact MPE with toulbar2)'
 INFERENCE_METHOD = 'MC-SAT'
 

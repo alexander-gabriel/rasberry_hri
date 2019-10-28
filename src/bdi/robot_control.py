@@ -13,6 +13,7 @@ class RobotControl:
 
     def move_to(self, goal):
         rospy.loginfo("RC: Requesting Navigation to {:}".format(goal))
+        rospy.get_name()
         navgoal = GotoNodeGoal()
         navgoal.target = goal
         #navgoal.origin = orig

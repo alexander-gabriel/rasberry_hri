@@ -10,7 +10,7 @@ from rasberry_people_perception.topological_localiser import TopologicalNavLoc
 from topological_navigation.route_search import TopologicalRouteSearch
 from utils import OrderedConsistentSet, suppress
 from world_state import WorldState
-from goals import ExchangeGoal, DeliverGoal, Evade1Goal, Evade2Goal
+from goals import ExchangeGoal, DeliverGoal, EvadeGoal
 
 MAX_COST = 10
 MIN_GAIN = 10
@@ -46,26 +46,26 @@ class BDISystem:
         self.world_state = WorldState(self.me)
         self.robot_track = []
         self.people_tracks = {}
-        self.goals = [ExchangeGoal, DeliverGoal, Evade1Goal, Evade2Goal]
+        self.goals = [ExchangeGoal, DeliverGoal, EvadeGoal]
         self.intentions = []
         self.robot_position = None
         self.latest_people_msgs = {}
         self.latest_people_nodes = {}
         self.qsrlib = QSRlib()
         self.options = sorted(self.qsrlib.qsrs_registry.keys())
-        self.which_qsr = "rcc8"#"tpcc"
+        self.which_qsr = "tpcc"#"tpcc"
         self.locator = TopologicalNavLoc()
         self.links = {}
         self.node_positions = {}
         self.route_search = TopologicalRouteSearch(self.locator.tmap)
-        for waypoint in [("WayPoint133", "WayPoint102"), ("WayPoint102", "WayPoint103"), ("WayPoint103", "WayPoint104"), ("WayPoint104", "WayPoint105"), ("WayPoint105", "WayPoint106")]:
-            self.world_state.add_belief("leads_to({:},{:})".format(waypoint[0], waypoint[1]))
+        # for waypoint in [("WayPoint133", "WayPoint102"), ("WayPoint102", "WayPoint103"), ("WayPoint103", "WayPoint104"), ("WayPoint104", "WayPoint105"), ("WayPoint105", "WayPoint106")]:
+        #     self.world_state.add_belief("leads_to({:},{:})".format(waypoint[0], waypoint[1]))
         # for node in self.locator.tmap.nodes:
-        #     self.world_state.add_belief("is_a({:},Place)".format(node.name.capitalize()))
+        #     self.world_state.add_belief("is_a({:},Place)".format(node.name))
         #     self.node_positions[node.name] = node.pose
         #     for edge in node.edges:
         #         self.links["_".join([node.name, edge.node])] = 0
-        #         self.world_state.add_belief("leads_to({:},{:})".format(node.name.capitalize(), edge.node.capitalize()))
+        #         self.world_state.add_belief("leads_to({:},{:})".format(node.name, edge.node))
         for link in self.links.keys():
             nodes = link.split("_")
             self.links[link] = get_distance(self.node_positions[nodes[0]], self.node_positions[nodes[1]])

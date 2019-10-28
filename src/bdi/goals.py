@@ -1,7 +1,9 @@
 import rospy
 
-from actions import MoveAction, MoveToAction, GiveCrateAction, ExchangeCrateAction, Evade1Action, Evade2Action
+from actions import MoveAction, MoveToAction, GiveCrateAction, ExchangeCrateAction, EvadeAction
 from utils import OrderedConsistentSet, suppress
+
+from time import sleep
 
 class Goal(object):
 
@@ -9,9 +11,11 @@ class Goal(object):
     subgoal_templates = []
 
     def __init__(self, world_state, robco, args):
-        self.subgoals = [] # list of subgoals (only if there is no action to be performed)
+        # list of subgoals (only if there is no action to be performed)
+        self.subgoals = []
         self.world_state = world_state
-        self.action = self.instantiate_action_template(world_state, robco, args) # action to be performed (only if there are no subgoals)
+        # action to be performed (only if there are no subgoals)
+        self.action = self.instantiate_action_template(world_state, robco, args)
 
 
     @classmethod
@@ -102,13 +106,13 @@ class Goal(object):
         for condition in conditions:
             query += condition + " ^ "
         query = [query[:-3].replace("me", world_state.me.capitalize())]
-        rospy.logdebug("BDI: Asking MLN system; query: {:}".format(query))
+        rospy.logdebug("GOL: Asking MLN system; query: {:}".format(query))
         prob, formula = world_state.check(query)
         if prob < 0.75:
             return []
-        rospy.loginfo("BDI: Received result for query: {:}".format(query))
+        rospy.loginfo("GOL: Received result for query: {:}".format(query))
         targets = []
-        rospy.loginfo("BDI: Result is: {:f} {:}".format(prob, formula))
+        rospy.loginfo("GOL: Result is: {:f} {:}".format(prob, formula))
         for atom in formula.getGroundAtoms():
             targets.append(atom.params)
         return [targets]
@@ -147,7 +151,19 @@ class Goal(object):
 
 
     def perform_action(self):
-        self.get_action_queue().pop(0).perform()
+        action_queue = self.get_action_queue()
+        action = action_queue.pop(0)
+        tries = 5
+        succeeded = False
+        while tries > 0 and not succeeded:
+            succeeded = action.perform()
+            tries -= 1
+            if not succeeded:
+                rospy.loginfo("GOL: Tried to peform action; result: {}, {:d} tries remaining".format(succeeded, tries))
+                sleep(2)
+        if not succeeded:
+            action_queue.insert(0,action)
+
 
 
     def get_cost(self):
@@ -218,31 +234,16 @@ class ExchangeCrateGoal(Goal):
 
 
 
-class Evade1Goal(Goal):
+class EvadeGoal(Goal):
 
-    action_template = Evade1Action
+    action_template = EvadeAction
 
     def __init__(self, world_state, robco, args):
-        # rospy.loginfo(args)
         me = args[1][0]
         origin = args[1][1]
         picker = args[0][0]
-        destination = args[3][1]
-        super(Evade1Goal, self).__init__(world_state, robco, [me, picker, origin, destination])
-
-
-
-class Evade2Goal(Goal):
-
-    action_template = Evade2Action
-
-    def __init__(self, world_state, robco, args):
-        # rospy.loginfo(args)
-        me = args[1][0]
-        origin = args[1][1]
-        picker = args[0][0]
-        destination = args[3][1]
-        super(Evade2Goal, self).__init__(world_state, robco, [me, picker, origin, destination])
+        destination = args[3][0]
+        super(EvadeGoal, self).__init__(world_state, robco, [me, picker, origin, destination])
 
 
 

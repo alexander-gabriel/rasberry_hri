@@ -81,7 +81,8 @@ class DefaultGroundingFactory(AbstractGroundingFactory):
                 gndFormula.idxFormula = idxFormula
                 numGroundings += 1
                 yield (gndFormula, referencedGndAtoms)
-            print "    %d groundings generated" % numGroundings
+            if verbose:
+                print "    %d groundings generated" % numGroundings
 
     def _createGroundFormulas(self, verbose=False):
         mrf = self.mrf

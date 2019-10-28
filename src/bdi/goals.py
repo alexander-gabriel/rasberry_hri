@@ -102,7 +102,7 @@ class Goal(object):
         for condition in conditions:
             query += condition + " ^ "
         query = [query[:-3].replace("me", world_state.me.capitalize())]
-        rospy.loginfo("BDI: Asking MLN system; query: {:}".format(query))
+        rospy.logdebug("BDI: Asking MLN system; query: {:}".format(query))
         prob, formula = world_state.check(query)
         if prob < 0.75:
             return []
@@ -276,5 +276,5 @@ class ExchangeGoal(Goal):
         destination = args[3][1]
         super(ExchangeGoal, self).__init__(world_state, robco, [])
         self.subgoals.append(MoveGoal(world_state, robco, [me, origin, destination]))
-        self.subgoals.append(ExchangeCrateGoal(world_state, robco, [me, picker]))
+        self.subgoals.append(ExchangeCrateGoal(world_state, robco, [me, picker, destination]))
         self.subgoals.append(MoveGoal(world_state, robco, [me, destination, origin]))

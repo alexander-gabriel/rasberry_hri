@@ -7,19 +7,30 @@ class Action(object):
     gain = 0
 
     def __init__(self, world_state, args):
+        self.instances = args
         self.conditions = []
         self.consequences = []
         self.world_state = world_state
         self.cost = 0
-        for index in range(len(args)):
-            for condition in self.condition_templates:
-                self.conditions.append(condition.replace("?{:}".format(self.placeholders[index]), args[index]))
-            for consequence in self.consequence_templates:
-                self.consequences.append(consequence.replace("?{:}".format(self.placeholders[index]), args[index]))
+        for condition in self.condition_templates:
+            for placeholder, instance in zip(self.placeholders, self.instances):
+                condition = condition.replace(placeholder, instance)
+            self.conditions.append(condition)
+        for consequence in self.consequence_templates:
+            for placeholder, instance in zip(self.placeholders, self.instances):
+                consequence = consequence.replace(placeholder, instance)
+            self.consequences.append(consequence)
+
+
+        # for index in range(len(args)):
+        #     for condition in self.condition_templates:
+        #         self.conditions.append(condition.replace("?{:}".format(self.placeholders[index]), args[index]))
+        #     for consequence in self.consequence_templates:
+        #         self.consequences.append(consequence.replace("?{:}".format(self.placeholders[index]), args[index]))
 
 
     def perform(self):
-        rospy.loginfo("Performing action: {:}".format(self.__class__.__name__))
+        rospy.loginfo("ACT: Performing action: {:}".format(self.__class__.__name__))
         # for condition in self.conditions:
         #     if not condition in self.consequences:
         #         self.world_state.abandon_belief(condition)
@@ -53,9 +64,9 @@ class MoveAction(Action):
 
     def perform(self):
         super(MoveAction, self).perform()
-        result = self.robco.move_to(self.destination)
-        rospy.loginfo("Result of Action move was {:}".format(result))
-        sleep(5)
+        print(self.robco.move_to(self.destination))
+
+
 
 
 class MoveToAction(Action):
@@ -79,6 +90,7 @@ class MoveToAction(Action):
     def perform(self):
         super(MoveToAction, self).perform()
         self.robco.move_to(self.destination)
+
 
 
 
@@ -125,7 +137,7 @@ class Evade2Action(Action):
 class GiveCrateAction(Action):
 
     condition_templates = ["!(seen_picking(picker))", "!(has_crate(picker))", "is_at(picker, destination)", "is_at(me,destination)", "is_a(picker,Human)"]
-    consequence_templates = ["has_crate(picker)", "is_at(picker, destination)", "is_at(me,destination)", "is_a(picker,Human)"]
+    consequence_templates = ["has_crate(picker)", "is_at(picker,destination)", "is_at(me,destination)", "is_a(picker,Human)"]
     placeholders = ["me", "picker", "destination"] # in same order as constructor arguments
     gain = 100
 
@@ -150,13 +162,14 @@ class GiveCrateAction(Action):
                 self.world_state.abandon_belief(condition)
         for consequence in self.consequences:
             self.world_state.add_belief(consequence)
+        sleep(5)
 
 
 
 class ExchangeCrateAction(Action):
 
     condition_templates = ["seen_picking(picker)", "has_crate(picker)", "is_at(picker, destination)", "is_at(me,destination)", "is_a(picker,Human)"]
-    consequence_templates = ["has_crate(picker)", "!(seen_picking(picker)", "is_at(picker, destination)", "is_at(me,destination)", "is_a(picker,Human)"]
+    consequence_templates = ["has_crate(picker)", "!(seen_picking(picker)", "is_at(picker,destination)", "is_at(me,destination)", "is_a(picker,Human)"]
     placeholders = ["me", "picker", "destination"] # in same order as constructor arguments
     gain = 100
 
@@ -164,6 +177,7 @@ class ExchangeCrateAction(Action):
     def __init__(self, world_state, robco, args):
         # [me, picker, destination]
         super(ExchangeCrateAction, self).__init__(world_state, args)
+
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?picker", picker).replace(ME, me))
     #     for consequence in self.consequence_templates:
@@ -181,3 +195,4 @@ class ExchangeCrateAction(Action):
                 self.world_state.abandon_belief(condition)
         for consequence in self.consequences:
             self.world_state.add_belief(consequence)
+        sleep(5)

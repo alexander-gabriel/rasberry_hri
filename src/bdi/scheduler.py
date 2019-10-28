@@ -25,14 +25,14 @@ class Scheduler:
     def __init__(self, robot_id):
         rospy.loginfo("SCH: Initializing Scheduler")
         self.robot_id = robot_id
-        self.robot_control = actionlib.SimpleActionClient('topological_navigation', GotoNodeAction)
+        self.robot_control = actionlib.SimpleActionClient('/{:}/topological_navigation'.format(self.robot_id), GotoNodeAction)
         self.robot_control.wait_for_server()
         rospy.loginfo("SCH: Found Robot Countrol Server")
         self.latest_robot_node = None
         self.bdi = BDISystem(self.robot_id, RobotControl(self.robot_control, self.robot_id))
         self.bdi.world_state.add_belief("is_a({:},Robot)".format(self.robot_id.capitalize()))
-        self.robot_sub = rospy.Subscriber('robot_pose', Pose, self.robot_position_coordinate_callback)
-        self.robot_sub = rospy.Subscriber('current_node', String, self.robot_position_node_callback)
+        # self.robot_sub = rospy.Subscriber('{:}/robot_pose'.format(self.robot_id), Pose, self.robot_position_coordinate_callback)
+        self.robot_sub = rospy.Subscriber('/{:}/current_node'.format(self.robot_id), String, self.robot_position_node_callback)
         #TODO: move to multiple pickers
         self.people_sub = rospy.Subscriber("/picker01/posestamped", PoseStamped, lambda msg: self.people_tracker_callback(msg, "Picker01") )
         self.people_sub = rospy.Subscriber("/picker02/posestamped", PoseStamped, lambda msg: self.people_tracker_callback(msg, "Picker02") )
@@ -64,16 +64,14 @@ class Scheduler:
 
     def robot_position_node_callback(self, msg):
         if not self.latest_robot_node is None:
-            # rospy.loginfo("retracting is_at({:},{:})".format(self.robot_id, self.latest_robot_node))
             try:
                 self.bdi.world_state.abandon_belief("is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node.capitalize()))
-                rospy.logdebug("retracted is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node.capitalize()))
+
             except:
                  pass
         if msg.data != "none":
             self.latest_robot_node = wp2sym(msg.data)
             self.bdi.world_state.add_belief("is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node.capitalize()))
-            rospy.logdebug("added is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node.capitalize()))
         else:
             self.latest_robot_node = None
 
@@ -82,10 +80,8 @@ class Scheduler:
         # TODO: match detected person to symbol
         if msg.action == "has crate":
             self.bdi.world_state.add_belief("has_crate({:})".format(msg.id.capitalize()))
-            rospy.logdebug("added has_crate({:})".format(msg.id.capitalize()))
         elif msg.action == "picking berries left" or msg.action == "picking berries right":
             self.bdi.world_state.add_belief("seen_picking({:})".format(msg.id.capitalize()))
-            rospy.logdebug("added seen_picking({:})".format(msg.id.capitalize()))
         # self.bdi.world_state.add_belief("{:}({:})".format(msg.action, msg.id.capitalize()))
         # rospy.logdebug("added {:}({:})".format(msg.action, msg.id.capitalize()))
 

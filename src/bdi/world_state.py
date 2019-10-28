@@ -41,7 +41,7 @@ class WorldState():
         self.lock.acquire()
         with suppress(Exception):
             self.db.readContent("{:f} {:}".format(truth, belief))
-        rospy.logdebug("WS: adding belief: {:f} {:}".format(truth, belief))
+            rospy.loginfo("WS: Adding belief: {:f} {:}".format(truth, belief))
         self.lock.release()
 
 
@@ -49,7 +49,7 @@ class WorldState():
         self.lock.acquire()
         with suppress(KeyError):
             del self.db.evidence[belief]
-        rospy.logdebug("WS: retracting belief: {:}".format(belief))
+            rospy.loginfo("WS: Retracting belief: {:}".format(belief))
         self.lock.release()
 
 

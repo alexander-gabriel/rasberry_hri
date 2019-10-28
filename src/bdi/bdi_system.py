@@ -75,7 +75,7 @@ class BDISystem:
 
 
     def generate_options(self):
-        rospy.loginfo("Generating Behaviour Options")
+        rospy.logdebug("Generating Behaviour Options")
         desires = []
         for goal in self.goals:
             args_list = goal.find_instances(self.world_state)
@@ -88,19 +88,19 @@ class BDISystem:
 
 
     def filter(self, desires):
-        rospy.loginfo("BDI: Filtering Desires")
+        rospy.logdebug("BDI: Filtering Desires")
         intentions = self.intentions or []
         for desire in desires:
             gain = desire.get_gain()
             cost = desire.get_cost()
-            rospy.loginfo("BDI: Got desire {:} with gain: {:d} and cost {:d}".format(desire.__class__.__name__, gain, cost))
+            rospy.logdebug("BDI: Got desire {:} with gain: {:d} and cost {:d}".format(desire.__class__.__name__, gain, cost))
             if gain > MIN_GAIN and cost < MAX_COST:
                 intentions.append(desire)
         return intentions
 
 
     def perform_action(self):
-        rospy.loginfo("BDI: Choosing Next Action")
+        rospy.logdebug("BDI: Choosing Next Action")
         chosen_intention = None
         min_cost = 999999
         for intention in self.intentions:
@@ -111,22 +111,21 @@ class BDISystem:
                     chosen_intention = intention
                     min_cost  = cost
         if not chosen_intention is None:
-            rospy.loginfo("BDI: Chosen Action from Plan: {:}".format(chosen_intention.__class__.__name__))
+            rospy.loginfo("BDI: Following goal: {:}".format(chosen_intention.__class__.__name__))
             chosen_intention.perform_action()
 
 
     def loop(self):
-        rospy.loginfo("----- Started Loop -----")
+        rospy.logdebug("----- Started Loop -----")
         self.update_beliefs()
         desires = self.generate_options()
         self.intentions = self.filter(desires)
         self.perform_action()
-        rospy.loginfo("----- Ended Loop -----")
-
+        rospy.logdebug("----- Ended Loop -----")
 
 
     def update_beliefs(self):
-        rospy.loginfo("BDI: Updating Beliefs")
+        rospy.logdebug("BDI: Updating Beliefs")
         world = World_Trace()
         if not self.robot_position is None:
             self.robot_track.append(self.robot_position)

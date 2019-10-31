@@ -104,32 +104,41 @@ class Scheduler:
         id = "Picker01"
         msg.angles
         msg = PoseStamped()
-        res = [idx for idx, val in enumerate(msg.angles) if val > -0.5 and val < 0.5]
+        indexes = [idx for idx, val in enumerate(msg.angles) if val > -0.5 and val < 0.5]
+        min_distance = 100
+        angle = None
         msg2.header = msg.header
-        for index in res:
-            msg2.pose = msg.poses[index]
-        world = World_Trace()
-        things = []
-        qsrlib_request_message = QSRlib_Request_Message(which_qsr="tpcc", input_data=world)
-        # request your
+        msg2.pose = None
+        for index in indexes:
+            distance = msg.distances[index]
+            if distance < min_distance:
+                min_distance = distance
+                msg2.pose = msg.poses[index]
+        if msg2.pose is not None:
+            self.picker_tracker_callback(msg2)
 
-        position = Object_State(name=id, timestamp=msg2.header.stamp.to_sec(), x=msg2.pose.position.x, y=msg2.pose.position.y, width=0.6, length=0.4)
-        things.append(position)
-
-        things.append(self.bdi.robot_track[-1])
-
-        world.add_object_state_series(things)
-        qsrlib_response_message = self.qsrlib.request_qsrs(req_msg=qsrlib_request_message)
-        for t in qsrlib_response_message.qsrs.get_sorted_timestamps():
-            foo = str(t) + ": "
-            for k, v in zip(qsrlib_response_message.qsrs.trace[t].qsrs.keys(),
-                            qsrlib_response_message.qsrs.trace[t].qsrs.values()):
-                foo += str(k) + ":" + str(v.qsr) + "; "
-            rospy.loginfo(foo)
-        world_qsr.trace[4].qsrs[self.robot_id.capitalize()+','+id].qsr['tpcc']
-        direction = ""
-        if direction in ["dsf","csf"]:
-            self.bdi.latest_people_msgs[id] = msg
+        # world = World_Trace()
+        # things = []
+        # qsrlib_request_message = QSRlib_Request_Message(which_qsr="tpcc", input_data=world)
+        # # request your
+        #
+        # position = Object_State(name=id, timestamp=msg2.header.stamp.to_sec(), x=msg2.pose.position.x, y=msg2.pose.position.y, width=0.6, length=0.4)
+        # things.append(position)
+        #
+        # things.append(self.bdi.robot_track[-1])
+        #
+        # world.add_object_state_series(things)
+        # qsrlib_response_message = self.qsrlib.request_qsrs(req_msg=qsrlib_request_message)
+        # for t in qsrlib_response_message.qsrs.get_sorted_timestamps():
+        #     foo = str(t) + ": "
+        #     for k, v in zip(qsrlib_response_message.qsrs.trace[t].qsrs.keys(),
+        #                     qsrlib_response_message.qsrs.trace[t].qsrs.values()):
+        #         foo += str(k) + ":" + str(v.qsr) + "; "
+        #     rospy.loginfo(foo)
+        # world_qsr.trace[4].qsrs[self.robot_id.capitalize()+','+id].qsr['tpcc']
+        # direction = ""
+        # if direction in ["dsf","csf"]:
+        #     self.bdi.latest_people_msgs[id] = msg
         # self.bdi.latest_people_msgs[id] = msg
 
         # if current_node != "none":

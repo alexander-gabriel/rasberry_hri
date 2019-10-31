@@ -1,9 +1,9 @@
-from math import max
+import rospy
 
 from numpy import arctan2, abs, mean
 
 from poses import pose_list
-
+from utils import suppress
 
 class MinimumDifferenceClassifier:
 
@@ -16,35 +16,38 @@ class MinimumDifferenceClassifier:
         for name, pose in pose_list.items():
             error_list = list()
             for label, target in pose.items():
-                angle_or_position, direction, limit = target.split(" ")
-                if angle_or_position == "a":
-                    try:
-                        limit = float(limit)
-                    except:
-                        limit = angles[limit]
-                    if direction == "=":
-                        error_list.append(abs(limit - angles[label]))
-                    elif direction == ">":
-                        error_list.append(max(0, limit - angles[label]))
-                    elif direction == "<":
-                        error_list.append(max(0, angles[label] - limit))
+                with suppress(TypeError):
+                    angle_or_position, direction, limit = target.split(" ")
+                    if angle_or_position == "a":
+                        try:
+                            limit = float(limit)
+                        except:
+                            limit = angles[limit]
+                        if direction == "=":
+                            error_list.append(abs(limit - angles[label]))
+                        elif direction == ">":
+                            error_list.append(max(0, limit - angles[label]))
+                        elif direction == "<":
+                            error_list.append(max(0, angles[label] - limit))
+                        else:
+                            pass
                     else:
-                        pass
-                else:
-                    try:
-                        limit = float(limit)
-                    except:
-                        limit = posistions[limit]
-                    if direction == "=":
-                        error_list.append(abs(limit - posistions[label]))
-                    elif direction == ">":
-                        error_list.append(max(0, limit - posistions[label]))
-                    elif direction == "<":
-                        error_list.append(max(0, posistions[label] - limit))
-                    else:
-                        pass
+                        try:
+                            limit = float(limit)
+                        except:
+                            limit = positions[limit]
+                        if direction == "=":
+                            error_list.append(abs(limit - positions[label]))
+                        elif direction == ">":
+                            error_list.append(max(0, limit - positions[label]))
+                        elif direction == "<":
+                            error_list.append(max(0, positions[label] - limit))
+                        else:
+                            pass
             error = mean(error_list)
             errors[name] = error
             if error < min_error[1]:
                 min_error = (name, error)
+            rospy.loginfo("{:}: {:f}".format(name, error))
+        rospy.loginfo("-----------------")
         return min_error

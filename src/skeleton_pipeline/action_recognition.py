@@ -1,4 +1,6 @@
 import sys
+import json
+
 import rospy
 from openpose import Openpose
 
@@ -10,7 +12,7 @@ from rasberry_hri.msg import Action, Command
 
 from converter import Converter
 from classifiers import MinimumDifferenceClassifier
-from utils import get_angle_prototype, get_position_prototype
+from utils import get_angle_prototype, get_position_prototype, suppress
 
 
 
@@ -22,8 +24,8 @@ class ActionRecognition:
         self.classifier = MinimumDifferenceClassifier()
         self.interface = rospy.ServiceProxy('recognize', Recognize)
         rospy.loginfo("SES: Waiting for openpose_ros_node")
-        # rospy.wait_for_service('recognize')
-        self.service = Openpose(self.interface, self.openpose_callback)
+        rospy.wait_for_service('recognize')
+        self.openpose = Openpose(self.interface, self.openpose_callback)
 
         self.last_detected_count = {}
 
@@ -51,36 +53,42 @@ class ActionRecognition:
 
 
     def openpose_callback(self, timestamp, source, response):
-        angles = self.get_angles(response.recognitions)
-        positions = self.get_positions(response.recognitions)
-        action = self.get_action(angles, positions)
-        if action is not None:
-            outmsg = Action()
-            outmsg.header.stamp = timestamp
-            outmsg.action = action
-            #TODO: identify picker
-            outmsg.id = "picker01"
-            self.action_publisher.publish(outmsg)
-            # outmsg = Command()
-            # outmsg.header.stamp = timestamp
-            # outmsg.command = action
-            # self.command_publisher.publish(outmsg)
+        if response.recognitions:
+            self.converter.create_index_map(response.recognitions)
+            angles = self.get_angles(response.recognitions)
+            positions = self.get_positions(response.recognitions)
+            with open("/home/alex/angles.log", 'w') as f:
+                json.dump(angles, f)
+            with open("/home/alex/positions.log", 'w') as f:
+                json.dump(positions, f)
+            action = self.get_action(angles, positions)
+            with open("/home/alex/action.log", 'w') as f:
+                json.dump(action, f)
+            if action is not None:
+                outmsg = Action()
+                outmsg.header.stamp = timestamp
+                outmsg.action = action
+                #TODO: identify picker
+                outmsg.id = "picker01"
+                self.action_publisher.publish(outmsg)
+                # outmsg = Command()
+                # outmsg.header.stamp = timestamp
+                # outmsg.command = action
+                # self.command_publisher.publish(outmsg)
 
 
     def get_positions(self, recognitions):
-        self.converter.create_index_map(recognitions)
+
         # convert x/y offsets to values relative to some reference point (neck?)
         # adjust joint number and setup and labels
         model = get_position_prototype()
         for id in model.keys():
-            model[id] = self.converter.get_position(id)
+            with suppress(KeyError):
+                model[id] = self.converter.get_position(id)
         return model
 
 
     def get_angles(self, recognitions):
-        self.converter.create_index_map(recognitions)
-        # convert x/y offsets to values relative to some reference point (neck?)
-        # adjust joint number and setup and labels
         model = get_angle_prototype()
         for id in ['Neck-Z', 'Upper-Spine-X', 'Mid-Spine-X', 'Lower-Spine-X']:
             try:
@@ -124,8 +132,8 @@ class ActionRecognition:
 
 
     def callback_rgb(self, data):
-        self.service.latest_rgb.append(data)
+        self.openpose.latest_rgb.append(data)
 
 
     def callback_thermal(self, data):
-        self.service.latest_thermal.append(data)
+        self.openpose.latest_thermal.append(data)

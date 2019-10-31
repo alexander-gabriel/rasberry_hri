@@ -2,7 +2,10 @@
 from numpy import arctan2, abs
 import numpy as np
 
+import rospy
+
 from filter import LimbFilter, PositionFilter
+from utils import suppress
 
 class Converter:
 
@@ -60,10 +63,11 @@ class Converter:
         centerY = self.Y("Neck")
         self.positions = {}
         for label in self.label_table.keys():
-            position = recognitions[self.index_map[label]].roi
-            new_label = self.label_table[label]
-            self.positions["{:}-X".format(new_label)] = position.x_offset - centerX
-            self.positions["{:}-Y".format(new_label)] = position.y_offset - centerY
+            with suppress(KeyError):
+                position = recognitions[self.index_map[label]].roi
+                new_label = self.label_table[label]
+                self.positions["{:}-X".format(new_label)] = position.x_offset - centerX
+                self.positions["{:}-Y".format(new_label)] = position.y_offset - centerY
 
 
     def X(self, label):

@@ -50,7 +50,7 @@ def wp2sym(waypoint):
     return waypoint
 
 def sym2wp(symbol):
-    return symbol.replace("waypoint", "WayPoint")
+    return symbol
 
 
 def get_angle_prototype():
@@ -92,11 +92,46 @@ def get_angle_prototype():
         'Right:Ankle-RX': -1.0,
         'Right:Ankle-RY': -1.0,
         'Right:Ankle-RZ': -1.0,
-        'Left:Ankle-X': -1.0,
+        'Left:Ankle-RX': -1.0,
         'Left:Ankle-RY': -1.0,
         'Left:Ankle-RZ': -1.0}.copy()
 
 def get_position_prototype():
+    return {
+        'Neck-X': None,
+        'Neck-Y': None,
+        'Right:Wrist-X': None,
+        'Right:Wrist-Y': None,
+        'Left:Wrist-X': None,
+        'Left:Wrist-Y': None,
+        'Right:Elbow-X': None,
+        'Right:Elbow-Y': None,
+        'Left:Elbow-X': None,
+        'Left:Elbow-Y': None,
+        'Right:Shoulder-X': None,
+        'Right:Shoulder-Y': None,
+        'Left:Shoulder-X': None,
+        'Left:Shoulder-Y': None,
+        'Upper-Spine-X': None,
+        'Upper-Spine-Y': None,
+        'Mid-Spine-X': None,
+        'Mid-Spine-Y': None,
+        'Lower-Spine-X': None,
+        'Lower-Spine-Y': None,
+        'Right:Hip-X': None,
+        'Right:Hip-Y': None,
+        'Left:Hip-X': None,
+        'Left:Hip-Y': None,
+        'Right:Knee-X': None,
+        'Right:Knee-Y': None,
+        'Left:Knee-X': None,
+        'Left:Knee-Y': None,
+        'Right:Ankle-X': None,
+        'Right:Ankle-Y': None,
+        'Left:Ankle-X': None,
+        'Left:Ankle-Y': None}.copy()
+
+def get_position_prototype_3d():
     return {
         'Neck-X': -1.0,
         'Neck-Y': -1.0,

@@ -328,6 +328,7 @@ class WorldState():
 
 
     def add_belief(self, belief, probability=1):
+        pass
         # self.atomspace.add_node()
         # self.atomspace.add_link(types.SimilarityLink, [node1,node2])
 

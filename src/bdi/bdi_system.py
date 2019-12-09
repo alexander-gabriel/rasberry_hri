@@ -136,6 +136,7 @@ class BDISystem:
             with suppress(KeyError):
                 latest_node = self.latest_people_nodes[person]
                 if current_node != "none":
+                    pass
                     # self.world_state.abandon_belief("{:}({:},{:})".format(latest_node[0], person, latest_node[1]))
             if current_node != "none":
                 self.latest_people_nodes[person] = ("is_at", current_node)

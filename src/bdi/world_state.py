@@ -10,7 +10,7 @@ from probcog.MLN.util import strFormula
 from opencog.atomspace import AtomSpace, types, TruthValue
 from opencog.utilities import initialize_opencog
 from opencog.type_constructors import *
-from opencog.backwardchainer import BackwardChainer
+# from opencog.backwardchainer import BackwardChainer
 
 from utils import suppress
 
@@ -296,12 +296,12 @@ class WorldState():
         self.lock.acquire()
         max_prob = 0
         formula = None
-        chainer = BackwardChainer(atomspace,
-                          rule_base,
-                          start_atom,
-                          trace_as=trace_atomspace)
-        chainer.do_chain()
-        results = chainer.get_results()
+        # chainer = BackwardChainer(atomspace,
+        #                   rule_base,
+        #                   start_atom,
+        #                   trace_as=trace_atomspace)
+        # chainer.do_chain()
+        # results = chainer.get_results()
         # with suppress(Exception):
         #     mrf = self.mln.groundMRF(self.db)
         #     rospy.logdebug("Grounded MRF")

@@ -70,6 +70,7 @@ class WorldState():
         p3 = VariableNode("place3")
         t1 = VariableNode("thing1")
         t2 = VariableNode("thing2")
+        hum1 = VariableNode("human1")
         obj1 = VariableNode("object1")
         cre1 = VariableNode("creature1")
 
@@ -98,13 +99,13 @@ class WorldState():
         ForAllLink(
             VariableList(t1),
             ImplicationLink(
-                IntensionalInheritanceLink(t1, object),
+                IntensionalInheritanceLink(t1, obj),
                 NotLink(IntensionalInheritanceLink(t1, organism))))
         ForAllLink(
             VariableList(t1),
             ImplicationLink(
                 IntensionalInheritanceLink(t1, organism),
-                NotLink(IntensionalInheritanceLink(t1, object))))
+                NotLink(IntensionalInheritanceLink(t1, obj))))
 
         ForAllLink(
             VariableList(t1),
@@ -160,7 +161,7 @@ class WorldState():
                         PredicateNode("leads_to"),
                         ListLink(p1, p2)),
                     NotLink(
-                        ExistLink(t1, StateLink(t1, p2))),
+                        ExistsLink(t1, StateLink(t1, p2))),
                     OrLink(
                         EvaluationLink(
                             PredicateNode("can_reach"),
@@ -174,7 +175,7 @@ class WorldState():
             VariableList(p1,p2,obj1,cre1),
             ImplicationLink(
                 OrLink(
-                    IntensionalInheritanceLink(obj1, object),
+                    IntensionalInheritanceLink(obj1, obj),
                     IntensionalInheritanceLink(obj1, plant)),
                 NotLink(EvaluationLink(
                     PredicateNode("can_reach"),
@@ -184,7 +185,7 @@ class WorldState():
             ImplicationLink(
                 AndLink(
                     OrLink(
-                        IntensionalInheritanceLink(obj1, object),
+                        IntensionalInheritanceLink(obj1, obj),
                         IntensionalInheritanceLink(obj1, plant)),
                     IntensionalInheritanceLink(cre1, creature),
                     StateLink(cre1, p1),

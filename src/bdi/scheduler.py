@@ -35,7 +35,8 @@ class Scheduler:
         self.latest_robot_node = None
         self.bdi = BDISystem(self.robot_id, RobotControl(self.robot_control, self.robot_id))
         self.bdi.robco.move_to("WayPoint104")
-        self.bdi.world_state.add_belief("is_a({:},Robot)".format(self.robot_id.capitalize()))
+        self.bdi.world_state.add_entity(self.robot_id.capitalize(), "robot")
+
         # self.robot_sub = rospy.Subscriber('{:}/robot_pose'.format(self.robot_id), Pose, self.robot_position_coordinate_callback)
         self.robot_sub = rospy.Subscriber('/{:}/current_node'.format(self.robot_id), String, self.robot_position_node_callback)
         #TODO: move to multiple pickers
@@ -75,13 +76,13 @@ class Scheduler:
     def robot_position_node_callback(self, msg):
         if not self.latest_robot_node is None:
             try:
-                self.bdi.world_state.abandon_belief("is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node))
+                self.bdi.world_state.update_position(self.robot_id.capitalize(), self.latest_robot_node)
 
             except:
                  pass
         if msg.data != "none":
             self.latest_robot_node = wp2sym(msg.data)
-            self.bdi.world_state.add_belief("is_at({:},{:})".format(self.robot_id.capitalize(), self.latest_robot_node))
+            self.bdi.world_state.update_position(self.robot_id.capitalize(), self.latest_robot_node)
         else:
             self.latest_robot_node = None
 
@@ -89,9 +90,9 @@ class Scheduler:
     def human_intention_callback(self, msg):
         # TODO: match detected person to symbol
         if msg.action == "has crate":
-            self.bdi.world_state.add_belief("has_crate({:})".format(msg.id.capitalize()))
+            self.bdi.world_state.update_property(msg.id.capitalize(), "has_crate", 1.0)
         elif msg.action == "picking berries left" or msg.action == "picking berries right":
-            self.bdi.world_state.add_belief("seen_picking({:})".format(msg.id.capitalize()))
+            self.bdi.world_state.update_property(msg.id.capitalize(), "seen_picking", 1.0)
         # self.bdi.world_state.add_belief("{:}({:})".format(msg.action, msg.id.capitalize()))
         # rospy.logdebug("added {:}({:})".format(msg.action, msg.id.capitalize()))
 

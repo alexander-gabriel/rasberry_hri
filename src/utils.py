@@ -8,6 +8,7 @@ def suppress(*exceptions):
     except exceptions:
         pass
 
+
 class OrderedConsistentSet:
 
     def __init__(self):
@@ -46,8 +47,10 @@ class OrderedConsistentSet:
     def __iter__(self):
         return self.items.__iter__()
 
+
 def wp2sym(waypoint):
     return waypoint
+
 
 def sym2wp(symbol):
     return symbol
@@ -96,6 +99,7 @@ def get_angle_prototype():
         'Left:Ankle-RY': -1.0,
         'Left:Ankle-RZ': -1.0}.copy()
 
+
 def get_position_prototype():
     return {
         'Neck-X': None,
@@ -130,6 +134,7 @@ def get_position_prototype():
         'Right:Ankle-Y': None,
         'Left:Ankle-X': None,
         'Left:Ankle-Y': None}.copy()
+
 
 def get_position_prototype_3d():
     return {

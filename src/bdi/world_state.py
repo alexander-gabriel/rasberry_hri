@@ -226,7 +226,7 @@ class WorldState():
             hum1,
             ImplicationLink(
                 StateLink(ListLink(hum1, PredicateNode("has_crate")), NumberNode(1.0)),
-                NotLink(StateLink(ListLink(hum1, PredicateNode("has_requested_crate")), NumberNode(1.0)))))
+                StateLink(ListLink(hum1, PredicateNode("has_requested_crate")), NumberNode(0.0))))
 
 
 

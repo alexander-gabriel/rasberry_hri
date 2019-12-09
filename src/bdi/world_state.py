@@ -30,13 +30,47 @@ class WorldState():
 
     def __init__(self, me):
         self.me = me
-        # self.mln = MLN(MLN_FILENAME)
         self.lock = Lock()
         self.atomspace = AtomSpace()
         initialize_opencog(self.atomspace)
         set_type_ctor_atomspace(self.atomspace)
-        # self.db = Database(self.mln, dbfile=DB_FILENAME)
+        self.build_ontology()
 
+    def build_ontology(self):
+        thing = ConceptNode("thing")
+
+        concept = ConceptNode("concept")
+        entity = ConceptNode("entity")
+        IntensionalInheritanceLink(entity, thing)
+        IntensionalInheritanceLink(concept, thing)
+
+        obj = ConceptNode("object")
+        organism = ConceptNode("organism")
+        IntensionalInheritanceLink(organism, entity)
+        IntensionalInheritanceLink(obj, entity)
+
+        plant = ConceptNode("plant")
+        IntensionalInheritanceLink(plant, organism)
+
+        strawberryplant = ConceptNode("strawberryplant")
+        IntensionalInheritanceLink(strawberryplant, plant)
+
+        creature = ConceptNode("creature")
+        robot = ConceptNode("robot")
+        human = ConceptNode("human")
+        IntensionalInheritanceLink(creature, organism)
+        IntensionalInheritanceLink(robot, creature)
+        IntensionalInheritanceLink(human, creature)
+
+        crate = ConceptNode("crate")
+        IntensionalInheritanceLink(crate, obj)
+
+
+    def add_entity(self, name, klasse):
+        node1 = ConceptNode(klasse)
+        node2 = ConceptNode(name)
+        link = atomspace.add_link(types.SimilarityLink, [node1,node2])
+        self.atomspace.add_node(node)
 
     def add_link(self, link, truth, confidence):
         tv = TruthValue(truth, confidence)

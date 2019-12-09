@@ -69,6 +69,7 @@ class WorldState():
         p2 = VariableNode("place2")
         p3 = VariableNode("place3")
         t1 = VariableNode("thing1")
+        s1 = VariableNode("state1")
         t2 = VariableNode("thing2")
         hum1 = VariableNode("human1")
         obj1 = VariableNode("object1")
@@ -222,12 +223,10 @@ class WorldState():
                 NotLink(EvaluationLink(
                     PredicateNode("colocated"),
                     ListLink(t1, t2)))))
-        ForAllLink(
-            hum1,
-            ImplicationLink(
-                StateLink(ListLink(hum1, PredicateNode("has_crate")), NumberNode(1.0)),
-                StateLink(ListLink(hum1, PredicateNode("has_requested_crate")), NumberNode(0.0))))
-
+        # EvaluationLink(
+        #     EqualLink(
+        #         SetLink(ConceptNode("has_crate")),
+        #         GetLink(StateLink(hum1, s1))))
 
 
     def add_thing(self, name, klasse):

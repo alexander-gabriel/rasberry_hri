@@ -36,34 +36,198 @@ class WorldState():
         set_type_ctor_atomspace(self.atomspace)
         self.build_ontology()
 
+
     def build_ontology(self):
         thing = ConceptNode("thing")
 
         concept = ConceptNode("concept")
         entity = ConceptNode("entity")
-        SubsetLink(entity, thing)
-        SubsetLink(concept, thing)
+        IntensionalInheritanceLink(entity, thing)
+        IntensionalInheritanceLink(concept, thing)
 
         obj = ConceptNode("object")
         organism = ConceptNode("organism")
-        SubsetLink(organism, entity)
-        SubsetLink(obj, entity)
+        IntensionalInheritanceLink(organism, entity)
+        IntensionalInheritanceLink(obj, entity)
 
         plant = ConceptNode("plant")
-        SubsetLink(plant, organism)
+        IntensionalInheritanceLink(plant, organism)
 
         strawberryplant = ConceptNode("strawberryplant")
-        SubsetLink(strawberryplant, plant)
+        IntensionalInheritanceLink(strawberryplant, plant)
 
         creature = ConceptNode("creature")
         robot = ConceptNode("robot")
         human = ConceptNode("human")
-        SubsetLink(creature, organism)
-        SubsetLink(robot, creature)
-        SubsetLink(human, creature)
+        IntensionalInheritanceLink(creature, organism)
+        IntensionalInheritanceLink(robot, creature)
+        IntensionalInheritanceLink(human, creature)
 
         crate = ConceptNode("crate")
-        SubsetLink(crate, obj)
+        IntensionalInheritanceLink(crate, obj)
+
+        p1 = VariableNode("place1")
+        p2 = VariableNode("place2")
+        p3 = VariableNode("place3")
+        t1 = VariableNode("thing1")
+        s1 = VariableNode("state1")
+        t2 = VariableNode("thing2")
+        hum1 = VariableNode("human1")
+        obj1 = VariableNode("object1")
+        cre1 = VariableNode("creature1")
+
+        ForAllLink(
+            VariableList(t1),
+            ImplicationLink(
+                IntensionalInheritanceLink(t1, human),
+                NotLink(IntensionalInheritanceLink(t1, robot))))
+        ForAllLink(
+            VariableList(t1),
+            ImplicationLink(
+                IntensionalInheritanceLink(t1, robot),
+                NotLink(IntensionalInheritanceLink(t1, human))))
+
+        ForAllLink(
+            VariableList(t1),
+            ImplicationLink(
+                IntensionalInheritanceLink(t1, creature),
+                NotLink(IntensionalInheritanceLink(t1, plant))))
+        ForAllLink(
+            VariableList(t1),
+            ImplicationLink(
+                IntensionalInheritanceLink(t1, plant),
+                NotLink(IntensionalInheritanceLink(t1, creature))))
+
+        ForAllLink(
+            VariableList(t1),
+            ImplicationLink(
+                IntensionalInheritanceLink(t1, obj),
+                NotLink(IntensionalInheritanceLink(t1, organism))))
+        ForAllLink(
+            VariableList(t1),
+            ImplicationLink(
+                IntensionalInheritanceLink(t1, organism),
+                NotLink(IntensionalInheritanceLink(t1, obj))))
+
+        ForAllLink(
+            VariableList(t1),
+            ImplicationLink(
+                IntensionalInheritanceLink(t1, entity),
+                NotLink(IntensionalInheritanceLink(t1, concept))))
+        ForAllLink(
+            VariableList(t1),
+            ImplicationLink(
+                IntensionalInheritanceLink(t1, concept),
+                NotLink(IntensionalInheritanceLink(t1, entity))))
+
+        ForAllLink(
+            VariableList(p1, p2),
+            ImplicationLink(
+                EqualLink(p1, p2),
+                NotLink(
+                    EvaluationLink(
+                        PredicateNode("leads_to"),
+                        ListLink(p1, p2)))))
+
+        ForAllLink(
+            VariableList(p1, p2),
+            ImplicationLink(
+                EvaluationLink(
+                    PredicateNode("leads_to"),
+                    ListLink(p1, p2)),
+                    EvaluationLink(
+                        PredicateNode("linked"),
+                        ListLink(p1, p2))))
+
+        ForAllLink(
+            VariableList(p1, p2, p3),
+            ImplicationLink(
+                AndLink(
+                    NotLink(
+                        EqualLink(p1, p3)),
+                    EvaluationLink(
+                        PredicateNode("linked"),
+                        ListLink(p1, p2)),
+                    EvaluationLink(
+                        PredicateNode("linked"),
+                        ListLink(p2, p3))),
+                EvaluationLink(
+                    PredicateNode("linked"),
+                    ListLink(p1, p3))))
+
+        ForAllLink(
+            VariableList(p1, p2),
+            ImplicationLink(
+                AndLink(
+                    EvaluationLink(
+                        PredicateNode("leads_to"),
+                        ListLink(p1, p2)),
+                    NotLink(
+                        ExistsLink(t1, StateLink(t1, p2))),
+                    OrLink(
+                        EvaluationLink(
+                            PredicateNode("can_reach"),
+                            ListLink(p2, p3)),
+                        EqualLink(p1, p3))),
+                EvaluationLink(
+                    PredicateNode("free_path"),
+                    ListLink(p1, p3))))
+
+        ForAllLink(
+            VariableList(p1,p2,obj1,cre1),
+            ImplicationLink(
+                OrLink(
+                    IntensionalInheritanceLink(obj1, obj),
+                    IntensionalInheritanceLink(obj1, plant)),
+                NotLink(EvaluationLink(
+                    PredicateNode("can_reach"),
+                    ListLink(p1, p2)))))
+        ForAllLink(
+            VariableList(p1,p2,obj1,cre1),
+            ImplicationLink(
+                AndLink(
+                    OrLink(
+                        IntensionalInheritanceLink(obj1, obj),
+                        IntensionalInheritanceLink(obj1, plant)),
+                    IntensionalInheritanceLink(cre1, creature),
+                    StateLink(cre1, p1),
+                    StateLink(obj1, p2),
+                    OrLink(
+                        EvaluationLink(
+                            PredicateNode("free_path"),
+                            ListLink(p1, p2)),
+                        EvaluationLink(
+                            PredicateNode("leads_to"),
+                            ListLink(p1, p2)))),
+                EvaluationLink(
+                    PredicateNode("can_reach"),
+                    ListLink(p1, p2))))
+
+        ForAllLink(
+            VariableList(t1, t2, p1),
+            ImplicationLink(
+                AndLink(
+                    NotLink(EqualLink(t1,t2)),
+                    StateLink(t1,p1),
+                    StateLink(t2,p1)),
+                EvaluationLink(
+                    PredicateNode("colocated"),
+                    ListLink(t1, t2))))
+        ForAllLink(
+            VariableList(t1, t2, p1, p2),
+            ImplicationLink(
+                AndLink(
+                    NotLink(EqualLink(t1,t2)),
+                    NotLink(EqualLink(p1,p2)),
+                    StateLink(t1,p1),
+                    StateLink(t2,p2)),
+                NotLink(EvaluationLink(
+                    PredicateNode("colocated"),
+                    ListLink(t1, t2)))))
+        # EvaluationLink(
+        #     EqualLink(
+        #         SetLink(ConceptNode("has_crate")),
+        #         GetLink(StateLink(hum1, s1))))
 
 
     def add_entity(self, name, klasse):
@@ -114,13 +278,13 @@ class WorldState():
         self.lock.release()
 
 
-    def check(self, queries):
+    def check(self, query):
         self.lock.acquire()
         max_prob = 0
         formula = None
-        chainer = BackwardChainer(atomspace,
+        chainer = BackwardChainer(self.atomspace,
                           rule_base,
-                          start_atom,
+                          query,
                           trace_as=trace_atomspace)
         chainer.do_chain()
         results = chainer.get_results()

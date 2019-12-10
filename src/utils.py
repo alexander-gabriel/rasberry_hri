@@ -51,6 +51,38 @@ class OrderedConsistentSet:
 def wp2sym(waypoint):
     return waypoint
 
+def combine_terms(terms):
+    return zip(terms)
+
+def is_at(thing, place):
+    t = VariableNode(thing)
+    p = VariableNode(place)
+    return ((t,p), StateLink(t, p))
+
+
+def colocated(thing1, thing2): # ??
+    t1 = VariableNode(thing1)
+    t2 = VariableNode(thing2)
+    return ((t1,t2), EvaluationLink(PredicateNode("colocated"), ListLink(t1, t2))))
+
+
+def leads_to(origin, destination):
+    o = VariableNode(origin)
+    d = VariableNode(destination)
+    return ((o,d), EvaluationLink(
+        PredicateNode("leads_to"),
+        ListLink(o,d)))
+
+
+def has_crate(picker):
+    p = VariableNode(picker)
+    return ((p), StateLink(p, PredicateNode("has_crate")))
+
+
+def seen_picking(picker):
+    p = VariableNode(picker)
+    return ((p), StateLink(p, PredicateNode("seen_picking")))
+
 
 def sym2wp(symbol):
     return symbol

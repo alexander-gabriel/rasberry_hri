@@ -149,7 +149,7 @@ class WorldState():
         self.lock.release()
 
 
-    def add_belief(self, belief, probability=1):
+    # def add_belief(self, belief, probability=1):
         # self.atomspace.add_node()
         # self.atomspace.add_link(types.SimilarityLink, [node1,node2])
 

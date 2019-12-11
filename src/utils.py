@@ -70,7 +70,7 @@ def is_a(thing, category):
 def colocated(thing1, thing2): # ??
     t1 = VariableNode(thing1)
     t2 = VariableNode(thing2)
-    return ((t1,t2), EvaluationLink(PredicateNode("colocated"), ListLink(t1, t2))))
+    return ((t1,t2), EvaluationLink(PredicateNode("colocated"), ListLink(t1, t2)))
 
 
 def leads_to(origin, destination):

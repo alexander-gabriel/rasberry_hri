@@ -193,14 +193,14 @@ class WorldState():
         #         GetLink(StateLink(hum1, s1))))
 
 
-    def add_place(self, name, truth_value):
+    def add_place(self, name, truth_value=TRUE):
         node1 = ConceptNode(name)
         node1.tv = truth_value
         link = InheritanceLink(node1, self.place)
         link.tv = truth_value
 
 
-    def add_place_link(self, place1, place2, truth_value):
+    def add_place_link(self, place1, place2, truth_value=TRUE):
         p1 = ConceptNode(place1)
         p1.tv = truth_value
         p2 = ConceptNode(place2)
@@ -211,7 +211,7 @@ class WorldState():
         link.tv = truth_value
 
 
-    def add_thing(self, name, klasse, truth_value):
+    def add_thing(self, name, klasse, truth_value=TRUE):
         node1 = ConceptNode(name)
         node1.tv = truth_value
         node2 = ConceptNode(klasse)
@@ -220,7 +220,7 @@ class WorldState():
         link.tv = truth_value
 
 
-    def add_link(self, link, truth_value):
+    def add_link(self, link, truth_value=TRUE):
         self.atomspace.add_link(link, tv=truth_value)
 
 

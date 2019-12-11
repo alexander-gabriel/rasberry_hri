@@ -2,13 +2,13 @@ import time
 import rospy
 
 from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
-from qsrlib_io.world_trace import Object_State,World_Trace
+from qsrlib_io.world_trace import Object_State, World_Trace
 
 from topological_navigation.tmap_utils import get_distance
 
 from rasberry_people_perception.topological_localiser import TopologicalNavLoc
 from topological_navigation.route_search import TopologicalRouteSearch
-from utils import OrderedConsistentSet, suppress
+from utils import OrderedConsistentSet, suppress, TRUE, FALSE
 from world_state import WorldState
 from goals import ExchangeGoal, DeliverGoal, EvadeGoal
 
@@ -59,19 +59,21 @@ class BDISystem:
         self.links = {}
         self.node_positions = {}
         self.route_search = TopologicalRouteSearch(self.locator.tmap)
-        # for waypoint in [("WayPoint133", "WayPoint102"), ("WayPoint102", "WayPoint103"), ("WayPoint103", "WayPoint104"), ("WayPoint104", "WayPoint105"), ("WayPoint105", "WayPoint106")]:
-        #     self.world_state.add_belief("leads_to({:},{:})".format(waypoint[0], waypoint[1]))
+        for waypoint in [("WayPoint133", "WayPoint102"), ("WayPoint102", "WayPoint103"), ("WayPoint103", "WayPoint104"), ("WayPoint104", "WayPoint105"), ("WayPoint105", "WayPoint106")]:
+            self.world_state.add_thing(waypoint[0], "place")
+            self.world_state.add_thing(waypoint[1], "place")
+            self.world_state.add_place_link(waypoint[0], waypoint[1], TRUE)
         for node in self.locator.tmap.nodes:
-            self.world_state.add_entity(node.name, "place")
+            self.world_state.add_thing(node.name, "place")
             self.node_positions[node.name] = node.pose
             for edge in node.edges:
                 self.links["_".join([node.name, edge.node])] = 0
-                self.world_state.add_belief("leads_to({:},{:})".format(node.name, edge.node))
+                self.world_state.add_place_link(node.name, edge.node, TRUE)
         for link in self.links.keys():
             nodes = link.split("_")
             self.links[link] = get_distance(self.node_positions[nodes[0]], self.node_positions[nodes[1]])
-        for picker in ["Picker01" ,"Picker02"]:
-            self.world_state.add_thing(picker, "human")
+        for picker in ["Picker01", "Picker02"]:
+            self.world_state.add_thing(picker, "human", TRUE)
         rospy.loginfo("BDI: Initialized BDI System")
 
 

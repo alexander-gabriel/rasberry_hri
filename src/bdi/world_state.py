@@ -22,7 +22,8 @@ VERBOSE = False
 MAX_STEPS = 40
 #INFERENCE_METHOD = 'WCSP (exact MPE with toulbar2)'
 INFERENCE_METHOD = 'MC-SAT'
-
+TRUE = TruthValue(1,1)
+FALSE = TruthValue(0,1)
 
 
 class WorldState():
@@ -31,6 +32,7 @@ class WorldState():
     def __init__(self, me):
         self.me = me
         self.lock = Lock()
+
         self.atomspace = AtomSpace()
         initialize_opencog(self.atomspace)
         set_type_ctor_atomspace(self.atomspace)
@@ -38,39 +40,39 @@ class WorldState():
 
 
     def build_ontology(self):
-        thing = ConceptNode("thing")
+        thing = ConceptNode("thing", TRUE)
 
-        concept = ConceptNode("concept")
-        IntensionalInheritanceLink(concept, thing)
+        concept = ConceptNode("concept", TRUE)
+        InheritanceLink(concept, thing, TRUE)
 
-        place = ConceptNode("place")
-        IntensionalInheritanceLink(place, concept)
-
-
-        entity = ConceptNode("entity")
-        IntensionalInheritanceLink(entity, thing)
+        self.place = ConceptNode("place", TRUE)
+        InheritanceLink(self.place, concept, TRUE)
 
 
-        obj = ConceptNode("object")
-        organism = ConceptNode("organism")
-        IntensionalInheritanceLink(organism, entity)
-        IntensionalInheritanceLink(obj, entity)
+        entity = ConceptNode("entity", TRUE)
+        InheritanceLink(entity, thing, TRUE)
 
-        plant = ConceptNode("plant")
-        IntensionalInheritanceLink(plant, organism)
 
-        strawberryplant = ConceptNode("strawberryplant")
-        IntensionalInheritanceLink(strawberryplant, plant)
+        obj = ConceptNode("object", TRUE)
+        organism = ConceptNode("organism", TRUE)
+        InheritanceLink(organism, entity, TRUE)
+        InheritanceLink(obj, entity, TRUE)
 
-        creature = ConceptNode("creature")
-        robot = ConceptNode("robot")
-        human = ConceptNode("human")
-        IntensionalInheritanceLink(creature, organism)
-        IntensionalInheritanceLink(robot, creature)
-        IntensionalInheritanceLink(human, creature)
+        plant = ConceptNode("plant", TRUE)
+        InheritanceLink(plant, organism, TRUE)
 
-        crate = ConceptNode("crate")
-        IntensionalInheritanceLink(crate, obj)
+        self.strawberryplant = ConceptNode("strawberryplant", TRUE)
+        InheritanceLink(self.strawberryplant, plant, TRUE)
+
+        creature = ConceptNode("creature", TRUE)
+        self.robot = ConceptNode("robot", TRUE)
+        self.human = ConceptNode("human", TRUE)
+        InheritanceLink(creature, organism, TRUE)
+        InheritanceLink(self.robot, creature, TRUE)
+        InheritanceLink(self.human, creature, TRUE)
+
+        self.crate = ConceptNode("crate", TRUE)
+        InheritanceLink(self.crate, obj, TRUE)
 
         p1 = VariableNode("place1")
         p2 = VariableNode("place2")
@@ -83,57 +85,12 @@ class WorldState():
         cre1 = VariableNode("creature1")
 
         ForAllLink(
-            VariableList(t1),
-            ImplicationLink(
-                IntensionalInheritanceLink(t1, human),
-                NotLink(IntensionalInheritanceLink(t1, robot))))
-        ForAllLink(
-            VariableList(t1),
-            ImplicationLink(
-                IntensionalInheritanceLink(t1, robot),
-                NotLink(IntensionalInheritanceLink(t1, human))))
-
-        ForAllLink(
-            VariableList(t1),
-            ImplicationLink(
-                IntensionalInheritanceLink(t1, creature),
-                NotLink(IntensionalInheritanceLink(t1, plant))))
-        ForAllLink(
-            VariableList(t1),
-            ImplicationLink(
-                IntensionalInheritanceLink(t1, plant),
-                NotLink(IntensionalInheritanceLink(t1, creature))))
-
-        ForAllLink(
-            VariableList(t1),
-            ImplicationLink(
-                IntensionalInheritanceLink(t1, obj),
-                NotLink(IntensionalInheritanceLink(t1, organism))))
-        ForAllLink(
-            VariableList(t1),
-            ImplicationLink(
-                IntensionalInheritanceLink(t1, organism),
-                NotLink(IntensionalInheritanceLink(t1, obj))))
-
-        ForAllLink(
-            VariableList(t1),
-            ImplicationLink(
-                IntensionalInheritanceLink(t1, entity),
-                NotLink(IntensionalInheritanceLink(t1, concept))))
-        ForAllLink(
-            VariableList(t1),
-            ImplicationLink(
-                IntensionalInheritanceLink(t1, concept),
-                NotLink(IntensionalInheritanceLink(t1, entity))))
-
-        ForAllLink(
             VariableList(p1, p2),
             ImplicationLink(
                 EqualLink(p1, p2),
-                NotLink(
-                    EvaluationLink(
-                        PredicateNode("leads_to"),
-                        ListLink(p1, p2)))))
+                EvaluationLink(
+                    PredicateNode("leads_to"),
+                    ListLink(p1, p2), FALSE)))
 
         ForAllLink(
             VariableList(p1, p2),
@@ -143,7 +100,7 @@ class WorldState():
                     ListLink(p1, p2)),
                     EvaluationLink(
                         PredicateNode("linked"),
-                        ListLink(p1, p2))))
+                        ListLink(p1, p2), TRUE)))
 
         ForAllLink(
             VariableList(p1, p2, p3),
@@ -159,7 +116,7 @@ class WorldState():
                         ListLink(p2, p3))),
                 EvaluationLink(
                     PredicateNode("linked"),
-                    ListLink(p1, p3))))
+                    ListLink(p1, p3), TRUE)))
 
         ForAllLink(
             VariableList(p1, p2),
@@ -177,25 +134,25 @@ class WorldState():
                         EqualLink(p1, p3))),
                 EvaluationLink(
                     PredicateNode("free_path"),
-                    ListLink(p1, p3))))
+                    ListLink(p1, p3), TRUE)))
 
         ForAllLink(
-            VariableList(p1,p2,obj1,cre1),
+            VariableList(p1, p2, obj1, cre1),
             ImplicationLink(
                 OrLink(
-                    IntensionalInheritanceLink(obj1, obj),
-                    IntensionalInheritanceLink(obj1, plant)),
-                NotLink(EvaluationLink(
+                    InheritanceLink(obj1, obj),
+                    InheritanceLink(obj1, plant)),
+                EvaluationLink(
                     PredicateNode("can_reach"),
-                    ListLink(p1, p2)))))
+                    ListLink(p1, p2), FALSE)))
         ForAllLink(
-            VariableList(p1,p2,obj1,cre1),
+            VariableList(p1, p2, obj1, cre1),
             ImplicationLink(
                 AndLink(
                     OrLink(
-                        IntensionalInheritanceLink(obj1, obj),
-                        IntensionalInheritanceLink(obj1, plant)),
-                    IntensionalInheritanceLink(cre1, creature),
+                        InheritanceLink(obj1, obj),
+                        InheritanceLink(obj1, plant)),
+                    InheritanceLink(cre1, creature),
                     StateLink(cre1, p1),
                     StateLink(obj1, p2),
                     OrLink(
@@ -207,44 +164,56 @@ class WorldState():
                             ListLink(p1, p2)))),
                 EvaluationLink(
                     PredicateNode("can_reach"),
-                    ListLink(p1, p2))))
+                    ListLink(p1, p2), TRUE)))
 
         ForAllLink(
             VariableList(t1, t2, p1),
             ImplicationLink(
                 AndLink(
-                    NotLink(EqualLink(t1,t2)),
-                    StateLink(t1,p1),
-                    StateLink(t2,p1)),
+                    NotLink(EqualLink(t1, t2)),
+                    StateLink(t1, p1),
+                    StateLink(t2, p1)),
                 EvaluationLink(
                     PredicateNode("colocated"),
-                    ListLink(t1, t2))))
+                    ListLink(t1, t2), TRUE)))
         ForAllLink(
             VariableList(t1, t2, p1, p2),
             ImplicationLink(
                 AndLink(
-                    NotLink(EqualLink(t1,t2)),
-                    NotLink(EqualLink(p1,p2)),
-                    StateLink(t1,p1),
-                    StateLink(t2,p2)),
-                NotLink(EvaluationLink(
+                    NotLink(EqualLink(t1, t2)),
+                    NotLink(EqualLink(p1, p2)),
+                    StateLink(t1, p1),
+                    StateLink(t2, p2)),
+                EvaluationLink(
                     PredicateNode("colocated"),
-                    ListLink(t1, t2)))))
+                    ListLink(t1, t2), FALSE))))
         # EvaluationLink(
         #     EqualLink(
         #         SetLink(ConceptNode("has_crate")),
         #         GetLink(StateLink(hum1, s1))))
 
 
-    def add_entity(self, name, klasse):
+    def add_place(self, name, truth_value):
         node1 = ConceptNode(name)
-        node2 = self.atomspace.get_node_by_name(klasse)
-        InheritanceLink(node1, node2)
+        InheritanceLink(node1, self.place, truth_value)
 
 
-    def add_link(self, link, truth, confidence):
-        tv = TruthValue(truth, confidence)
-        self.atomspace.add_link(link)
+    def add_place_link(self, place1, place2, truth_value):
+        p1 = ConceptNode(place1)
+        p2 = ConceptNode(place2)
+        EvaluationLink(
+            PredicateNode("leads_to"),
+            ListLink(p1, p2), truth_value)
+
+
+    def add_thing(self, name, klasse, truth_value):
+        node1 = ConceptNode(name)
+        node2 = ConceptNode(klasse)
+        InheritanceLink(node1, node2, truth_value)
+
+
+    def add_link(self, link, truth_value):
+        self.atomspace.add_link(link, truth_value)
 
 
     def add_node(self, node):
@@ -254,14 +223,14 @@ class WorldState():
     def get_probability(self, belief):
         self.lock.acquire()
         # probability = self.db.evidence[belief]
-        probability = link.tv[0]
+        probability = link.TRUE[0]
         self.lock.release()
         return probability
 
 
     def set_probability(self, belief, truth):
         self.lock.acquire()
-        belief.tv = truth
+        belief.TRUE = truth
         # with suppress(Exception):
         #     self.db.readContent("{:f} {:}".format(truth, belief))
         #     rospy.loginfo("WS: Adding belief: {:f} {:}".format(truth, belief))

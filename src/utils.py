@@ -65,7 +65,7 @@ def is_at(thing, place):
 def is_a(thing, category):
     t = VariableNode(thing)
     p = ConceptNode(category)
-    return ((t), IntensionalInheritanceLink(t, p))
+    return ((t), ExtensionalInheritanceLink(t, p))
 
 def colocated(thing1, thing2): # ??
     t1 = VariableNode(thing1)

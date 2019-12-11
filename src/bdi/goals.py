@@ -106,6 +106,7 @@ class Goal(object):
             args = [w.replace('me', world_state.me.capitalize()) for w in condition[1]]
             conditions.append(fun(args))
         query = GetLink(conditions)
+        rospy.loginfo("{:}".format(query))
         rospy.logdebug("GOL: Asking MLN system; query: {:}".format(query))
         prob, formula = world_state.check(query)
         if prob < 0.75:

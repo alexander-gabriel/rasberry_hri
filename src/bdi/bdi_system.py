@@ -44,7 +44,7 @@ class BDISystem:
         self.me = me
         self.robco = robco
         self.world_state = WorldState(self.me)
-        rospy.loginfo("BDI: Initialized Word state")
+        rospy.loginfo("BDI: Initialized World state")
         self.robot_track = []
         self.people_tracks = {}
         self.goals = [ExchangeGoal, DeliverGoal, EvadeGoal]

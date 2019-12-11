@@ -1,4 +1,5 @@
 from time import sleep
+from utils import is_at, colocated, leads_to, has_crate, seen_picking, not_seen_picking, is_a, not_has_crate
 import rospy
 
 class Action(object):
@@ -46,8 +47,8 @@ class Action(object):
 
 class MoveAction(Action):
 
-    condition_templates = ["is_at(me,origin)"]
-    consequence_templates = ["is_at(me,destination)"]
+    condition_templates = [(is_at, ("me", "origin"))]
+    consequence_templates = [(is_at, ("me", "destination"))]
     placeholders = ["me", "origin", "destination"] # in same order as constructor arguments
     gain = 10
 
@@ -72,8 +73,8 @@ class MoveAction(Action):
 
 class MoveToAction(Action):
 
-    condition_templates = ["is_at(me,origin)", "is_at(picker,destination)"]
-    consequence_templates = ["is_at(me,destination)", "is_at(picker,destination)", "colocated(me,picker)", "colocated(picker,me)" ]
+    condition_templates = [(is_at, ("me", "origin")), (is_at, ("picker", "destination"))]
+    consequence_templates = [(is_at, ("me", "destination")), (is_at, ("picker", "destination")), (colocated, ("me", "picker")), (colocated, ("picker", "me"))]
     placeholders = ["me", "picker", "origin", "destination"] # in same order as constructor arguments
     gain = 10
 
@@ -98,8 +99,8 @@ class MoveToAction(Action):
 
 class EvadeAction(Action):
 
-    condition_templates = ["is_at(picker,place1)", "is_at(me,origin)", "leads_to(origin,place1)", "leads_to(destination,origin)", "has_crate(picker)", "!(seen_picking(picker))"]
-    consequence_templates = ["is_at(picker,place1)", "is_at(me,destination)",  "leads_to(origin,place1)", "leads_to(destination,origin)", "has_crate(picker)", "!(seen_picking(picker))"]
+    condition_templates = [(is_at, ("picker", "place1")), (is_at, ("me", "origin")), (leads_to, ("origin", "place1")), (leads_to, ("destination", "origin")), (has_crate, ("picker")), (not_seen_picking, ("picker"))]
+    consequence_templates = [(is_at, ("picker", "place1")), (is_at, ("me", "destination")),  (leads_to, ("origin", "place1")), (leads_to, ("destination", "origin")), (has_crate, ("picker")), (not_seen_picking, ("picker"))]
     placeholders = ["me", "picker", "origin", "destination"] # in same order as constructor arguments
     gain = 50
 
@@ -119,8 +120,8 @@ class EvadeAction(Action):
 
 class GiveCrateAction(Action):
 
-    condition_templates = ["!(seen_picking(picker))", "!(has_crate(picker))", "is_at(picker, destination)", "is_at(me,destination)", "is_a(picker,Human)"]
-    consequence_templates = ["has_crate(picker)", "is_at(picker,destination)", "is_at(me,destination)", "is_a(picker,Human)"]
+    condition_templates = [(not_seen_picking, ("picker")), (not_has_crate, ("picker")), (is_at, ("picker", "destination")), (is_at, ("me", "destination")), (is_a, ("picker","human"))]
+    consequence_templates = [(has_crate, ("picker")), (is_at, ("picker", "destination")), (is_at, ("me", "destination")), (is_a, ("picker","human"))]
     placeholders = ["me", "picker", "destination"] # in same order as constructor arguments
     gain = 100
 
@@ -152,8 +153,8 @@ class GiveCrateAction(Action):
 
 class ExchangeCrateAction(Action):
 
-    condition_templates = ["seen_picking(picker)", "has_crate(picker)", "is_at(picker, destination)", "is_at(me,destination)", "is_a(picker,Human)"]
-    consequence_templates = ["has_crate(picker)", "!(seen_picking(picker)", "is_at(picker,destination)", "is_at(me,destination)", "is_a(picker,Human)"]
+    condition_templates = [(seen_picking, ("picker")), (has_crate, ("picker")), (is_at, ("picker", "destination")), (is_at, ("me", "destination")), (is_a, ("picker","human"))]
+    consequence_templates = [(has_crate, ("picker")), (not_seen_picking, ("picker")), (is_at, ("picker", "destination")), (is_at, ("me", "destination")), (is_a, ("picker","human"))]
     placeholders = ["me", "picker", "destination"] # in same order as constructor arguments
     gain = 100
 

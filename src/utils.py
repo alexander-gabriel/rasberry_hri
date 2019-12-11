@@ -51,14 +51,21 @@ class OrderedConsistentSet:
 def wp2sym(waypoint):
     return waypoint
 
+
 def combine_terms(terms):
     return zip(terms)
+
 
 def is_at(thing, place):
     t = VariableNode(thing)
     p = VariableNode(place)
     return ((t,p), StateLink(t, p))
 
+
+def is_a(thing, category):
+    t = VariableNode(thing)
+    p = ConceptNode(category)
+    return ((t), IntensionalInheritanceLink(t, p))
 
 def colocated(thing1, thing2): # ??
     t1 = VariableNode(thing1)
@@ -79,10 +86,19 @@ def has_crate(picker):
     return ((p), StateLink(p, PredicateNode("has_crate")))
 
 
+def not_has_crate(picker):
+    p = VariableNode(picker)
+    return ((p), NotLink(StateLink(p, PredicateNode("has_crate"))))
+
+
 def seen_picking(picker):
     p = VariableNode(picker)
     return ((p), StateLink(p, PredicateNode("seen_picking")))
 
+
+def not_seen_picking(picker):
+    p = VariableNode(picker)
+    return ((p), NotLink(StateLink(p, PredicateNode("seen_picking"))))
 
 def sym2wp(symbol):
     return symbol

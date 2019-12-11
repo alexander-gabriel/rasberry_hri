@@ -63,7 +63,7 @@ class Goal(object):
             except AttributeError:
                 cls.consequences = OrderedConsistentSet()
                 for subgoal in cls.subgoal_templates:
-                    cls.consequences += subgoal.get_consequences()
+                    cls.consequences += subgoal.get_consequence_templates()
                 return cls.consequences
 
 
@@ -100,12 +100,12 @@ class Goal(object):
 
     @classmethod
     def find_instances(cls, world_state):
-        query = ""
-        placeholders = []
-        conditions = cls.get_condition_templates()
-        for condition in conditions:
-            query += condition + " ^ "
-        query = [query[:-3].replace("me", world_state.me.capitalize())]
+        templates = cls.get_condition_templates()
+        conditions = []
+        for fun, args in templates:
+            args = [w.replace('me', world_state.me.capitalize()) for w in condition[1]]
+            conditions.append(fun(args))
+        query = GetLink(conditions)
         rospy.logdebug("GOL: Asking MLN system; query: {:}".format(query))
         prob, formula = world_state.check(query)
         if prob < 0.75:

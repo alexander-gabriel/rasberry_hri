@@ -44,7 +44,7 @@ class BDISystem:
         self.me = me
         self.robco = robco
         self.world_state = WorldState(self.me)
-        rospy.loginfo("BDI: Initialized World state")
+        rospy.loginfo("BDI: Initialized World State")
         self.robot_track = []
         self.people_tracks = {}
         self.goals = [ExchangeGoal, DeliverGoal, EvadeGoal]
@@ -61,12 +61,12 @@ class BDISystem:
         self.route_search = TopologicalRouteSearch(self.locator.tmap)
         # for waypoint in [("WayPoint133", "WayPoint102"), ("WayPoint102", "WayPoint103"), ("WayPoint103", "WayPoint104"), ("WayPoint104", "WayPoint105"), ("WayPoint105", "WayPoint106")]:
         #     self.world_state.add_belief("leads_to({:},{:})".format(waypoint[0], waypoint[1]))
-        # for node in self.locator.tmap.nodes:
-        #     self.world_state.add_belief("is_a({:},Place)".format(node.name))
-        #     self.node_positions[node.name] = node.pose
-        #     for edge in node.edges:
-        #         self.links["_".join([node.name, edge.node])] = 0
-        #         self.world_state.add_belief("leads_to({:},{:})".format(node.name, edge.node))
+        for node in self.locator.tmap.nodes:
+            self.world_state.add_entity(node.name, "place")
+            self.node_positions[node.name] = node.pose
+            for edge in node.edges:
+                self.links["_".join([node.name, edge.node])] = 0
+                self.world_state.add_belief("leads_to({:},{:})".format(node.name, edge.node))
         for link in self.links.keys():
             nodes = link.split("_")
             self.links[link] = get_distance(self.node_positions[nodes[0]], self.node_positions[nodes[1]])

@@ -41,9 +41,15 @@ class WorldState():
         thing = ConceptNode("thing")
 
         concept = ConceptNode("concept")
+        IntensionalInheritanceLink(concept, thing)
+
+        place = ConceptNode("place")
+        IntensionalInheritanceLink(place, concept)
+
+
         entity = ConceptNode("entity")
         IntensionalInheritanceLink(entity, thing)
-        IntensionalInheritanceLink(concept, thing)
+
 
         obj = ConceptNode("object")
         organism = ConceptNode("organism")
@@ -234,6 +240,7 @@ class WorldState():
         node1 = ConceptNode(name)
         node2 = self.atomspace.get_node_by_name(klasse)
         InheritanceLink(node1, node2)
+
 
     def add_link(self, link, truth, confidence):
         tv = TruthValue(truth, confidence)

@@ -216,7 +216,7 @@ class WorldState():
         node1.tv = truth_value
         node2 = ConceptNode(klasse)
         node2.tv = truth_value
-        link = InheritanceLink(node1, node2, truth_value)
+        link = InheritanceLink(node1, node2)
         link.tv = truth_value
 
 

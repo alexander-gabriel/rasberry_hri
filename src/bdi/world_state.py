@@ -186,7 +186,7 @@ class WorldState():
                     StateLink(t2, p2)),
                 EvaluationLink(
                     PredicateNode("colocated"),
-                    ListLink(t1, t2), FALSE))))
+                    ListLink(t1, t2), FALSE)))
         # EvaluationLink(
         #     EqualLink(
         #         SetLink(ConceptNode("has_crate")),

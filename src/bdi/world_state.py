@@ -40,39 +40,39 @@ class WorldState():
 
 
     def build_ontology(self):
-        thing = ConceptNode("thing", TRUE)
+        thing = ConceptNode("thing").truth_value(1.0, 1.0)
 
-        concept = ConceptNode("concept", TRUE)
-        InheritanceLink(concept, thing, TRUE)
+        concept = ConceptNode("concept").truth_value(1.0, 1.0)
+        InheritanceLink(concept, thing).truth_value(1.0, 1.0)
 
-        self.place = ConceptNode("place", TRUE)
-        InheritanceLink(self.place, concept, TRUE)
-
-
-        entity = ConceptNode("entity", TRUE)
-        InheritanceLink(entity, thing, TRUE)
+        self.place = ConceptNode("place").truth_value(1.0, 1.0)
+        InheritanceLink(self.place, concept).truth_value(1.0, 1.0)
 
 
-        obj = ConceptNode("object", TRUE)
-        organism = ConceptNode("organism", TRUE)
-        InheritanceLink(organism, entity, TRUE)
-        InheritanceLink(obj, entity, TRUE)
+        entity = ConceptNode("entity").truth_value(1.0, 1.0)
+        InheritanceLink(entity, thing).truth_value(1.0, 1.0)
 
-        plant = ConceptNode("plant", TRUE)
-        InheritanceLink(plant, organism, TRUE)
 
-        self.strawberryplant = ConceptNode("strawberryplant", TRUE)
-        InheritanceLink(self.strawberryplant, plant, TRUE)
+        obj = ConceptNode("object").truth_value(1.0, 1.0)
+        organism = ConceptNode("organism").truth_value(1.0, 1.0)
+        InheritanceLink(organism, entity).truth_value(1.0, 1.0)
+        InheritanceLink(obj, entity).truth_value(1.0, 1.0)
 
-        creature = ConceptNode("creature", TRUE)
-        self.robot = ConceptNode("robot", TRUE)
-        self.human = ConceptNode("human", TRUE)
-        InheritanceLink(creature, organism, TRUE)
-        InheritanceLink(self.robot, creature, TRUE)
-        InheritanceLink(self.human, creature, TRUE)
+        plant = ConceptNode("plant").truth_value(1.0, 1.0)
+        InheritanceLink(plant, organism).truth_value(1.0, 1.0)
 
-        self.crate = ConceptNode("crate", TRUE)
-        InheritanceLink(self.crate, obj, TRUE)
+        self.strawberryplant = ConceptNode("strawberryplant").truth_value(1.0, 1.0)
+        InheritanceLink(self.strawberryplant, plant).truth_value(1.0, 1.0)
+
+        creature = ConceptNode("creature").truth_value(1.0, 1.0)
+        self.robot = ConceptNode("robot").truth_value(1.0, 1.0)
+        self.human = ConceptNode("human").truth_value(1.0, 1.0)
+        InheritanceLink(creature, organism).truth_value(1.0, 1.0)
+        InheritanceLink(self.robot, creature).truth_value(1.0, 1.0)
+        InheritanceLink(self.human, creature).truth_value(1.0, 1.0)
+
+        self.crate = ConceptNode("crate").truth_value(1.0, 1.0)
+        InheritanceLink(self.crate, obj).truth_value(1.0, 1.0)
 
         p1 = VariableNode("place1")
         p2 = VariableNode("place2")
@@ -90,7 +90,7 @@ class WorldState():
                 EqualLink(p1, p2),
                 EvaluationLink(
                     PredicateNode("leads_to"),
-                    ListLink(p1, p2), FALSE)))
+                    ListLink(p1, p2)).truth_value(0.0, 1.0)))
 
         ForAllLink(
             VariableList(p1, p2),
@@ -100,7 +100,7 @@ class WorldState():
                     ListLink(p1, p2)),
                     EvaluationLink(
                         PredicateNode("linked"),
-                        ListLink(p1, p2), TRUE)))
+                        ListLink(p1, p2)).truth_value(1.0, 1.0)))
 
         ForAllLink(
             VariableList(p1, p2, p3),
@@ -116,7 +116,7 @@ class WorldState():
                         ListLink(p2, p3))),
                 EvaluationLink(
                     PredicateNode("linked"),
-                    ListLink(p1, p3), TRUE)))
+                    ListLink(p1, p3)).truth_value(1.0, 1.0)))
 
         ForAllLink(
             VariableList(p1, p2),
@@ -134,7 +134,7 @@ class WorldState():
                         EqualLink(p1, p3))),
                 EvaluationLink(
                     PredicateNode("free_path"),
-                    ListLink(p1, p3), TRUE)))
+                    ListLink(p1, p3)).truth_value(1.0, 1.0)))
 
         ForAllLink(
             VariableList(p1, p2, obj1, cre1),
@@ -144,7 +144,7 @@ class WorldState():
                     InheritanceLink(obj1, plant)),
                 EvaluationLink(
                     PredicateNode("can_reach"),
-                    ListLink(p1, p2), FALSE)))
+                    ListLink(p1, p2)).truth_value(0.0, 1.0)))
         ForAllLink(
             VariableList(p1, p2, obj1, cre1),
             ImplicationLink(
@@ -164,7 +164,7 @@ class WorldState():
                             ListLink(p1, p2)))),
                 EvaluationLink(
                     PredicateNode("can_reach"),
-                    ListLink(p1, p2), TRUE)))
+                    ListLink(p1, p2)).truth_value(1.0, 1.0)))
 
         ForAllLink(
             VariableList(t1, t2, p1),
@@ -175,7 +175,7 @@ class WorldState():
                     StateLink(t2, p1)),
                 EvaluationLink(
                     PredicateNode("colocated"),
-                    ListLink(t1, t2), TRUE)))
+                    ListLink(t1, t2)).truth_value(1.0, 1.0)))
         ForAllLink(
             VariableList(t1, t2, p1, p2),
             ImplicationLink(
@@ -186,7 +186,7 @@ class WorldState():
                     StateLink(t2, p2)),
                 EvaluationLink(
                     PredicateNode("colocated"),
-                    ListLink(t1, t2), FALSE)))
+                    ListLink(t1, t2)).truth_value(0.0, 1.0)))
         # EvaluationLink(
         #     EqualLink(
         #         SetLink(ConceptNode("has_crate")),
@@ -195,25 +195,33 @@ class WorldState():
 
     def add_place(self, name, truth_value):
         node1 = ConceptNode(name)
-        InheritanceLink(node1, self.place, truth_value)
+        node1.tv = truth_value
+        link = InheritanceLink(node1, self.place)
+        link.tv = truth_value
 
 
     def add_place_link(self, place1, place2, truth_value):
         p1 = ConceptNode(place1)
+        p1.tv = truth_value
         p2 = ConceptNode(place2)
-        EvaluationLink(
+        p2.tv = truth_value
+        link = EvaluationLink(
             PredicateNode("leads_to"),
-            ListLink(p1, p2), truth_value)
+            ListLink(p1, p2))
+        link.tv = truth_value
 
 
     def add_thing(self, name, klasse, truth_value):
         node1 = ConceptNode(name)
+        node1.tv = truth_value
         node2 = ConceptNode(klasse)
-        InheritanceLink(node1, node2, truth_value)
+        node2.tv = truth_value
+        link = InheritanceLink(node1, node2, truth_value)
+        link.tv = truth_value
 
 
     def add_link(self, link, truth_value):
-        self.atomspace.add_link(link, truth_value)
+        self.atomspace.add_link(link, tv=truth_value)
 
 
     def add_node(self, node):

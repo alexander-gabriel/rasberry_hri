@@ -9,7 +9,7 @@ from topological_navigation.tmap_utils import get_distance
 from rasberry_people_perception.topological_localiser import TopologicalNavLoc
 from topological_navigation.route_search import TopologicalRouteSearch
 from utils import OrderedConsistentSet, suppress
-from world_state import WorldState, TRUE, FALSE
+from world_state import WorldState
 from goals import ExchangeGoal, DeliverGoal, EvadeGoal
 
 MAX_COST = 10

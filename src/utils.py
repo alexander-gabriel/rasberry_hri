@@ -17,13 +17,6 @@ class OrderedConsistentSet:
 
     def append(self, item):
         if not item in self.items:
-            try:
-                if item.startswith("!"):
-                    self.items.remove(item[1:])
-                else:
-                    self.items.remove("!" + item)
-            except ValueError:
-                pass
             self.items.append(item)
             return True
         else:

@@ -29,10 +29,9 @@ class Scheduler:
         rospy.loginfo("SCH: Initializing Scheduler")
         self.robot_id = robot_id
         rospy.loginfo("SCH: Waiting for Robot Control Server...")
-        self.robot_control = None
-        # self.robot_control = actionlib.SimpleActionClient('/{:}/topological_navigation'.format(self.robot_id), GotoNodeAction)
-        # self.robot_control.wait_for_server()
-        # rospy.loginfo("SCH: Found Robot Control Server")
+        self.robot_control = actionlib.SimpleActionClient('/{:}/topological_navigation'.format(self.robot_id), GotoNodeAction)
+        self.robot_control.wait_for_server()
+        rospy.loginfo("SCH: Found Robot Control Server")
         self.latest_robot_node = None
         self.bdi = BDISystem(self.robot_id, RobotControl(self.robot_control, self.robot_id))
         self.bdi.robco.move_to("WayPoint104")

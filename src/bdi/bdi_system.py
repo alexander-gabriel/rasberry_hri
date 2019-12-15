@@ -55,25 +55,25 @@ class BDISystem:
         self.qsrlib = QSRlib()
         self.options = sorted(self.qsrlib.qsrs_registry.keys())
         self.which_qsr = "tpcc"#"tpcc"
-        # self.locator = TopologicalNavLoc()
+        self.locator = TopologicalNavLoc()
         self.links = {}
         self.node_positions = {}
-        # self.route_search = TopologicalRouteSearch(self.locator.tmap)
-        rospy.loginfo("BDI: Adding Example Waypoints")
-        for waypoint in [("WayPoint133", "WayPoint102"), ("WayPoint102", "WayPoint103"), ("WayPoint103", "WayPoint104"), ("WayPoint104", "WayPoint105"), ("WayPoint105", "WayPoint106")]:
-            self.world_state.add_thing(waypoint[0], "place")
-            self.world_state.add_thing(waypoint[1], "place")
-            self.world_state.add_place_link(waypoint[0], waypoint[1])
-        rospy.loginfo("BDI: Adding Real Waypoints")
-        # for node in self.locator.tmap.nodes:
-        #     self.world_state.add_thing(node.name, "place")
-        #     self.node_positions[node.name] = node.pose
-        #     for edge in node.edges:
-        #         self.links["_".join([node.name, edge.node])] = 0
-        #         self.world_state.add_place_link(node.name, edge.node, TRUE)
-        # for link in self.links.keys():
-        #     nodes = link.split("_")
-        #     self.links[link] = get_distance(self.node_positions[nodes[0]], self.node_positions[nodes[1]])
+        self.route_search = TopologicalRouteSearch(self.locator.tmap)
+        # rospy.loginfo("BDI: Adding Example Waypoints")
+        # for waypoint in [("WayPoint133", "WayPoint102"), ("WayPoint102", "WayPoint103"), ("WayPoint103", "WayPoint104"), ("WayPoint104", "WayPoint105"), ("WayPoint105", "WayPoint106")]:
+        #     self.world_state.add_thing(waypoint[0], "place")
+        #     self.world_state.add_thing(waypoint[1], "place")
+        #     self.world_state.add_place_link(waypoint[0], waypoint[1])
+        rospy.loginfo("BDI: Adding Waypoints")
+        for node in self.locator.tmap.nodes:
+            self.world_state.add_thing(node.name, "place")
+            self.node_positions[node.name] = node.pose
+            for edge in node.edges:
+                self.links["_".join([node.name, edge.node])] = 0
+                self.world_state.add_place_link(node.name, edge.node, TRUE)
+        for link in self.links.keys():
+            nodes = link.split("_")
+            self.links[link] = get_distance(self.node_positions[nodes[0]], self.node_positions[nodes[1]])
         rospy.loginfo("BDI: Adding Pickers")
         for picker in ["Picker01", "Picker02"]:
             self.world_state.add_thing(picker, "human")

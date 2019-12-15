@@ -1,6 +1,18 @@
 
 from contextlib import contextmanager
 
+from opencog.atomspace import AtomSpace, types, TruthValue
+from opencog.type_constructors import *
+from opencog.utilities import initialize_opencog
+
+
+atomspace = AtomSpace()
+initialize_opencog(atomspace)
+set_type_ctor_atomspace(atomspace)
+
+TRUE = TruthValue(1,1)
+FALSE = TruthValue(0,1)
+
 @contextmanager
 def suppress(*exceptions):
     try:
@@ -52,46 +64,64 @@ def combine_terms(terms):
 def is_at(thing, place):
     t = VariableNode(thing)
     p = VariableNode(place)
-    return ((t,p), StateLink(t, p))
+    link = StateLink(t, p)
+    link.tv = TRUE
+    return ([t,p], link)
 
 
 def is_a(thing, category):
     t = VariableNode(thing)
     p = ConceptNode(category)
-    return ((t), ExtensionalInheritanceLink(t, p))
+    link = InheritanceLink(t, p)
+    link.tv = TRUE
+    return ([t], link)
+
 
 def colocated(thing1, thing2): # ??
     t1 = VariableNode(thing1)
     t2 = VariableNode(thing2)
-    return ((t1,t2), EvaluationLink(PredicateNode("colocated"), ListLink(t1, t2)))
+    link = EvaluationLink(PredicateNode("colocated"), ListLink(t1, t2))
+    link.tv = TRUE
+    return ([t1,t2], link)
 
 
 def leads_to(origin, destination):
     o = VariableNode(origin)
     d = VariableNode(destination)
-    return ((o,d), EvaluationLink(
+    link = EvaluationLink(
         PredicateNode("leads_to"),
-        ListLink(o,d)))
+        ListLink(o,d))
+    link.tv = TRUE
+    return ([o,d], link)
 
 
 def has_crate(picker):
     p = VariableNode(picker)
-    return ((p), StateLink(p, PredicateNode("has_crate")))
+    link = StateLink(p, PredicateNode("has_crate"))
+    link.tv = TRUE
+    return ([p], link)
 
 
 def not_has_crate(picker):
     p = VariableNode(picker)
-    return ((p), NotLink(StateLink(p, PredicateNode("has_crate"))))
+    link = StateLink(p, PredicateNode("has_crate"))
+    link.tv = FALSE
+    return ([p], link)
 
 
 def seen_picking(picker):
     p = VariableNode(picker)
-    return ((p), StateLink(p, PredicateNode("seen_picking")))
+    link = StateLink(p, PredicateNode("seen_picking"))
+    link.tv = TRUE
+    return ([p], link)
 
 
 def not_seen_picking(picker):
     p = VariableNode(picker)
-    return ((p), NotLink(StateLink(p, PredicateNode("seen_picking"))))
+    link = StateLink(p, PredicateNode("seen_picking"))
+    link.tv = FALSE
+    return ([p], link)
+
 
 def sym2wp(symbol):
     return symbol

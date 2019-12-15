@@ -4,15 +4,15 @@ from os.path import join
 import rospy
 import rospkg
 
-from probcog.MLN import MLN, Database
-from probcog.MLN.util import strFormula
-
-from opencog.atomspace import AtomSpace, types, TruthValue
-from opencog.utilities import initialize_opencog
 from opencog.type_constructors import *
 from opencog.ure import BackwardChainer, ForwardChainer
+# from probcog.MLN import MLN, Database
+# from probcog.MLN.util import strFormula
 
-from utils import suppress
+from utils import suppress, TRUE, FALSE
+
+
+
 
 rospack = rospkg.RosPack()
 path = join(rospack.get_path('rasberry_hri'), 'src', 'bdi')
@@ -22,8 +22,7 @@ VERBOSE = False
 MAX_STEPS = 40
 #INFERENCE_METHOD = 'WCSP (exact MPE with toulbar2)'
 INFERENCE_METHOD = 'MC-SAT'
-TRUE = TruthValue(1,1)
-FALSE = TruthValue(0,1)
+
 
 
 class WorldState():
@@ -33,9 +32,9 @@ class WorldState():
         self.me = me
         self.lock = Lock()
 
-        self.atomspace = AtomSpace()
-        initialize_opencog(self.atomspace)
-        set_type_ctor_atomspace(self.atomspace)
+        # self.atomspace = AtomSpace()
+
+        # set_type_ctor_atomspace(self.atomspace)
         self.build_ontology()
 
 
@@ -221,11 +220,11 @@ class WorldState():
 
 
     def add_link(self, link, truth_value=TRUE):
-        self.atomspace.add_link(link, tv=truth_value)
+        atomspace.add_link(link, tv=truth_value)
 
 
     def add_node(self, node):
-        self.atomspace.add_node(node)
+        atomspace.add_node(node)
 
 
     def get_probability(self, belief):
@@ -234,6 +233,13 @@ class WorldState():
         probability = link.TRUE[0]
         self.lock.release()
         return probability
+
+
+    def update_position(self, person, place):
+        node1 = ConceptNode(person)
+        node2 = ConceptNode(place)
+        link = StateLink(node1, node2)
+        link.tv = TRUE
 
 
     def set_probability(self, belief, truth):
@@ -264,14 +270,15 @@ class WorldState():
 
     def check(self, query):
         self.lock.acquire()
+        rospy.loginfo("GOL: Asking MLN system; query: {:}".format(str(query)))
         max_prob = 0
         formula = None
-        chainer = BackwardChainer(self.atomspace,
-                          rule_base,
-                          query,
-                          trace_as=trace_atomspace)
+        chainer = BackwardChainer(atomspace,
+                          ConceptNode("PLN"),
+                          query)
         chainer.do_chain()
         results = chainer.get_results()
+        rospy.loginfo("GOL: Result is: {:}".format(results))
         # with suppress(Exception):
         #     mrf = self.mln.groundMRF(self.db)
         #     rospy.logdebug("Grounded MRF")

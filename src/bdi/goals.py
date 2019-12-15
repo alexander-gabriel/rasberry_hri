@@ -2,6 +2,7 @@ import rospy
 
 from actions import MoveAction, MoveToAction, GiveCrateAction, ExchangeCrateAction, EvadeAction
 from utils import OrderedConsistentSet, suppress
+from opencog.type_constructors import *
 
 from time import sleep
 
@@ -102,18 +103,17 @@ class Goal(object):
     def find_instances(cls, world_state):
         templates = cls.get_condition_templates()
         conditions = []
+        variables = OrderedConsistentSet()
         for fun, args in templates:
-            args = [w.replace('me', world_state.me.capitalize()) for w in condition[1]]
-            conditions.append(fun(args))
-        query = GetLink(conditions)
-        rospy.loginfo("{:}".format(query))
-        rospy.logdebug("GOL: Asking MLN system; query: {:}".format(query))
+            args = [w.replace('me', world_state.me.capitalize()) for w in args]
+            vars, condition = fun(*args)
+            variables+=vars
+            conditions.append(condition)
+        query = GetLink(VariableList(*variables.items), AndLink(*conditions))
         prob, formula = world_state.check(query)
         if prob < 0.75:
             return []
-        rospy.loginfo("GOL: Received result for query: {:}".format(query))
         targets = []
-        rospy.loginfo("GOL: Result is: {:f} {:}".format(prob, formula))
         for atom in formula.getGroundAtoms():
             targets.append(atom.params)
         return [targets]

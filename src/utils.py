@@ -62,65 +62,67 @@ def combine_terms(terms):
 
 
 def is_at(thing, place):
-    t = VariableNode(thing)
-    p = VariableNode(place)
-    link = StateLink(t, p)
+    link = StateLink(thing, place)
     link.tv = TRUE
-    return ([t,p], link)
+    return link
 
 
 def is_a(thing, category):
-    t = VariableNode(thing)
-    p = ConceptNode(category)
-    link = InheritanceLink(t, p)
+    link = InheritanceLink(thing, category)
     link.tv = TRUE
-    return ([t], link)
+    return link
+
+
+def not_same(thing1, thing2):
+    link = NotLink(IdenticalLink(thing1, thing2))
+    link.tv = TRUE
+    return link
 
 
 def colocated(thing1, thing2): # ??
-    t1 = VariableNode(thing1)
-    t2 = VariableNode(thing2)
-    link = EvaluationLink(PredicateNode("colocated"), ListLink(t1, t2))
+    link = EvaluationLink(PredicateNode("colocated"), ListLink(thing1, thing2))
     link.tv = TRUE
-    return ([t1,t2], link)
+    return link
 
 
 def leads_to(origin, destination):
-    o = VariableNode(origin)
-    d = VariableNode(destination)
     link = EvaluationLink(
         PredicateNode("leads_to"),
-        ListLink(o,d))
+        ListLink(origin, destination))
     link.tv = TRUE
-    return ([o,d], link)
+    return link
+
+
+def free_path(origin, destination):
+    link = EvaluationLink(
+        PredicateNode("linked"),
+        ListLink(origin, destination))
+    link.tv = TRUE
+    return link
 
 
 def has_crate(picker):
-    p = VariableNode(picker)
-    link = StateLink(p, PredicateNode("has_crate"))
+    link = EvaluationLink(PredicateNode("has_crate"), picker)
     link.tv = TRUE
-    return ([p], link)
+    return link
 
 
 def not_has_crate(picker):
-    p = VariableNode(picker)
-    link = StateLink(p, PredicateNode("has_crate"))
+    link = EvaluationLink(PredicateNode("has_crate"), picker)
     link.tv = FALSE
-    return ([p], link)
+    return link
 
 
 def seen_picking(picker):
-    p = VariableNode(picker)
-    link = StateLink(p, PredicateNode("seen_picking"))
+    link = EvaluationLink(PredicateNode("seen_picking"), picker)
     link.tv = TRUE
-    return ([p], link)
+    return link
 
 
 def not_seen_picking(picker):
-    p = VariableNode(picker)
-    link = StateLink(p, PredicateNode("seen_picking"))
+    link = EvaluationLink(PredicateNode("seen_picking"), picker)
     link.tv = FALSE
-    return ([p], link)
+    return link
 
 
 def sym2wp(symbol):

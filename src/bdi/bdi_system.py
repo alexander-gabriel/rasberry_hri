@@ -8,7 +8,8 @@ from topological_navigation.tmap_utils import get_distance
 
 from rasberry_people_perception.topological_localiser import TopologicalNavLoc
 from topological_navigation.route_search import TopologicalRouteSearch
-from utils import OrderedConsistentSet, suppress
+from utils import OrderedConsistentSet, suppress, atomspace
+from opencog.type_constructors import *
 from world_state import WorldState, TRUE, FALSE
 from goals import ExchangeGoal, DeliverGoal, EvadeGoal
 
@@ -47,7 +48,7 @@ class BDISystem:
         rospy.loginfo("BDI: Initialized World State")
         self.robot_track = []
         self.people_tracks = {}
-        self.goals = [ExchangeGoal, DeliverGoal, EvadeGoal]
+        self.goals = [DeliverGoal]#, ExchangeGoal, , EvadeGoal]
         self.intentions = []
         self.robot_position = None
         self.latest_people_msgs = {}
@@ -78,6 +79,13 @@ class BDISystem:
         for picker in ["Picker01", "Picker02"]:
             self.world_state.add_thing(picker, "human")
         rospy.loginfo("BDI: Initialized BDI System")
+        self.setup_experiment()
+
+    def setup_experiment(self):
+        link = EvaluationLink(PredicateNode("has_crate"), ConceptNode("Picker02"))
+        link.tv = TRUE
+        link = EvaluationLink(PredicateNode("seen_picking"), ConceptNode("Picker02"))
+        link.tv = TRUE
 
 
     def generate_options(self):
@@ -86,20 +94,20 @@ class BDISystem:
         for goal in self.goals:
             args_list = goal.find_instances(self.world_state)
             for args in args_list:
-                desires.append(goal(self.world_state, self.robco, args))
+                if len(args)>0:
+                    desires.append(goal(self.world_state, self.robco, args))
         for intention in self.intentions:
-            if intention in desires and intention.is_achieved():
+            if intention in desires and intention.is_achieved(self.world_state):
                 desires.remove(intention)
         return desires
 
 
     def filter(self, desires):
         rospy.logdebug("BDI: Filtering Desires")
-        intentions = self.intentions or []
+        intentions = self.intentions or OrderedConsistentSet()
         for desire in desires:
             gain = desire.get_gain()
             cost = desire.get_cost()
-            rospy.logdebug("BDI: Got desire {:} with gain: {:d} and cost {:d}".format(desire.__class__.__name__, gain, cost))
             if gain > MIN_GAIN and cost < MAX_COST:
                 intentions.append(desire)
         return intentions
@@ -113,6 +121,7 @@ class BDISystem:
             action = intention.get_next_action()
             with suppress(AttributeError):
                 cost = action.get_cost()
+                rospy.loginfo("BDI: Action option {:} with cost {:d}".format(action.__class__.__name__, cost))
                 if cost < min_cost:
                     chosen_intention = intention
                     min_cost  = cost

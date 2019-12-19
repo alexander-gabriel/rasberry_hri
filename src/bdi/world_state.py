@@ -38,6 +38,41 @@ class WorldState():
         self.build_ontology()
 
 
+    def build_deduction(self):
+        p1 = VariableNode("place1")
+        p2 = VariableNode("place2")
+        p3 = VariableNode("place3")
+        InheritanceLink(ConceptNode("PLN-location-aware"), ConceptNode("PLN"))
+        DefineLink(
+            DefinedSchemaNode("linked-awareness"),
+            BindLink(
+                VariableList(p1, p2, p3),
+                AndLink(
+                    NotLink(
+                        IdenticalLink(p1, p3)),
+                    EvaluationLink(
+                        PredicateNode("linked"),
+                        ListLink(p1, p2)),
+                    EvaluationLink(
+                        PredicateNode("linked"),
+                        ListLink(p2, p3))),
+                EvaluationLink(
+                    PredicateNode("linked"),
+                    ListLink(p1, p3)).truth_value(1.0, 1.0)))
+        # DefineLink(DefinedSchemaNode("linked-awareness"), BindLink(VariableList(!!variables!!), AndLink(!!clauses!!), ExecutionOutputLink(!!formula!!, ListLink(!!conclusion!!, Setlink(!!premises!!)))))
+        # DefineLink(DefinedSchemaNode("free-path-awareness"), BindLink(VariableList(!!variables!!), AndLink(!!clauses!!), ExecutionOutputLink(!!formula!!, ListLink(!!conclusion!!, Setlink(!!premises!!)))))
+        MemberLink(DefinedSchemaNode("linked-awareness"), ConceptNode ("PLN-location-aware"))
+        # MemberLink(DefinedSchemaNode("free-path-awareness"), ConceptNode ("PLN-location-aware"))
+
+        # common configuration
+        # ExecutionLink(SchemaNode("URE:maximum-iterations"), ConceptNode("PLN-location-aware"), NumberNode(20))
+        # ExecutionLink(SchemaNode("URE:complexity-penalty"), ConceptNode("PLN-location-aware"), NumberNode(0.1))
+        # fc configuration
+        # EvaluationLink(PredicateNode("URE:FC:retry-exhausted-sources"), ConceptNode("PLN-location-aware")).truth_value(1,1)
+        # bc configuration
+        # ExecutionLink(SchemaNode("URE:BC:maximum-bit-size"), ConceptNode("PLN-location-aware"), NumberNode(1000))
+
+
     def build_ontology(self):
         thing = ConceptNode("thing").truth_value(1.0, 1.0)
 
@@ -84,12 +119,10 @@ class WorldState():
         cre1 = VariableNode("creature1")
 
         ForAllLink(
-            VariableList(p1, p2),
-            ImplicationLink(
-                EqualLink(p1, p2),
-                EvaluationLink(
-                    PredicateNode("leads_to"),
-                    ListLink(p1, p2)).truth_value(0.0, 1.0)))
+            p1,
+            EvaluationLink(
+                PredicateNode("leads_to"),
+                ListLink(p1, p1)).truth_value(0.0, 1.0))
 
         ForAllLink(
             VariableList(p1, p2),
@@ -106,7 +139,7 @@ class WorldState():
             ImplicationLink(
                 AndLink(
                     NotLink(
-                        EqualLink(p1, p3)),
+                        IdenticalLink(p1, p3)),
                     EvaluationLink(
                         PredicateNode("linked"),
                         ListLink(p1, p2)),
@@ -130,7 +163,7 @@ class WorldState():
                         EvaluationLink(
                             PredicateNode("can_reach"),
                             ListLink(p2, p3)),
-                        EqualLink(p1, p3))),
+                        IdenticalLink(p1, p3))),
                 EvaluationLink(
                     PredicateNode("free_path"),
                     ListLink(p1, p3)).truth_value(1.0, 1.0)))
@@ -169,7 +202,7 @@ class WorldState():
             VariableList(t1, t2, p1),
             ImplicationLink(
                 AndLink(
-                    NotLink(EqualLink(t1, t2)),
+                    NotLink(IdenticalLink(t1, t2)),
                     StateLink(t1, p1),
                     StateLink(t2, p1)),
                 EvaluationLink(
@@ -179,15 +212,15 @@ class WorldState():
             VariableList(t1, t2, p1, p2),
             ImplicationLink(
                 AndLink(
-                    NotLink(EqualLink(t1, t2)),
-                    NotLink(EqualLink(p1, p2)),
+                    NotLink(IdenticalLink(t1, t2)),
+                    NotLink(IdenticalLink(p1, p2)),
                     StateLink(t1, p1),
                     StateLink(t2, p2)),
                 EvaluationLink(
                     PredicateNode("colocated"),
                     ListLink(t1, t2)).truth_value(0.0, 1.0)))
         # EvaluationLink(
-        #     EqualLink(
+        #     IdenticalLink(
         #         SetLink(ConceptNode("has_crate")),
         #         GetLink(StateLink(hum1, s1))))
 
@@ -274,23 +307,13 @@ class WorldState():
         max_prob = 0
         formula = None
         chainer = BackwardChainer(atomspace,
-                          ConceptNode("PLN"),
+                          ConceptNode("PLN-location-aware"),
                           query)
         chainer.do_chain()
         results = chainer.get_results()
-        rospy.loginfo("GOL: Result is: {:}".format(results))
-        # with suppress(Exception):
-        #     mrf = self.mln.groundMRF(self.db)
-        #     rospy.logdebug("Grounded MRF")
-        #
-        #     results = mrf.inferMCSAT(queries, verbose=False, details=False, maxSteps=MAX_STEPS)
-        #     index = results.index(max(results))
-        #     max_prob = max(results)
-        #     formula = mrf.mcsat.queries[index]
-        #     # for evidence, truth in result.result_dict().items():
-        #     #     bdi.world_state.db.add(evidence, truth)
+        rospy.loginfo("WS: Result is: {:}".format(results))
         self.lock.release()
-        return (max_prob, formula)
+        return results
 
 
     def write(self):

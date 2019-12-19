@@ -1,8 +1,9 @@
 import rospy
 
 from actions import MoveAction, MoveToAction, GiveCrateAction, ExchangeCrateAction, EvadeAction
-from utils import OrderedConsistentSet, suppress
+from utils import OrderedConsistentSet, suppress, atomspace
 from opencog.type_constructors import *
+from opencog.bindlink import execute_atom, evaluate_atom
 
 from time import sleep
 
@@ -25,6 +26,32 @@ class Goal(object):
             return cls.action_template(world_state, robco, args)
         except TypeError:
             return None
+
+
+    def __eq__(self, other):
+        """Override the default Equals behavior"""
+        if isinstance(other, self.__class__):
+            # for subgoal in self.subgoal_templates:
+            #     if not subgoal in other.subgoal_templates:
+            #         return False
+            # for subgoal in other.subgoal_templates:
+            #     if not subgoal in self.subgoal_templates:
+            #         return False
+            return self.action_template == other.action_template and self.subgoal_templates == other.subgoal_templates
+        return False
+
+
+    def __neq__(self, other):
+        """Override the default Equals behavior"""
+        if isinstance(other, self.__class__):
+            # for subgoal in self.subgoal_templates:
+            #     if not subgoal in other.subgoal_templates:
+            #         return True
+            # for subgoal in other.subgoal_templates:
+            #     if not subgoal in self.subgoal_templates:
+            #         return True
+            return not (self.action_template == other.action_template and self.subgoal_templates == other.subgoal_templates)
+        return True
 
 
     @classmethod
@@ -103,33 +130,63 @@ class Goal(object):
     def find_instances(cls, world_state):
         templates = cls.get_condition_templates()
         conditions = []
+        clauses = []
         variables = OrderedConsistentSet()
         for fun, args in templates:
-            args = [w.replace('me', world_state.me.capitalize()) for w in args]
-            vars, condition = fun(*args)
-            variables+=vars
-            conditions.append(condition)
-        query = GetLink(VariableList(*variables.items), AndLink(*conditions))
-        prob, formula = world_state.check(query)
-        if prob < 0.75:
-            return []
-        targets = []
-        for atom in formula.getGroundAtoms():
-            targets.append(atom.params)
-        return [targets]
-
-
-    def is_achieved(self):
-        for consequence in self.get_consequences():
-            #TODO: fix achievement checking
-            truth = self.world_state.truth(consequence.replace(TARGET, target))
-            if consequence.startswith("!"):
-                if truth is None or truth > TRUTH_THRESHOLD:
-                    return False
+            new_args = []
+            for arg in args:
+                if arg == "me":
+                    new_args.append(ConceptNode(world_state.me.capitalize()))
+                elif fun.__name__ == "is_a" and args.index(arg) == 1:
+                    new_args.append(ConceptNode(arg))
+                else:
+                    variable = VariableNode(arg)
+                    new_args.append(variable)
+                    variables.append(variable)
+            condition = fun(*new_args)
+            if condition.type_name == "EvaluationLink" or condition.type_name == "InheritanceLink":
+                conditions.append(condition)
             else:
-                if truth is None or truth <= TRUTH_THRESHOLD:
-                    return False
-        return True #TODO cache result
+                clauses.append(condition)
+        conditions.append(PresentLink(*clauses))
+        query = GetLink(VariableList(*variables.items), AndLink(*conditions))
+        results = world_state.check(query)
+        targets = cls.get_targets(results)
+        return targets
+
+
+    def is_achieved(self, world_state):
+        consequences = []
+        clauses = []
+        for fun,args in self.get_consequences():
+            candidate = fun(*[ConceptNode(arg) for arg in args])
+            if candidate.type_name == "EvaluationLink" or candidate.type_name == "InheritanceLink":
+                consequences.append(candidate)
+            else:
+                clauses.append(candidate)
+        consequences.append(PresentLink(*clauses))
+        query = SatisfactionLink(AndLink(*consequences))
+        # query = GetLink(AndLink(*consequences))
+        results = world_state.check(query)
+        for result in results.get_out():
+            rospy.loginfo("------ is achieved? ------")
+            rospy.loginfo(query)
+            rospy.loginfo(results)
+            rospy.loginfo(result)
+            rospy.loginfo(result.tv)
+            rospy.loginfo("--------------------------")
+            return True
+
+
+            #TODO: fix achievement checking
+            # truth = self.world_state.truth(consequence.replace(TARGET, target))
+            # if consequence.startswith("!"):
+            #     if truth is None or truth > TRUTH_THRESHOLD:
+            #         return False
+            # else:
+            #     if truth is None or truth <= TRUTH_THRESHOLD:
+            #         return False
+        return False #TODO cache result
 
 
     def get_action_queue(self):
@@ -164,7 +221,8 @@ class Goal(object):
                 sleep(2)
         if not succeeded:
             action_queue.insert(0,action)
-
+        else:
+            rospy.loginfo("GOL: Performed action {}, action queue: {} ".format(action.__class__.__name__, action_queue))
 
 
     def get_cost(self):
@@ -240,11 +298,35 @@ class EvadeGoal(Goal):
     action_template = EvadeAction
 
     def __init__(self, world_state, robco, args):
-        me = args[1][0]
+        me = world_state.me.capitalize()
         origin = args[1][1]
         picker = args[0][0]
         destination = args[3][0]
         super(EvadeGoal, self).__init__(world_state, robco, [me, picker, origin, destination])
+
+
+    @classmethod
+    def get_targets(cls, results):
+        targets = []
+        # try:
+        #     for result in results.get_out():
+        #         rospy.loginfo(result)
+        #         if result.is_link():
+        #             rospy.loginfo("Link result")
+        #             for element in result.get_out():
+        #                 rospy.loginfo(dir(element))
+        #         else:
+        #             rospy.loginfo("Single Element result")
+        #             rospy.loginfo(dir(result))
+        #         # rospy.loginfo(result.get_out()[0].name)
+        #         # raise Exception()
+        #     # rospy.loginfo("GOL: Result is: {:}".format(results))
+        # except IndexError:
+        #     rospy.logdebug("GOL: Empty Result")
+        #
+        # for atom in formula.getGroundAtoms():
+        #     targets.append(atom.params)
+        return targets
 
 
 
@@ -254,15 +336,29 @@ class DeliverGoal(Goal):
     subgoal_templates = [MoveGoal,GiveCrateGoal]
 
     def __init__(self, world_state, robco, args):
-        rospy.loginfo(args)
-        me = args[0][0]
-        origin = args[0][1]
-        picker = args[3][0]
-        destination = args[3][1]
+        # rospy.loginfo(args)
+        me = world_state.me.capitalize()
+        origin = args[0][0]
+        picker = args[0][1]
+        destination = args[0][2]
         super(DeliverGoal, self).__init__(world_state, robco, args)
         self.subgoals.append(MoveGoal(world_state, robco, [me, origin, destination]))
-        self.subgoals.append(GiveCrateGoal(world_state, robco, [me, picker]))
+        self.subgoals.append(GiveCrateGoal(world_state, robco, [me, picker, destination]))
         self.subgoals.append(MoveGoal(world_state, robco, [me, destination, origin]))
+
+
+    @classmethod
+    def get_targets(cls, results):
+        # rospy.loginfo(results)
+        targets = []
+        rospy.loginfo(results)
+        for result in results.get_out():
+            subtarget = []
+            for list_link in result.get_out():
+                nodes = map(lambda x: x.name, list_link.get_out())
+                subtarget.append(nodes)
+            targets.append(subtarget)
+        return targets
 
 
 
@@ -272,11 +368,22 @@ class ExchangeGoal(Goal):
     subgoal_templates = [MoveGoal,ExchangeCrateGoal,MoveGoal]
 
     def __init__(self, world_state, robco, args):
-        me = args[0][0]
-        origin = args[0][1]
-        picker = args[3][0]
-        destination = args[3][1]
+        me = world_state.me.capitalize()
+        origin = args[0]
+        picker = args[1]
+        destination = args[2]
         super(ExchangeGoal, self).__init__(world_state, robco, [])
         self.subgoals.append(MoveGoal(world_state, robco, [me, origin, destination]))
         self.subgoals.append(ExchangeCrateGoal(world_state, robco, [me, picker, destination]))
         self.subgoals.append(MoveGoal(world_state, robco, [me, destination, origin]))
+
+
+    @classmethod
+    def get_targets(cls, results):
+        rospy.loginfo(results)
+        targets = []
+        for result in results.get_out():
+            for list_link in result.get_out():
+                nodes = map(lambda x: x.name, list_link.get_out())
+                targets.append(nodes)
+        return targets

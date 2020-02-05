@@ -8,10 +8,11 @@ from topological_navigation.tmap_utils import get_distance
 
 from rasberry_people_perception.topological_localiser import TopologicalNavLoc
 from topological_navigation.route_search import TopologicalRouteSearch
-from utils import OrderedConsistentSet, suppress, atomspace
+from utils import OrderedConsistentSet, suppress, atomspace, not_has_crate, has_crate, not_seen_picking, seen_picking
 from opencog.type_constructors import *
 from world_state import WorldState, TRUE, FALSE
 from goals import ExchangeGoal, DeliverGoal, EvadeGoal
+from robot_control import RobotControl
 
 MAX_COST = 10
 MIN_GAIN = 10
@@ -43,12 +44,12 @@ class BDISystem:
     def __init__(self, me, robco):
         rospy.loginfo("BDI: Initializing BDI System")
         self.me = me
-        self.robco = robco
+        self.robco = RobotControl(self.me)
         self.world_state = WorldState(self.me)
         rospy.loginfo("BDI: Initialized World State")
         self.robot_track = []
         self.people_tracks = {}
-        self.goals = [DeliverGoal]#, ExchangeGoal, , EvadeGoal]
+        self.goals = [DeliverGoal, ExchangeGoal]#, EvadeGoal]
         self.intentions = []
         self.robot_position = None
         self.latest_people_msgs = {}
@@ -71,7 +72,7 @@ class BDISystem:
             self.node_positions[node.name] = node.pose
             for edge in node.edges:
                 self.links["_".join([node.name, edge.node])] = 0
-                self.world_state.add_place_link(node.name, edge.node, TRUE)
+                self.world_state.add_place_link(node.name, edge.node)
         for link in self.links.keys():
             nodes = link.split("_")
             self.links[link] = get_distance(self.node_positions[nodes[0]], self.node_positions[nodes[1]])
@@ -82,20 +83,28 @@ class BDISystem:
         self.setup_experiment()
 
     def setup_experiment(self):
-        link = EvaluationLink(PredicateNode("has_crate"), ConceptNode("Picker02"))
-        link.tv = TRUE
-        link = EvaluationLink(PredicateNode("seen_picking"), ConceptNode("Picker02"))
-        link.tv = TRUE
+        picker = rospy.get_param("target_picker", "Picker02")
+        if rospy.get_param("has_crate", True):
+            has_crate(ConceptNode(picker)).tv = TRUE
+        else:
+            not_has_crate(ConceptNode(picker)).tv = TRUE
+        if rospy.get_param("seen_picking", True):
+            seen_picking(ConceptNode(picker)).tv = TRUE
+        else:
+            not_seen_picking(ConceptNode(picker)).tv = TRUE
+        self.robco.move_to(rospy.get_param("initial_robot_pose", "WayPoint104"))
 
 
     def generate_options(self):
-        rospy.logdebug("Generating Behaviour Options")
+        rospy.loginfo("BDI: Generating Behaviour Options")
         desires = []
         for goal in self.goals:
             args_list = goal.find_instances(self.world_state)
             for args in args_list:
                 if len(args)>0:
                     desires.append(goal(self.world_state, self.robco, args))
+        rospy.loginfo("BDI: Desires: {}".format(desires))
+        rospy.loginfo("BDI: Intentions: {}".format(self.intentions))
         for intention in self.intentions:
             if intention in desires and intention.is_achieved(self.world_state):
                 desires.remove(intention)
@@ -103,7 +112,7 @@ class BDISystem:
 
 
     def filter(self, desires):
-        rospy.logdebug("BDI: Filtering Desires")
+        rospy.loginfo("BDI: Filtering Desires")
         intentions = self.intentions or OrderedConsistentSet()
         for desire in desires:
             gain = desire.get_gain()
@@ -131,16 +140,17 @@ class BDISystem:
 
 
     def loop(self):
-        rospy.logdebug("----- Started Loop -----")
+        rospy.loginfo("----- Started Loop -----")
         self.update_beliefs()
         desires = self.generate_options()
         self.intentions = self.filter(desires)
         self.perform_action()
-        rospy.logdebug("----- Ended Loop -----")
+        time.sleep(1)
+        rospy.loginfo("----- Ended Loop -----")
 
 
     def update_beliefs(self):
-        rospy.logdebug("BDI: Updating Beliefs")
+        rospy.loginfo("BDI: Updating Beliefs")
         world = World_Trace()
         if not self.robot_position is None:
             self.robot_track.append(self.robot_position)
@@ -148,15 +158,16 @@ class BDISystem:
         for person, msg in self.latest_people_msgs.items():
             position = Object_State(name=person, timestamp=msg.header.stamp.to_sec(), x=msg.pose.position.x, y=msg.pose.position.y, width=0.6, length=0.4)
             (current_node, closest_node) = self.locator.localise_pose(msg)
+            latest_node = None
             with suppress(KeyError):
-                latest_node = self.latest_people_nodes[person]
+                latest_node = self.latest_people_nodes[person][1]
                 if current_node != "none":
                     pass
                     # self.world_state.abandon_belief("{:}({:},{:})".format(latest_node[0], person, latest_node[1]))
             if current_node != "none":
                 self.latest_people_nodes[person] = ("is_at", current_node)
-                self.world_state.update_position(person, current_node)
-
+                if current_node != latest_node:
+                    self.world_state.update_position(person, current_node)
             # else:
             #     self.latest_people_nodes[person] = ("is_near", closest_node)
             #     self.world_state.add_belief("is_near({:},{:})".format(person, closest_node))

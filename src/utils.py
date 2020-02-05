@@ -1,4 +1,4 @@
-
+import rospy
 from contextlib import contextmanager
 
 from opencog.atomspace import AtomSpace, types, TruthValue
@@ -19,6 +19,7 @@ def suppress(*exceptions):
         yield
     except exceptions:
         pass
+
 
 
 class OrderedConsistentSet:
@@ -63,25 +64,21 @@ def combine_terms(terms):
 
 def is_at(thing, place):
     link = StateLink(thing, place)
-    link.tv = TRUE
     return link
 
 
 def is_a(thing, category):
     link = InheritanceLink(thing, category)
-    link.tv = TRUE
     return link
 
 
 def not_same(thing1, thing2):
     link = NotLink(IdenticalLink(thing1, thing2))
-    link.tv = TRUE
     return link
 
 
 def colocated(thing1, thing2): # ??
     link = EvaluationLink(PredicateNode("colocated"), ListLink(thing1, thing2))
-    link.tv = TRUE
     return link
 
 
@@ -89,7 +86,6 @@ def leads_to(origin, destination):
     link = EvaluationLink(
         PredicateNode("leads_to"),
         ListLink(origin, destination))
-    link.tv = TRUE
     return link
 
 
@@ -97,31 +93,30 @@ def free_path(origin, destination):
     link = EvaluationLink(
         PredicateNode("linked"),
         ListLink(origin, destination))
-    link.tv = TRUE
     return link
 
 
 def has_crate(picker):
-    link = EvaluationLink(PredicateNode("has_crate"), picker)
-    link.tv = TRUE
+    link = StateLink(ListLink(picker, PredicateNode("has_crate")), ConceptNode("TRUE"))
+    # link = EvaluationLink(PredicateNode("has_crate"), picker)
     return link
 
 
 def not_has_crate(picker):
-    link = EvaluationLink(PredicateNode("has_crate"), picker)
-    link.tv = FALSE
+    link = StateLink(ListLink(picker, PredicateNode("has_crate")), ConceptNode("FALSE"))
+    # link = NotLink(EvaluationLink(PredicateNode("has_crate"), picker).truth_value(0,1))
     return link
 
 
 def seen_picking(picker):
-    link = EvaluationLink(PredicateNode("seen_picking"), picker)
-    link.tv = TRUE
+    link = StateLink(ListLink(picker, PredicateNode("seen_picking")), ConceptNode("TRUE"))
+    # link = EvaluationLink(PredicateNode("seen_picking"), picker)
     return link
 
 
 def not_seen_picking(picker):
-    link = EvaluationLink(PredicateNode("seen_picking"), picker)
-    link.tv = FALSE
+    link = StateLink(ListLink(picker, PredicateNode("seen_picking")), ConceptNode("FALSE"))
+    # link = NotLink(EvaluationLink(PredicateNode("seen_picking"), picker).truth_value(0,1))
     return link
 
 

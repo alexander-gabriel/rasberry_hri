@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs
   move_base_msgs
   geometry_msgs
+  marvelmind_nav
   rasberry_people_perception
   rasberry_navigation
   sensor_msgs
@@ -93,6 +94,7 @@ install(PROGRAMS
   scripts/action_recognition_node
   scripts/robot_control_node
   scripts/scheduler_node
+  scripts/picker_mover
 #  scripts/skeleton_extractor_node
 #  scripts/skeleton_converter_node
 #  scripts/skeleton_stabilizer_node

@@ -12,13 +12,13 @@ from rasberry_hri.msg import Action
 from topological_navigation.msg import GotoNodeAction, GotoNodeGoal
 from bayes_people_tracker.msg import PeopleTracker
 
+from std_srvs import Empty
 from std_msgs.msg import String
 from geometry_msgs.msg import Pose, PoseStamped
 
 from bdi_system import BDISystem
 from bdi_system import INF
 from utils import suppress, wp2sym, sym2wp
-from robot_control import RobotControl
 
 
 
@@ -28,27 +28,21 @@ class Scheduler:
     def __init__(self, robot_id):
         rospy.loginfo("SCH: Initializing Scheduler")
         self.robot_id = robot_id
-        rospy.loginfo("SCH: Waiting for Robot Control Server...")
-        self.robot_control = actionlib.SimpleActionClient('/{:}/topological_navigation'.format(self.robot_id), GotoNodeAction)
-        self.robot_control.wait_for_server()
-        rospy.loginfo("SCH: Found Robot Control Server")
         self.latest_robot_node = None
-        self.bdi = BDISystem(self.robot_id, RobotControl(self.robot_control, self.robot_id))
-        self.bdi.robco.move_to("WayPoint104")
+        self.bdi = BDISystem(self.robot_id)
         self.bdi.world_state.add_thing(self.robot_id.capitalize(), "robot")
 
-        # self.robot_sub = rospy.Subscriber('{:}/robot_pose'.format(self.robot_id), Pose, self.robot_position_coordinate_callback)
+        self.robot_pose_sub = rospy.Subscriber('{:}/robot_pose'.format(self.robot_id), Pose, self.robot_position_coordinate_callback)
         self.robot_sub = rospy.Subscriber('/{:}/current_node'.format(self.robot_id), String, self.robot_position_node_callback)
         #TODO: move to multiple pickers
-        self.people_sub = rospy.Subscriber("/people_tracker/positions", PeopleTracker, lambda msg: self.people_tracker_callback(msg, "Picker01") )
+        #
+        # self.people_sub = rospy.Subscriber("/people_tracker/positions", PeopleTracker, lambda msg: self.people_tracker_callback(msg, "Picker01") )
         self.picker01_sub = rospy.Subscriber("/picker01/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker01") )
         self.picker02_sub = rospy.Subscriber("/picker02/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker02") )
         rospy.Subscriber('human_actions', Action, self.human_intention_callback)
-        self.qsrlib = QSRlib()
-        self.options = sorted(self.qsrlib.qsrs_registry.keys())
-        self.which_qsr = "tpcc"#"tpcc"
-        # self.bdi.robco.move_to("WayPoint105")
-
+        # self.qsrlib = QSRlib()
+        # self.options = sorted(self.qsrlib.qsrs_registry.keys())
+        # self.which_qsr = "tpcc"#"tpcc"
 
 
     def spin(self):
@@ -74,12 +68,12 @@ class Scheduler:
 
 
     def robot_position_node_callback(self, msg):
-        if not self.latest_robot_node is None:
-            try:
-                self.bdi.world_state.update_position(self.robot_id.capitalize(), self.latest_robot_node)
-
-            except:
-                 pass
+        # if not self.latest_robot_node is None:
+        #     try:
+        #         self.bdi.world_state.update_position(self.robot_id.capitalize(), self.latest_robot_node)
+        #
+        #     except:
+        #          pass
         if msg.data != "none":
             self.latest_robot_node = wp2sym(msg.data)
             self.bdi.world_state.update_position(self.robot_id.capitalize(), self.latest_robot_node)
@@ -101,22 +95,22 @@ class Scheduler:
         self.bdi.latest_people_msgs[id] = msg
 
 
-    def people_tracker_callback(self, msg, id):
-        id = "Picker01"
-        msg.angles
-        msg = PoseStamped()
-        indexes = [idx for idx, val in enumerate(msg.angles) if val > -0.5 and val < 0.5]
-        min_distance = 100
-        angle = None
-        msg2.header = msg.header
-        msg2.pose = None
-        for index in indexes:
-            distance = msg.distances[index]
-            if distance < min_distance:
-                min_distance = distance
-                msg2.pose = msg.poses[index]
-        if msg2.pose is not None:
-            self.picker_tracker_callback(msg2)
+    # def people_tracker_callback(self, msg, id):
+    #     id = "Picker01"
+    #     msg.angles
+    #     msg = PoseStamped()
+    #     indexes = [idx for idx, val in enumerate(msg.angles) if val > -0.5 and val < 0.5]
+    #     min_distance = 100
+    #     angle = None
+    #     msg2.header = msg.header
+    #     msg2.pose = None
+    #     for index in indexes:
+    #         distance = msg.distances[index]
+    #         if distance < min_distance:
+    #             min_distance = distance
+    #             msg2.pose = msg.poses[index]
+    #     if msg2.pose is not None:
+    #         self.picker_tracker_callback(msg2)
 
         # world = World_Trace()
         # things = []

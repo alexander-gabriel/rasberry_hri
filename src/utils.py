@@ -1,5 +1,6 @@
 import rospy
 from contextlib import contextmanager
+from math import sqrt
 
 from opencog.atomspace import AtomSpace, types, TruthValue
 from opencog.type_constructors import *
@@ -54,6 +55,19 @@ class OrderedConsistentSet:
         return self.items.__iter__()
 
 
+    def __len__(self):
+        return self.items.__len__()
+
+
+    def __getitem__(self, key):
+        return self.items.__getitem__(key)
+
+
+    def __delitem__(self, key):
+        return self.items.__delitem__(key)
+
+
+
 def wp2sym(waypoint):
     return waypoint
 
@@ -105,6 +119,21 @@ def has_crate(picker):
 def not_has_crate(picker):
     link = StateLink(ListLink(picker, PredicateNode("has_crate")), ConceptNode("FALSE"))
     # link = NotLink(EvaluationLink(PredicateNode("has_crate"), picker).truth_value(0,1))
+    return link
+
+
+def approaching(picker):
+    link = StateLink(ListLink(picker, PredicateNode("movement")), ConceptNode("APPROACHING"))
+    return link
+
+
+def leaving(picker):
+    link = StateLink(ListLink(picker, PredicateNode("movement")), ConceptNode("LEAVING"))
+    return link
+
+
+def standing(picker):
+    link = StateLink(ListLink(picker, PredicateNode("movement")), ConceptNode("STANDING"))
     return link
 
 

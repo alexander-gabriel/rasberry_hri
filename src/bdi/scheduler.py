@@ -12,7 +12,7 @@ from rasberry_hri.msg import Action
 from topological_navigation.msg import GotoNodeAction, GotoNodeGoal
 from bayes_people_tracker.msg import PeopleTracker
 
-from std_srvs import Empty
+from std_srvs.srv import Empty
 from std_msgs.msg import String
 from geometry_msgs.msg import Pose, PoseStamped
 
@@ -31,18 +31,18 @@ class Scheduler:
         self.latest_robot_node = None
         self.bdi = BDISystem(self.robot_id)
         self.bdi.world_state.add_thing(self.robot_id.capitalize(), "robot")
-
-        self.robot_pose_sub = rospy.Subscriber('{:}/robot_pose'.format(self.robot_id), Pose, self.robot_position_coordinate_callback)
+        self.robot_pose_sub = rospy.Subscriber('/{:}/robot_pose'.format(self.robot_id), Pose, self.robot_position_coordinate_callback)
         self.robot_sub = rospy.Subscriber('/{:}/current_node'.format(self.robot_id), String, self.robot_position_node_callback)
         #TODO: move to multiple pickers
         #
-        # self.people_sub = rospy.Subscriber("/people_tracker/positions", PeopleTracker, lambda msg: self.people_tracker_callback(msg, "Picker01") )
+        # self.people_sub = rospy.Subscriber("/people_tracker/positions", PeopleTracker, lambda msg: self.people_tracker_callback(msg, "Picker02") )
         self.picker01_sub = rospy.Subscriber("/picker01/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker01") )
         self.picker02_sub = rospy.Subscriber("/picker02/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker02") )
         rospy.Subscriber('human_actions', Action, self.human_intention_callback)
         # self.qsrlib = QSRlib()
         # self.options = sorted(self.qsrlib.qsrs_registry.keys())
         # self.which_qsr = "tpcc"#"tpcc"
+        rospy.loginfo("SCH: Initialization finished")
 
 
     def spin(self):
@@ -64,7 +64,7 @@ class Scheduler:
 
 
     def robot_position_coordinate_callback(self, msg):
-        self.bdi.robot_track.append(Object_State(name=self.robot_id.capitalize(), timestamp=time.time(), x=msg.position.x, y=msg.position.y, width=1.35584, length=1.5))
+        self.bdi.latest_robot_msg = msg
 
 
     def robot_position_node_callback(self, msg):
@@ -96,6 +96,7 @@ class Scheduler:
 
 
     # def people_tracker_callback(self, msg, id):
+    #     rospy.loginfo("SCH: Person msg: {}".format(msg))
     #     id = "Picker01"
     #     msg.angles
     #     msg = PoseStamped()

@@ -1,7 +1,7 @@
 <launch>
-  <arg name="model_folder" default="/home/alex/git/openpose/models/"/>
+  <arg name="model_folder" default="/home/rasberry/git/openpose/models/"/>
   <arg name="camera" default="/camera/color/image_raw"/>
-  <arg name="publish_result" default="true"/>
+  <arg name="publish_result" default="False"/>
   <arg name="start_in_polytunnel" default="True"/>
   <arg name="human_proximity_syncronization" default="False"/>
   <group>
@@ -12,8 +12,8 @@
         <!-- <arg name="topic_prefixes" default="rsense"/>--> <!-- Separate topic_prefixes with commas -->
 
         <node pkg="openpose_ros" name="openpose" type="openpose_ros_node" output="screen">
-          <param name="net_input_width" value="352"/>
-            <param name="net_input_height" value="208"/>
+          <param name="net_input_width" value="640"/>
+            <param name="net_input_height" value="480"/>
             <param name="net_output_width" value="640"/>
             <param name="net_output_height" value="480"/>
             <param name="model_folder" value="$(arg model_folder)"/>
@@ -34,7 +34,7 @@
 <!--
         <node pkg="rasberry_hri" name="skeleton_logger" type="skeleton_logger_node" output="screen" /> -->
 
-        <!-- <node pkg="rasberry_hri" name="action_recognition_node" type="action_recognition_node" output="screen" /> -->
+        <node pkg="rasberry_hri" name="action_recognition_node" type="action_recognition_node" output="screen" />
 
         <!-- <node pkg="rasberry_hri" type="robot_control_node" name="robot_control_node">
           <param name="start_in_polytunnel" type="bool" value="$(arg start_in_polytunnel)"/>

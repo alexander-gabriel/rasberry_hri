@@ -1,12 +1,12 @@
 from time import sleep
-from utils import is_at, colocated, leads_to, has_crate, seen_picking, not_seen_picking, is_a, not_has_crate, not_same, free_path
+from utils import is_at, colocated, leads_to, has_crate, seen_picking, not_seen_picking, is_a, not_has_crate, not_same, free_path, approaching, standing, leaving
 
 from opencog.type_constructors import *
 import rospy
 
 
-SPEED = rospy.get_param("robot_speed", 0.5)
-
+SPEED = rospy.get_param("robot_speed", 0.5) # m/s
+MEAN_WAYPOINT_DISTANCE = 2.95 # m
 
 class Action(object):
 
@@ -106,7 +106,7 @@ class Action(object):
 
 
     def perform(self):
-        rospy.loginfo("ACT: Performing action: {:}".format(self.__class__.__name__))
+        rospy.loginfo("ACT: Performing: {:}".format(self))
         # for condition in self.conditions:
         #     if not condition in self.consequences:
         #         self.world_state.abandon_belief(condition)
@@ -145,9 +145,11 @@ class MoveAction(Action):
 
 
     def get_cost(self):
-        #TODO get distance between waypoints
-        distance = 6
-        return 6 / SPEED
+        return MEAN_WAYPOINT_DISTANCE / SPEED
+
+
+    def __repr__(self):
+        return "<Action:Move to {:}>".format(self.destination)
 
 
 
@@ -171,20 +173,22 @@ class MoveToAction(Action):
 
     def perform(self):
         super(MoveToAction, self).perform()
-        result = self.robco.move_to(self.destination)
-        return result.success
+        self.robco.move_to(self.destination)
+        return self.robco.get_result().success
 
 
     def get_cost(self):
-        #TODO get distance between waypoints
-        distance = 6
-        return 6 / SPEED
+        return MEAN_WAYPOINT_DISTANCE / SPEED
+
+
+    def __repr__(self):
+        return "<Action:Move to {:}>".format(self.destination)
 
 
 
 class EvadeAction(Action):
 
-    condition_templates = [[is_at, ["picker", "place1"]], [is_at, ["me", "origin"]], [leads_to, ["origin", "place1"]], [leads_to, ["destination", "origin"]], [has_crate, ["picker"]], [not_seen_picking, ["picker"]]]
+    condition_templates = [[is_at, ["picker", "place1"]], [is_at, ["me", "origin"]], [leads_to, ["destination", "origin"]], [leads_to, ["origin", "place1"]], [approaching, ["picker"]], [has_crate, ["picker"]], [not_seen_picking, ["picker"]]]
     consequence_templates = [[is_at, ["me", "destination"]]]
     placeholders = ["me", "picker", "origin", "destination"] # in same order as constructor arguments
     gain = rospy.get_param("evade_gain", 200)
@@ -194,23 +198,26 @@ class EvadeAction(Action):
         # [me, picker, origin, destination]
         super(EvadeAction, self).__init__(world_state, args)
         self.robco = robco
+        self.picker = args[1]
         self.destination = args[3]
 
     def perform(self):
         super(EvadeAction, self).perform()
-        result = self.robco.move_to(self.destination)
-        return result.success
+        self.robco.move_to(self.destination)
+        return self.robco.get_result().success
 
     def get_cost(self):
-        #TODO get distance between waypoints
-        distance = 6
-        return 6 / SPEED
+        return MEAN_WAYPOINT_DISTANCE / SPEED
+
+
+    def __repr__(self):
+        return "<Action:Evade {:} by moving to {:}>".format(self.picker, self.destination)
 
 
 
 class GiveCrateAction(Action):
 
-    condition_templates = [[not_seen_picking, ["picker"]], [not_has_crate, ["picker"]], [is_at, ["picker", "destination"]], [is_at, ["me", "destination"]], [is_a, ["picker", "human"]]]
+    condition_templates = [[not_seen_picking, ["picker"]], [not_has_crate, ["picker"]], [is_at, ["picker", "destination"]], [is_at, ["me", "destination"]], [standing, ["picker"]], [is_a, ["picker", "human"]]]
     consequence_templates = [[has_crate, ["picker"]]]
     placeholders = ["me", "picker", "destination"] # in same order as constructor arguments
     gain = rospy.get_param("give_gain", 240)
@@ -220,6 +227,7 @@ class GiveCrateAction(Action):
     def __init__(self, world_state, robco, args):
         # [me, picker]
         super(GiveCrateAction, self).__init__(world_state, args)
+        self.picker = args[1]
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?picker", picker).replace(ME, me))
     #     for consequence in self.consequence_templates:
@@ -243,10 +251,14 @@ class GiveCrateAction(Action):
         return True
 
 
+    def __repr__(self):
+        return "<Action:Give crate to {:}>".format(self.picker)
+
+
 
 class ExchangeCrateAction(Action):
 
-    condition_templates = [[seen_picking, ["picker"]], [has_crate, ["picker"]], [is_at, ["picker", "destination"]], [is_at, ["me", "destination"]], [is_a, ["picker", "human"]]]
+    condition_templates = [[seen_picking, ["picker"]], [has_crate, ["picker"]], [is_at, ["picker", "destination"]], [is_at, ["me", "destination"]], [standing, ["picker"]], [is_a, ["picker", "human"]]]
     consequence_templates = [[not_seen_picking, ["picker"]]]
     placeholders = ["me", "picker", "destination"] # in same order as constructor arguments
     gain = rospy.get_param("exchange_gain", 240)
@@ -256,6 +268,7 @@ class ExchangeCrateAction(Action):
     def __init__(self, world_state, robco, args):
         # [me, picker, destination]
         super(ExchangeCrateAction, self).__init__(world_state, args)
+        self.picker = args[1]
 
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?picker", picker).replace(ME, me))
@@ -277,3 +290,7 @@ class ExchangeCrateAction(Action):
             consequence.truth_value(1,1)
         sleep(5)
         return True
+
+
+    def __repr__(self):
+        return "<Action:Exchange crate with {:}>".format(self.picker)

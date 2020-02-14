@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   qsr_lib
   std_msgs
+  std_srvs
   actionlib_msgs
   move_base_msgs
   geometry_msgs
@@ -94,7 +95,7 @@ install(PROGRAMS
   scripts/action_recognition_node
   scripts/robot_control_node
   scripts/scheduler_node
-  scripts/picker_mover
+  scripts/picker_mover_node
 #  scripts/skeleton_extractor_node
 #  scripts/skeleton_converter_node
 #  scripts/skeleton_stabilizer_node

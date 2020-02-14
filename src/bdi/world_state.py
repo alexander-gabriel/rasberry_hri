@@ -24,7 +24,7 @@ path = join(rospack.get_path('rasberry_hri'), 'src', 'bdi')
 MLN_FILENAME = join(path, "lcas_bdi.mln")
 DB_FILENAME = join(path, "lcas_bdi.db")
 VERBOSE = False
-ITERATIONS = rospy.get_param("iterations", 30)
+ITERATIONS = rospy.get_param("iterations", "30")
 COMPLEXITY_PENALTY = rospy.get_param("complexity_penalty", 0.1)
 
 
@@ -62,13 +62,13 @@ class WorldState():
         # MemberLink(DefinedSchemaNode("true-conjunction-introduction-3ary-rule"), rbs)
         # MemberLink(DefinedSchemaNode("true-conjunction-introduction-4ary-rule"), rbs)
         # MemberLink(DefinedSchemaNode("true-conjunction-introduction-5ary-rule"), rbs)
-        # MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-1ary-rule"), rbs)
-        # MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-2ary-rule"), rbs)
-        # MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-3ary-rule"), rbs)
-        # MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-4ary-rule"), rbs)
-        # MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-5ary-rule"), rbs)
+        MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-1ary-rule"), rbs)
+        MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-2ary-rule"), rbs)
+        MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-3ary-rule"), rbs)
+        MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-4ary-rule"), rbs)
+        MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-5ary-rule"), rbs)
         MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-6ary-rule"), rbs)
-        # MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-7ary-rule"), rbs)
+        MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-7ary-rule"), rbs)
         # MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-8ary-rule"), rbs)
         # MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-9ary-rule"), rbs)
         # MemberLink(DefinedSchemaNode("fuzzy-disjunction-introduction-1ary-rule"), rbs)
@@ -97,7 +97,7 @@ class WorldState():
         # MemberLink(DefinedSchemaNode("implication-scope-to-implication-rule"), rbs)
         # MemberLink(DefinedSchemaNode("implication-full-instantiation-rule"), rbs)
         # MemberLink(DefinedSchemaNode("implication-partial-instantiation-rule"), rbs)
-        # MemberLink(DefinedSchemaNode("negation-introduction-rule"), rbs)
+        MemberLink(DefinedSchemaNode("negation-introduction-rule"), rbs)
         # MemberLink(DefinedSchemaNode("not-simplification-rule"), rbs)
         # MemberLink(DefinedSchemaNode("not-elimination-rule"), rbs)
         EvaluationLink(PredicateNode("URE:attention-allocation"), rbs).truth_value(0, 1)
@@ -188,7 +188,6 @@ class WorldState():
             deduction_rule_name,
             deduction_rule)
         MemberLink(deduction_rule_name, deduction_rbs)
-
 
 
     def build_linked_deduction(self, deduction_rbs):
@@ -403,25 +402,28 @@ class WorldState():
         link = InheritanceLink(node1, self.place)
         link.tv = truth_value
 
+
     # add two 'linked' places
     def add_place_link(self, place1, place2, truth_value=TRUE):
         p1 = ConceptNode(place1)
         p1.tv = truth_value
-        link = InheritanceLink(p1, ConceptNode("place"))
-        link.tv = truth_value
+        InheritanceLink(p1, ConceptNode("place")).tv = truth_value
+
         p2 = ConceptNode(place2)
         p2.tv = truth_value
-        link = InheritanceLink(p2, ConceptNode("place"))
-        link.tv = truth_value
+        InheritanceLink(p2, ConceptNode("place")).tv = truth_value
         # link = EvaluationLink(
         #     PredicateNode("leads_to"),
         #     ListLink(p1, p2))
         # link.tv = truth_value
-        link = EvaluationLink(
+        EvaluationLink(
+            PredicateNode("leads_to"),
+            ListLink(p1, p2)).tv = truth_value
+        EvaluationLink(
             PredicateNode("linked"),
-            ListLink(p1, p2))
-        link.tv = truth_value
+            ListLink(p1, p2)).tv = truth_value
         rospy.logdebug("WST: Adding place link: {:} to {:}".format(place1, place2))
+
 
     # add arbitrary typed things to the KB
     def add_thing(self, name, klasse, truth_value=TRUE):
@@ -437,6 +439,7 @@ class WorldState():
     def add_link(self, link, truth_value=TRUE):
         raise NotImplementedError()
         atomspace.add_link(link, tv=truth_value)
+
 
     # not needed since initialisation in utils
     def add_node(self, node):
@@ -457,7 +460,7 @@ class WorldState():
         node1 = ConceptNode(person)
         node2 = ConceptNode(place)
         link = StateLink(node1, node2).tv = TRUE
-        rospy.loginfo("WST: {:} is at: {:}".format(person, place))
+        rospy.loginfo("WST: {:} is at {:}".format(person, place))
 
 
     def set_probability(self, belief, truth):
@@ -521,13 +524,6 @@ class WorldState():
         self.lock.release()
 
 
-    # def add_belief(self, belief, probability=1):
-        # self.atomspace.add_node()
-        # self.atomspace.add_link(types.SimilarityLink, [node1,node2])
-
-        # self.set_probability(belief, probability)
-
-
     def add_constant(self, domain, constants):
         raise NotImplementedError()
         self.mln.constant(domain, constants)
@@ -543,22 +539,12 @@ class WorldState():
         self.mln.formula(formula=formula, weight=weight, fixweight=fixweight, unique_templvars=None)
 
 
-    # def ground(self):
-    #     return self.mln.ground(self.db)
-
-
     def learn(self):
         raise NotImplementedError()
         # 'WCSP (exact MPE with toulbar2)'
         self.lock.acquire()
         self.mln.learn([self.db], method="<class 'pracmln.mln.learning.bpll.BPLL'>", **params)
         self.lock.release()
-
-
-    # def _materialize(self):
-    #     self.lock.acquire()
-    #     self.mln.materialize(self.db)
-    #     self.lock.release()
 
 
     def save(self):
@@ -581,7 +567,6 @@ class WorldState():
         self.lock.acquire()
         print(self.db.evidence)
         self.lock.release()
-
 
 
     def write(self):

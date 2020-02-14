@@ -17,21 +17,20 @@ class RobotControl:
 
     def move_to(self, goal):
         rospy.loginfo("RCO: Requesting Navigation to: {:}".format(goal))
-        rospy.get_name()
+        # rospy.get_name()
         navgoal = GotoNodeGoal()
         navgoal.target = goal
         #navgoal.origin = orig
 
         # Sends the goal to the action server.
-        self.robot_control.send_goal_and_wait(navgoal)
-        #,self.done_cb, self.active_cb, self.feedback_cb)
+        self.robot_control.send_goal(navgoal)
+        # self.robot_control.send_goal_and_wait(navgoal)
 
-        # Waits for the server to finish performing the action.
-        # self.robot_control.wait_for_result()
 
-        # Prints out the result of executing the action
+    # Waits for the server to finish performing the action.
+    def get_result(self):
+        self.robot_control.wait_for_result()
         return self.robot_control.get_result()  # A FibonacciResult
-
 
     def cancel_movement(self):
         self.robot_control.cancel_all_goals()

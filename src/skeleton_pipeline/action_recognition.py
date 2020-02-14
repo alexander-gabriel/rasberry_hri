@@ -22,9 +22,9 @@ class ActionRecognition:
     def __init__(self):
         self.converter = Converter()
         self.classifier = MinimumDifferenceClassifier()
+        rospy.wait_for_service('recognize')
         self.interface = rospy.ServiceProxy('recognize', Recognize)
         rospy.loginfo("SES: Waiting for openpose_ros_node")
-        rospy.wait_for_service('recognize')
         self.openpose = Openpose(self.interface, self.openpose_callback)
 
         self.last_detected_count = {}

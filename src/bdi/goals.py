@@ -161,10 +161,12 @@ class Goal(object):
         templates = cls.get_condition_templates()
         rospy.logdebug("GOL: Templates: {}".format(templates))
         conditions = []
+
         clauses = []
         variables = OrderedConsistentSet()
         for fun, args in templates:
             new_args = []
+            # variables2 = []
             for arg in args:
                 if arg == "me":
                     new_args.append(ConceptNode(world_state.me.capitalize()))
@@ -172,18 +174,28 @@ class Goal(object):
                     new_args.append(ConceptNode(arg))
                 else:
                     variable = VariableNode(arg)
+                    # variables2.append(TypedVariableLink(variable, TypeNode("ConceptNode")))
                     new_args.append(variable)
                     variables.append(TypedVariableLink(variable, TypeNode("ConceptNode")))
             condition = fun(*new_args)
+            # rospy.loginfo("------------------------------------")
+            # if len(variables2) > 0:
+            #     r = world_state.check(GetLink(VariableList(*variables2), condition))
+            # else:
+            #     r = world_state.check(GetLink(VariableList(), condition))
+            # rospy.logwarn("condition: {}".format(condition))
+            # rospy.logerr("result: {}".format(r))
             # results = world_state.reason(condition, VariableList())
-            # # rospy.loginfo("GOL: Condition: {:}".format(condition))
+            # rospy.loginfo("GOL: Condition: {:}".format(condition))
             # # rospy.loginfo("GOL: Condition result: {:}".format(results))
             conditions.append(condition)
+
         query = AndLink(*conditions)
         variables = VariableList(*variables.items)
         rospy.logdebug("GOL: Reason: {:}".format(query))
         world_state.reason(query, variables)
         results = world_state.check(GetLink(variables, query))
+
         targets = []
         if results.type_name == "SetLink":
             for result in results.get_out():

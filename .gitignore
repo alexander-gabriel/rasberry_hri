@@ -1,3 +1,4 @@
 src/unused/*
 *.pyc
 **/*.log
+*.scm

@@ -24,7 +24,7 @@ path = join(rospack.get_path('rasberry_hri'), 'src', 'bdi')
 MLN_FILENAME = join(path, "lcas_bdi.mln")
 DB_FILENAME = join(path, "lcas_bdi.db")
 VERBOSE = False
-ITERATIONS = rospy.get_param("iterations", "30")
+ITERATIONS = rospy.get_param("iterations", "10")
 COMPLEXITY_PENALTY = rospy.get_param("complexity_penalty", 0.1)
 
 
@@ -488,7 +488,7 @@ class WorldState():
         formula = None
         # query = EvaluationLink(PredicateNode("linked"),ListLink(ConceptNode("WayPoint104"), ConceptNode("WayPoint106")))
         # variables = VariableList()
-        rospy.loginfo("WST: Asking KB; query: {:}".format(str(query)))
+        rospy.logdebug("WST: Asking KB; query: {:}".format(str(query)))
         chainer = BackwardChainer(atomspace,
                           ConceptNode("deduction-rule-base"),
                           query, vardecl = variables)
@@ -498,7 +498,7 @@ class WorldState():
         for result in results.get_out():
             rospy.loginfo("WST: Result Truth: {:}".format(result.tv))
             rospy.loginfo("WST: Result:{:}".format(result))
-            rospy.loginfo("WST: ------")
+            rospy.loginfo("WST: ---------------------")
         results = execute_atom(atomspace, GetLink(variables, query))
         self.lock.release()
         return results

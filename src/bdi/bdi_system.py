@@ -5,6 +5,7 @@ import pickle
 from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
 from qsrlib_io.world_trace import Object_State, World_Trace
 
+from std_srvs.srv import Empty
 from topological_navigation.tmap_utils import get_distance
 
 from rasberry_people_perception.topological_localiser import TopologicalNavLoc
@@ -45,6 +46,9 @@ class BDISystem:
 
     def __init__(self, me):
         rospy.loginfo("BDI: Initializing BDI System")
+        self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
+        self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
+        self.unpause()
         self.me = me
         self.robco = RobotControl(self.me)
         self.world_state = WorldState(self.me)
@@ -86,6 +90,7 @@ class BDISystem:
             self.world_state.add_thing(picker, "human")
         rospy.loginfo("BDI: Initialized BDI System")
         self.setup_experiment()
+
 
     def setup_experiment(self):
         picker = rospy.get_param("target_picker", "Picker02")
@@ -148,6 +153,7 @@ class BDISystem:
 
 
     def loop(self):
+        self.pause()
         rospy.logwarn("BDI: ----- Started Loop -----")
         self.update_beliefs()
         rospy.logwarn("BDI: --  updated beliefs   --")
@@ -160,6 +166,7 @@ class BDISystem:
         self.clean_intentions()
         rospy.logwarn("BDI: -- cleaned intentions --")
         rospy.logwarn("BDI: -----  Ended  Loop -----")
+        self.unpause()
 
 
     def clean_intentions(self):

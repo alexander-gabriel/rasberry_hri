@@ -11,13 +11,15 @@ from experiment import Experiment
 # x TODO: generate human behavior events from observed movement
 # x TODO: add distance metric and emergency stop
 # x TODO: check reasoning
+# x TODO: check rosbag player
+# x TODO: check pose detection
+# x TODO: check experimenter
 
-# . TODO: check rosbag player
-# . TODO: check pose detection
-# . TODO: check experimenter
-# . TODO: check something I forgot
+# . FIX concurrency stopping message reception
 # . TODO: make sure all important steps are logged (distance metric!!)
 # . TODO: implement log parser
+# . TODO: annotate the latest rosbags
+# . TODO: split the rosbags 
 
 # . TODO: add pose for picking berries
 # . TODO: add pose for call

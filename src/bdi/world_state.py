@@ -69,7 +69,7 @@ class WorldState():
         MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-5ary-rule"), rbs)
         MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-6ary-rule"), rbs)
         MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-7ary-rule"), rbs)
-        # MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-8ary-rule"), rbs)
+        MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-8ary-rule"), rbs)
         # MemberLink(DefinedSchemaNode("fuzzy-conjunction-introduction-9ary-rule"), rbs)
         # MemberLink(DefinedSchemaNode("fuzzy-disjunction-introduction-1ary-rule"), rbs)
         # MemberLink(DefinedSchemaNode("fuzzy-disjunction-introduction-2ary-rule"), rbs)
@@ -488,7 +488,7 @@ class WorldState():
         formula = None
         # query = EvaluationLink(PredicateNode("linked"),ListLink(ConceptNode("WayPoint104"), ConceptNode("WayPoint106")))
         # variables = VariableList()
-        rospy.logdebug("WST: Asking MLN system; query: {:}".format(str(query)))
+        rospy.loginfo("WST: Asking KB; query: {:}".format(str(query)))
         chainer = BackwardChainer(atomspace,
                           ConceptNode("deduction-rule-base"),
                           query, vardecl = variables)
@@ -496,9 +496,9 @@ class WorldState():
         chainer.do_chain()
         results = chainer.get_results()
         for result in results.get_out():
-            rospy.logdebug("WST: Result Truth: {:}".format(result.tv))
-            rospy.logdebug("WST: Result:{:}".format(result))
-            rospy.logdebug("WST: ------")
+            rospy.loginfo("WST: Result Truth: {:}".format(result.tv))
+            rospy.loginfo("WST: Result:{:}".format(result))
+            rospy.loginfo("WST: ------")
         results = execute_atom(atomspace, GetLink(variables, query))
         self.lock.release()
         return results

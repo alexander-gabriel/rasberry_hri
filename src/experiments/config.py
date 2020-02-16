@@ -25,7 +25,7 @@ class Config():
                                 "label": "call",
                                 "start": 76,
                                 "duration": 1,
-                                "filename": "/media/rasberry/Data/2019-hri-dataset/subject-1.bag",
+                                "filename": "/data/subject-1.bag",
                                 "topics": ["/camera/color/image_raw"]
                                 },
                             6: {"type": "message",

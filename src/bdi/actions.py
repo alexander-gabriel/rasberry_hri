@@ -188,7 +188,7 @@ class MoveToAction(Action):
 
 class EvadeAction(Action):
 
-    condition_templates = [[is_at, ["picker", "place1"]], [is_at, ["me", "origin"]], [leads_to, ["destination", "origin"]], [leads_to, ["origin", "place1"]], [approaching, ["picker"]], [called_robot, ["picker"]], [not_seen_picking, ["picker"]]]
+    condition_templates = [[is_at, ["picker", "place1"]], [is_at, ["me", "origin"]], [leads_to, ["destination", "origin"]], [leads_to, ["origin", "place1"]], [approaching, ["picker"]], [called_robot, ["picker"]], [not_seen_picking, ["picker"]], [not_called_robot, ["picker"]]]
     consequence_templates = [[is_at, ["me", "destination"]]]
     placeholders = ["me", "picker", "origin", "destination"] # in same order as constructor arguments
     gain = rospy.get_param("evade_gain", 200)
@@ -217,8 +217,8 @@ class EvadeAction(Action):
 
 class GiveCrateAction(Action):
 
-    condition_templates = [[not_seen_picking, ["picker"]], [not_called_robot, ["picker"]], [is_at, ["picker", "destination"]], [is_at, ["me", "destination"]], [standing, ["picker"]], [is_a, ["picker", "human"]]]
-    consequence_templates = [[called_robot, ["picker"]]]
+    condition_templates = [[not_seen_picking, ["picker"]], [called_robot, ["picker"]], [is_at, ["picker", "destination"]], [is_at, ["me", "destination"]], [is_a, ["picker", "human"]]]
+    consequence_templates = [[not_called_robot, ["picker"]]]
     placeholders = ["me", "picker", "destination"] # in same order as constructor arguments
     gain = rospy.get_param("give_gain", 240)
     cost = rospy.get_param("give_cost", 90)
@@ -258,8 +258,8 @@ class GiveCrateAction(Action):
 
 class ExchangeCrateAction(Action):
 
-    condition_templates = [[seen_picking, ["picker"]], [called_robot, ["picker"]], [is_at, ["picker", "destination"]], [is_at, ["me", "destination"]], [standing, ["picker"]], [is_a, ["picker", "human"]]]
-    consequence_templates = [[not_seen_picking, ["picker"]]]
+    condition_templates = [[seen_picking, ["picker"]], [called_robot, ["picker"]], [is_at, ["picker", "destination"]], [is_at, ["me", "destination"]], [is_a, ["picker", "human"]]]
+    consequence_templates = [[not_seen_picking, ["picker"]], [not_called_robot, ["picker"]]]
     placeholders = ["me", "picker", "destination"] # in same order as constructor arguments
     gain = rospy.get_param("exchange_gain", 240)
     cost = rospy.get_param("exchange_cost", 120)

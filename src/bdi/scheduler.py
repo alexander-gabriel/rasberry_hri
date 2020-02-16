@@ -1,6 +1,7 @@
 
 import os
 import time
+import threading
 
 from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
 from qsrlib_io.world_trace import Object_State,World_Trace
@@ -53,14 +54,24 @@ class Scheduler:
         Blocks until ROS node is shutdown. Yields activity to other threads.
         @raise ROSInitException: if node is not in a properly initialized state
         """
-
+        bdi = None
         if not rospy.core.is_initialized():
             raise rospy.exceptions.ROSInitException("client code must call rospy.init_node() first")
         rospy.logdebug("node[%s, %s] entering spin(), pid[%s]", rospy.core.get_caller_id(), rospy.core.get_node_uri(), os.getpid())
         try:
             while not rospy.core.is_shutdown():
-                self.bdi.loop()
-                rospy.rostime.wallsleep(0.1)
+                try:
+                    if not bdi.is_alive():
+                        bdi = threading.Thread(target=self.bdi.loop)
+                        bdi.start()
+                    else:
+                        # rospy.loginfo("SCH: sleeping")
+                        rospy.rostime.wallsleep(0.001)
+                except:
+                    bdi = threading.Thread(target=self.bdi.loop)
+                    bdi.start()
+                # self.bdi.loop()
+                # rospy.rostime.wallsleep(0.1)
         except KeyboardInterrupt:
             rospy.logdebug("keyboard interrupt, shutting down")
             rospy.core.signal_shutdown('keyboard interrupt')

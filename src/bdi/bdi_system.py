@@ -52,10 +52,11 @@ class BDISystem:
         self.robot_track = []
         self.people_tracks = {}
         self.directions = {}
-        # self.goals = [DeliverGoal, ExchangeGoal, EvadeGoal]
+        self.latest_directions = {}
+        self.goals = [DeliverGoal, ExchangeGoal, EvadeGoal]
         # self.goals = [DeliverGoal]
         # self.goals = [ExchangeGoal]
-        self.goals = [EvadeGoal]
+        # self.goals = [EvadeGoal]
         self.intentions = []
         self.latest_robot_msg = None
         self.latest_people_msgs = {}
@@ -88,15 +89,15 @@ class BDISystem:
 
     def setup_experiment(self):
         picker = rospy.get_param("target_picker", "Picker02")
-        if rospy.get_param("called_robot", True):
+        if rospy.get_param("called_robot", False):
             called_robot(ConceptNode(picker)).tv = TRUE
         else:
             not_called_robot(ConceptNode(picker)).tv = TRUE
-        # if rospy.get_param("seen_picking", False):
-        #     seen_picking(ConceptNode(picker)).tv = TRUE
-        # else:
-        #     not_seen_picking(ConceptNode(picker)).tv = TRUE
-        self.robco.move_to(rospy.get_param("initial_robot_pose", "WayPoint106"))
+        if rospy.get_param("seen_picking", False):
+            seen_picking(ConceptNode(picker)).tv = TRUE
+        else:
+            not_seen_picking(ConceptNode(picker)).tv = TRUE
+        # self.robco.move_to(rospy.get_param("initial_robot_pose", "WayPoint106"))
 
 
     def generate_options(self):
@@ -110,12 +111,10 @@ class BDISystem:
                         desires.append(goal(self.world_state, self.robco, args))
                     except WrongParameterException:
                         pass
-        rospy.logdebug("BDI: Desires: {}".format(desires))
-        rospy.logdebug("BDI: Intentions: {}".format(self.intentions))
-
         for intention in self.intentions:
             if intention in desires and intention.is_achieved(self.world_state):
                 desires.remove(intention)
+        rospy.loginfo("BDI: Desires: {}".format(desires))
         return desires
 
 
@@ -127,6 +126,7 @@ class BDISystem:
             cost = desire.get_cost()
             if gain > MIN_GAIN and cost < MAX_COST:
                 intentions.append(desire)
+        rospy.loginfo("BDI: Intentions: {}".format(self.intentions))
         return intentions
 
 
@@ -148,14 +148,18 @@ class BDISystem:
 
 
     def loop(self):
-        rospy.logdebug("----- Started Loop -----")
+        rospy.logwarn("BDI: ----- Started Loop -----")
         self.update_beliefs()
+        rospy.logwarn("BDI: --  updated beliefs   --")
         desires = self.generate_options()
+        rospy.logwarn("BDI: -- generated desires  --")
         self.intentions = self.filter(desires)
+        rospy.logwarn("BDI: -- filtered desires   --")
         self.perform_action()
+        rospy.logwarn("BDI: -- performed action   --")
         self.clean_intentions()
-        time.sleep(0.1)
-        rospy.logdebug("----- Ended Loop -----")
+        rospy.logwarn("BDI: -- cleaned intentions --")
+        rospy.logwarn("BDI: -----  Ended  Loop -----")
 
 
     def clean_intentions(self):
@@ -217,18 +221,26 @@ class BDISystem:
             except (ValueError, KeyError, AttributeError, IndexError) as err:
                 rospy.logwarn("BDI: {}".format(err))
             for picker, direction in self.directions.items():
-                if direction == "+":
-                    leaving(ConceptNode(picker)).tv = TRUE
-                elif direction == "-":
-                    approaching(ConceptNode(picker)).tv = TRUE
-                else:
-                    standing(ConceptNode(picker)).tv = TRUE
-                # stop if we're to close to a picker
-                distance =  get_distance(self.latest_robot_msg, self.latest_people_msgs[picker].pose)
-                if distance < MINIMUM_DISTANCE:
-                    pass
-                    # rospy.loginfo("BDI: Robot too close to picker")
-                    # self.robco.cancel_movement()
+                try:
+                    latest_direction = self.latest_directions[picker]
+                except:
+                    self.latest_directions[picker] = direction
+                if self.latest_directions[picker] != direction:
+                    if direction == "+":
+                        leaving(ConceptNode(picker)).tv = TRUE
+                        rospy.logwarn("BDI: Updating movement: {} is leaving".format(picker))
+                    elif direction == "-":
+                        approaching(ConceptNode(picker)).tv = TRUE
+                        rospy.logwarn("BDI: Updating movement: {} is approaching".format(picker))
+                    else:
+                        standing(ConceptNode(picker)).tv = TRUE
+                        rospy.logwarn("BDI: Updating movement: {} is standing".format(picker))
+                    # stop if we're to close to a picker
+                    distance =  get_distance(self.latest_robot_msg, self.latest_people_msgs[picker].pose)
+                    if distance < MINIMUM_DISTANCE:
+                        pass
+                        # rospy.loginfo("BDI: Robot too close to picker")
+                        # self.robco.cancel_movement()
 
 
     def write(self):

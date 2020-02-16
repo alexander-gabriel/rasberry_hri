@@ -4,6 +4,7 @@ import time
 
 from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
 from qsrlib_io.world_trace import Object_State,World_Trace
+from opencog.type_constructors import *
 
 import rospy
 
@@ -18,7 +19,7 @@ from geometry_msgs.msg import Pose, PoseStamped
 
 from bdi_system import BDISystem
 from bdi_system import INF
-from utils import suppress, wp2sym, sym2wp
+from utils import suppress, wp2sym, sym2wp, seen_picking, called_robot, TRUE, FALSE
 
 
 
@@ -33,12 +34,14 @@ class Scheduler:
         self.bdi.world_state.add_thing(self.robot_id.capitalize(), "robot")
         self.robot_pose_sub = rospy.Subscriber('/{:}/robot_pose'.format(self.robot_id), Pose, self.robot_position_coordinate_callback)
         self.robot_sub = rospy.Subscriber('/{:}/current_node'.format(self.robot_id), String, self.robot_position_node_callback)
+        self.human_action_sub = rospy.Subscriber('/human_actions', Action, self.human_intention_callback)
+        self.picker01_sub = rospy.Subscriber("/picker01/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker01") )
+        self.picker02_sub = rospy.Subscriber("/picker02/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker02") )
         #TODO: move to multiple pickers
         #
         # self.people_sub = rospy.Subscriber("/people_tracker/positions", PeopleTracker, lambda msg: self.people_tracker_callback(msg, "Picker02") )
-        self.picker01_sub = rospy.Subscriber("/picker01/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker01") )
-        self.picker02_sub = rospy.Subscriber("/picker02/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker02") )
-        rospy.Subscriber('human_actions', Action, self.human_intention_callback)
+
+
         # self.qsrlib = QSRlib()
         # self.options = sorted(self.qsrlib.qsrs_registry.keys())
         # self.which_qsr = "tpcc"#"tpcc"
@@ -82,13 +85,11 @@ class Scheduler:
 
 
     def human_intention_callback(self, msg):
-        # TODO: match detected person to symbol
-        if msg.action == "has crate":
-            self.bdi.world_state.update_property(msg.id.capitalize(), "has_crate", 1.0)
-        elif msg.action == "picking berries left" or msg.action == "picking berries right":
-            self.bdi.world_state.update_property(msg.id.capitalize(), "seen_picking", 1.0)
-        # self.bdi.world_state.add_belief("{:}({:})".format(msg.action, msg.id.capitalize()))
-        # rospy.logdebug("added {:}({:})".format(msg.action, msg.id.capitalize()))
+        rospy.loginfo("SCH: Observed behaviour: '{}'".format(msg.action))
+        if msg.action == "picking berries left" or msg.action == "picking berries right":
+            seen_picking(ConceptNode(msg.id.capitalize())).tv = TRUE
+        elif msg.action == "call robot":
+            called_robot(ConceptNode(msg.id.capitalize())).tv = TRUE
 
 
     def picker_tracker_callback(self, msg, id):

@@ -1,17 +1,30 @@
 
+
+# 0,0 is left, top
 forward = {"Left:Shoulder-X": "a = 90.0", "Left:Elbow-X": "a = 180.0",  "Right:Shoulder-X": "a = 180.0", "Right:Elbow-X": "a = 90.0" }
 backward = {"Left:Shoulder-X": "a = 180.0", "Left:Elbow-X": "a = 90.0",  "Right:Shoulder-X": "a = 90.0", "Right:Elbow-X": "a = 180.0" }
 rotate_right = {"Left:Shoulder-X": "a = 90.0", "Left:Elbow-X": "a = 180.0",  "Right:Shoulder-X": "a = 180.0", "Right:Elbow-X": "a = 180.0" }
 rotate_left = {"Left:Shoulder-X": "a = 180.0", "Left:Elbow-X": "a = 180.0",  "Right:Shoulder-X": "a = 90.0", "Right:Elbow-X": "a = 180.0" }
 
 stop = {"Left:Shoulder-X": "a = 270.0", "Left:Elbow-X": "a = 180.0",  "Right:Shoulder-X": "a = 270.0", "Right:Elbow-X": "a = 180.0" }
-right_arm_up = {"Left:Shoulder-X": "a = 90.0", "Left:Elbow-X": "a = 180.0",  "Right:Shoulder-X": "a = 270.0", "Right:Elbow-X": "a = 180.0" }
+right_arm_up = {
+    "Left:Shoulder-X": "a = 90.0", "Left:Elbow-X": "a = 180.0", # left arm down and straight
+    "Right:Shoulder-X": "a > 230.0", "Right:Elbow-X": "a = 180.0" #right arm up and straight
+    }
 
-picking_berries_left = {"Left:Elbow-X": "p < Left:Hip-X", "Left:Ankle-Y": "p = Right:Ankle-Y", "Left:Ankle-X": "p = Right:Ankle-X", "Left:Hip-X": "p = Right:Hip-X"}
+picking_berries_left = {
+    "Left:Elbow-X": "p < Left:Hip-X", "Right:Elbow-X": "p < Left:Hip-X", #arms to the left
+    "Left:Ankle-Y": "p = Right:Ankle-Y", "Left:Ankle-X": "p = Right:Ankle-X", #feet together behind one another
+    "Left:Hip-X": "p = Right:Hip-X", # hips behind one another
+    "Left:Elbow-Y": "p > Left:Shoulder-Y", "Right:Elbow-Y": "p > Left:Shoulder-Y" # elbows lower than shoulders
+    }
 
-picking_berries_right = {"Right:Elbow-X": "p > Right:Hip-X", "Left:Ankle-Y": "p = Right:Ankle-Y", "Left:Ankle-X": "p = Right:Ankle-X", "Left:Hip-X": "p = Right:Hip-X"}
-
-has_crate = {"Left:Elbow-X": "p = Left:Shoulder-X", "Right:Elbow-X": "p = Right:Shoulder-X", "Right:Wrist-X": "p < Right:Shoulder-X", "Left:Wrist-X": "p > Left:Shoulder-X", "Left:Wrist-Y": "p > Left:Shoulder-Y", "Right:Wrist-Y": "p > Right:Shoulder-Y", "Left:Elbow-Y": "p > Left:Shoulder-Y", "Right:Elbow-Y": "p > Right:Shoulder-Y"}
+picking_berries_right = {
+    "Left:Elbow-X": "p > Right:Hip-X", "Right:Elbow-X": "p > Right:Hip-X", #arms to the right
+    "Left:Ankle-Y": "p = Right:Ankle-Y", "Left:Ankle-X": "p = Right:Ankle-X", #feet together behind one another
+    "Left:Hip-X": "p = Right:Hip-X", # hips behind one another
+    "Left:Elbow-Y": "p > Right:Shoulder-Y", "Right:Elbow-Y": "p > Right:Shoulder-Y" # elbows lower than shoulders
+    }
 
 standing = {"Left:Shoulder-X": "a = 90.0", "Left:Elbow-X": "a = 180.0", "Right:Shoulder-X": "a = 90.0", "Right:Elbow-X": "a = 180.0", "Left:Ankle-Y": "p = Right:Ankle-Y"}
 
@@ -33,9 +46,7 @@ facing_away = {"Right:Shoulder-X": "p < Left:Shoulder-X"}
 #              "facing away": facing_away,
 #              "has cart": has_cart}
 
-pose_list = {"request service": right_arm_up,
+pose_list = {"call robot": right_arm_up,
              "picking berries left": picking_berries_left,
              "picking berries right": picking_berries_right,
-             "come": forward,
-             "go": backward,
              "standing": standing}

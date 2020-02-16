@@ -9,7 +9,7 @@ from topological_navigation.tmap_utils import get_distance
 
 from rasberry_people_perception.topological_localiser import TopologicalNavLoc
 from topological_navigation.route_search import TopologicalRouteSearch
-from utils import OrderedConsistentSet, suppress, atomspace, not_has_crate, has_crate, not_seen_picking, seen_picking, standing, leaving, approaching
+from utils import OrderedConsistentSet, suppress, atomspace, not_called_robot, called_robot, not_seen_picking, seen_picking, standing, leaving, approaching
 from opencog.type_constructors import *
 from world_state import WorldState, TRUE, FALSE
 from goals import ExchangeGoal, DeliverGoal, EvadeGoal, WrongParameterException
@@ -30,7 +30,7 @@ MINIMUM_DISTANCE = 0.5 # m
 # is_a(Picker,Human)
 # is_a(Thorvald,Robot)
 # seen_picking(Picker)
-# has_crate(Picker)
+# called_robot(Picker)
 #
 # leads_to(Waypoint1,Waypoint2)
 # leads_to(Waypoint2,Waypoint3)
@@ -52,7 +52,10 @@ class BDISystem:
         self.robot_track = []
         self.people_tracks = {}
         self.directions = {}
-        self.goals = [EvadeGoal] #[DeliverGoal, ExchangeGoal, EvadeGoal]
+        # self.goals = [DeliverGoal, ExchangeGoal, EvadeGoal]
+        # self.goals = [DeliverGoal]
+        # self.goals = [ExchangeGoal]
+        self.goals = [EvadeGoal]
         self.intentions = []
         self.latest_robot_msg = None
         self.latest_people_msgs = {}
@@ -85,14 +88,14 @@ class BDISystem:
 
     def setup_experiment(self):
         picker = rospy.get_param("target_picker", "Picker02")
-        if rospy.get_param("has_crate", True):
-            has_crate(ConceptNode(picker)).tv = TRUE
+        if rospy.get_param("called_robot", True):
+            called_robot(ConceptNode(picker)).tv = TRUE
         else:
-            not_has_crate(ConceptNode(picker)).tv = TRUE
-        if rospy.get_param("seen_picking", False):
-            seen_picking(ConceptNode(picker)).tv = TRUE
-        else:
-            not_seen_picking(ConceptNode(picker)).tv = TRUE
+            not_called_robot(ConceptNode(picker)).tv = TRUE
+        # if rospy.get_param("seen_picking", False):
+        #     seen_picking(ConceptNode(picker)).tv = TRUE
+        # else:
+        #     not_seen_picking(ConceptNode(picker)).tv = TRUE
         self.robco.move_to(rospy.get_param("initial_robot_pose", "WayPoint106"))
 
 
@@ -140,7 +143,7 @@ class BDISystem:
                     chosen_intention = intention
                     min_cost  = cost
         if not chosen_intention is None:
-            rospy.loginfo("BDI: Following: {:}".format(chosen_intention))
+            rospy.loginfo("BDI: Following {:}".format(chosen_intention))
             chosen_intention.perform_action()
 
 
@@ -159,6 +162,7 @@ class BDISystem:
         index = 0
         while index < len(self.intentions):
             if self.intentions[index].is_achieved(self.world_state):
+                rospy.loginfo("BDI: Finished following {}".format(self.intentions[index]))
                 del self.intentions[index]
             else:
                 index += 1

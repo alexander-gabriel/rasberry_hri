@@ -261,7 +261,7 @@ if __name__ == '__main__':
                         VariableNode("picker"),
                         ConceptNode("human")),
                     StateLink(
-                        ListLink(VariableNode("picker"), PredicateNode("has_crate")),
+                        ListLink(VariableNode("picker"), PredicateNode("called_robot")),
                         ConceptNode("FALSE")),
                     EvaluationLink(
                         PredicateNode("linked"),

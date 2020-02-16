@@ -15,9 +15,9 @@ FREQUENCY = 50 # Hz  1/s
 SPEED = 1.3 # m/s
 PICKER_ID = 2
 EVADE_DISTANCE = 2 * AVG_POLE_DISTANCE # m
-DELIVER_DISTANCE = 3 * AVG_POLE_DISTANCE # m
+DELIVER_DISTANCE = 1 * AVG_POLE_DISTANCE # m
 DELIVER_COUNTS = int(DELIVER_DISTANCE / SPEED * FREQUENCY)
-DELIVER_WAIT = 3 # s
+DELIVER_WAIT = 5 # s
 DELIVER_WAIT_COUNTS = DELIVER_WAIT * FREQUENCY
 ANGLE = 0.0 # angle between direction of travel and X coordinate
 
@@ -29,89 +29,93 @@ ANGLE = 0.0 # angle between direction of travel and X coordinate
 
 class PickerMover(object):
 
-  def __init__(self):
-    self.subscriber = rospy.Subscriber("/picker_mover", String, self.command_callback)
-    self.publisher = rospy.Publisher('/hedge_pos_a', hedge_pos_a, queue_size=10)
-    self.strategy = "deliver"
-    self.counter = 0
-    self.x = 20.639
-    self.y = 4.628
-    self.wait = 0
-    self.return1 = False
-
-
-  def command_callback(self, msg):
-    self.counter = 0
-    if msg in ["deliver", "evade", "stand", "reset"]:
-      self.strategy = msg
-      rospy.loginfo("PMO: Switched to movement strategy {:}, ignoring input".format(msg))
-    else:
-      rospy.logwarn("PMO: Received unknown movement strategy {:}, ignoring input".format(msg))
-
-
-  def update_position(self):
-    if self.strategy == "reset":
-      self.x = self.initial_x
-      self.y = self.initial_y
-    elif self.strategy == "stand":
-      pass
-    elif self.strategy == "evade":
-      if self.counter < EVADE_DISTANCE / SPEED * FREQUENCY:
-        self.x = self.x - cos(ANGLE) * SPEED / FREQUENCY
-        self.y = self.y - sin(ANGLE) * SPEED / FREQUENCY
-        self.counter += 1
-      else:
+    def __init__(self):
+        self.subscriber = rospy.Subscriber("/picker_mover", String, self.command_callback)
+        self.publisher = rospy.Publisher('/hedge_pos_a', hedge_pos_a, queue_size=10)
+        self.switch_strategy("stand")
         self.counter = 0
-        self.strategy = "stand"
-    elif self.strategy == "deliver":
-      if self.counter < DELIVER_COUNTS and self.return1 == False:
-        self.x = self.x - cos(ANGLE) * SPEED / FREQUENCY
-        self.y = self.y - sin(ANGLE) * SPEED / FREQUENCY
-        self.counter += 1
+        self.x = 20.639
+        self.y = 4.628
         self.wait = 0
-      elif self.counter == DELIVER_COUNTS:
-        if self.wait < DELIVER_WAIT_COUNTS:
-            self.wait += 1
-        else:
-            self.x = self.x + cos(ANGLE) * SPEED / FREQUENCY
-            self.y = self.y + sin(ANGLE) * SPEED / FREQUENCY
-            self.counter += 1
-            self.return1 = True
-      elif self.counter < 2 * DELIVER_COUNTS and self.return1 == True:
-        self.x = self.x + cos(ANGLE) * SPEED / FREQUENCY
-        self.y = self.y + sin(ANGLE) * SPEED / FREQUENCY
-        self.counter += 1
-      else:
         self.return1 = False
+
+
+    def command_callback(self, msg):
         self.counter = 0
-        # self.strategy = "stand"
+        self.switch_strategy(msg.data)
 
 
-  def loop(self):
-    msg = hedge_pos_a()
-    msg.address = PICKER_ID
-    msg.x_m = self.x
-    msg.y_m = self.y
-    self.publisher.publish(msg)
-    self.update_position()
+    def switch_strategy(self, strategy):
+        if strategy in ["deliver", "evade", "stand", "reset"]:
+            self.strategy = strategy
+            rospy.loginfo("PMO: Switched to movement strategy {:}".format(strategy))
+        else:
+            rospy.logwarn("PMO: Received unknown movement strategy {:}, ignoring input".format(strategy))
 
 
-  def spin(self):
-      """
-      Blocks until ROS node is shutdown. Yields activity to other threads.
-      @raise ROSInitException: if node is not in a properly initialized state
-      """
+    def update_position(self):
+        if self.strategy == "reset":
+            self.x = self.initial_x
+            self.y = self.initial_y
+        elif self.strategy == "stand":
+            pass
+        elif self.strategy == "evade":
+            if self.counter < EVADE_DISTANCE / SPEED * FREQUENCY:
+                self.x = self.x - cos(ANGLE) * SPEED / FREQUENCY
+                self.y = self.y - sin(ANGLE) * SPEED / FREQUENCY
+                self.counter += 1
+            else:
+                self.counter = 0
+                self.switch_strategy("stand")
+        elif self.strategy == "deliver":
+            if self.counter < DELIVER_COUNTS and self.return1 == False:
+                self.x = self.x - cos(ANGLE) * SPEED / FREQUENCY
+                self.y = self.y - sin(ANGLE) * SPEED / FREQUENCY
+                self.counter += 1
+                self.wait = 0
+            elif self.counter == DELIVER_COUNTS:
+                if self.wait < DELIVER_WAIT_COUNTS:
+                    self.wait += 1
+                else:
+                    self.x = self.x + cos(ANGLE) * SPEED / FREQUENCY
+                    self.y = self.y + sin(ANGLE) * SPEED / FREQUENCY
+                    self.counter += 1
+                    self.return1 = True
+            elif self.counter < 2 * DELIVER_COUNTS and self.return1 == True:
+                self.x = self.x + cos(ANGLE) * SPEED / FREQUENCY
+                self.y = self.y + sin(ANGLE) * SPEED / FREQUENCY
+                self.counter += 1
+            else:
+                self.return1 = False
+                self.counter = 0
+                self.switch_strategy("stand")
 
-      if not rospy.core.is_initialized():
-          raise rospy.exceptions.ROSInitException("client code must call rospy.init_node() first")
-      rospy.logdebug("node[%s, %s] entering spin(), pid[%s]", rospy.core.get_caller_id(), rospy.core.get_node_uri(), os.getpid())
-      try:
-          while not rospy.core.is_shutdown():
-              self.loop()
-              rospy.rostime.wallsleep(1.0/FREQUENCY)
-      except KeyboardInterrupt:
-          rospy.logdebug("keyboard interrupt, shutting down")
-          rospy.core.signal_shutdown('keyboard interrupt')
+
+    def loop(self):
+        msg = hedge_pos_a()
+        msg.address = PICKER_ID
+        msg.x_m = self.x
+        msg.y_m = self.y
+        self.publisher.publish(msg)
+        self.update_position()
+
+
+    def spin(self):
+        """
+        Blocks until ROS node is shutdown. Yields activity to other threads.
+        @raise ROSInitException: if node is not in a properly initialized state
+        """
+
+        if not rospy.core.is_initialized():
+            raise rospy.exceptions.ROSInitException("client code must call rospy.init_node() first")
+            rospy.logdebug("node[%s, %s] entering spin(), pid[%s]", rospy.core.get_caller_id(), rospy.core.get_node_uri(), os.getpid())
+        try:
+            while not rospy.core.is_shutdown():
+                self.loop()
+                rospy.rostime.wallsleep(1.0/FREQUENCY)
+        except KeyboardInterrupt:
+            rospy.logdebug("keyboard interrupt, shutting down")
+            rospy.core.signal_shutdown('keyboard interrupt')
 
 
 

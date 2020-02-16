@@ -1,5 +1,5 @@
 from time import sleep
-from utils import is_at, colocated, leads_to, has_crate, seen_picking, not_seen_picking, is_a, not_has_crate, not_same, free_path, approaching, standing, leaving
+from utils import is_at, colocated, leads_to, called_robot, seen_picking, not_seen_picking, is_a, not_called_robot, not_same, free_path, approaching, standing, leaving
 
 from opencog.type_constructors import *
 import rospy
@@ -106,7 +106,7 @@ class Action(object):
 
 
     def perform(self):
-        rospy.loginfo("ACT: Performing: {:}".format(self))
+        rospy.loginfo("ACT: Performing {:}".format(self))
         # for condition in self.conditions:
         #     if not condition in self.consequences:
         #         self.world_state.abandon_belief(condition)
@@ -188,7 +188,7 @@ class MoveToAction(Action):
 
 class EvadeAction(Action):
 
-    condition_templates = [[is_at, ["picker", "place1"]], [is_at, ["me", "origin"]], [leads_to, ["destination", "origin"]], [leads_to, ["origin", "place1"]], [approaching, ["picker"]], [has_crate, ["picker"]], [not_seen_picking, ["picker"]]]
+    condition_templates = [[is_at, ["picker", "place1"]], [is_at, ["me", "origin"]], [leads_to, ["destination", "origin"]], [leads_to, ["origin", "place1"]], [approaching, ["picker"]], [called_robot, ["picker"]], [not_seen_picking, ["picker"]]]
     consequence_templates = [[is_at, ["me", "destination"]]]
     placeholders = ["me", "picker", "origin", "destination"] # in same order as constructor arguments
     gain = rospy.get_param("evade_gain", 200)
@@ -217,8 +217,8 @@ class EvadeAction(Action):
 
 class GiveCrateAction(Action):
 
-    condition_templates = [[not_seen_picking, ["picker"]], [not_has_crate, ["picker"]], [is_at, ["picker", "destination"]], [is_at, ["me", "destination"]], [standing, ["picker"]], [is_a, ["picker", "human"]]]
-    consequence_templates = [[has_crate, ["picker"]]]
+    condition_templates = [[not_seen_picking, ["picker"]], [not_called_robot, ["picker"]], [is_at, ["picker", "destination"]], [is_at, ["me", "destination"]], [standing, ["picker"]], [is_a, ["picker", "human"]]]
+    consequence_templates = [[called_robot, ["picker"]]]
     placeholders = ["me", "picker", "destination"] # in same order as constructor arguments
     gain = rospy.get_param("give_gain", 240)
     cost = rospy.get_param("give_cost", 90)
@@ -258,7 +258,7 @@ class GiveCrateAction(Action):
 
 class ExchangeCrateAction(Action):
 
-    condition_templates = [[seen_picking, ["picker"]], [has_crate, ["picker"]], [is_at, ["picker", "destination"]], [is_at, ["me", "destination"]], [standing, ["picker"]], [is_a, ["picker", "human"]]]
+    condition_templates = [[seen_picking, ["picker"]], [called_robot, ["picker"]], [is_at, ["picker", "destination"]], [is_at, ["me", "destination"]], [standing, ["picker"]], [is_a, ["picker", "human"]]]
     consequence_templates = [[not_seen_picking, ["picker"]]]
     placeholders = ["me", "picker", "destination"] # in same order as constructor arguments
     gain = rospy.get_param("exchange_gain", 240)

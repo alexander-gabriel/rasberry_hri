@@ -20,24 +20,21 @@ class ActionRecognition:
 
 
     def __init__(self):
+        rospy.loginfo("ACR: ActionRecognition Node starting")
+        self.action_publisher = rospy.Publisher('/human_actions', Action, queue_size=10)
+        self.command_publisher = rospy.Publisher('/movement_control', Command, queue_size=10)
+        self.picker = rospy.get_param("target_picker", "Picker02")
         self.converter = Converter()
         self.classifier = MinimumDifferenceClassifier()
         rospy.wait_for_service('recognize')
         self.interface = rospy.ServiceProxy('recognize', Recognize)
-        rospy.loginfo("SES: Waiting for openpose_ros_node")
+        rospy.loginfo("ACR: Waiting for OpenPose")
         self.openpose = Openpose(self.interface, self.openpose_callback)
-
+        self.detection_count = rospy.get_param("detection_count", 2)
+        self.cooldown = rospy.get_param("cooldown", -5)
         self.last_detected_count = {}
-
-        rospy.loginfo("SES: ActionRecognition Node starting")
-        rospy.init_node('action_recognition_node', anonymous=False)
         camera = rospy.get_param("~camera", "/camera/color/image_raw")
-        self.action_publisher = rospy.Publisher('human_actions', Action, queue_size=10)
-        self.command_publisher = rospy.Publisher('movement_control', Command, queue_size=10)
-
-
-
-        rospy.loginfo("SES: Subscribing to {:}".format(camera))
+        rospy.loginfo("ACR: Subscribing to {:}".format(camera))
         rospy.Subscriber(camera, Image, self.callback_rgb)
         # rospy.Subscriber("/camera/color/image_raw", Image, self.callback_rgb)
         # rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.callback_depth)
@@ -49,7 +46,7 @@ class ActionRecognition:
 
         # Thermal camera
         # rospy.Subscriber("/optris/thermal_image_view", Image, self.callback_thermal)
-        rospy.loginfo("SES: Initialization Complete")
+        rospy.loginfo("ACR: Initialization Complete")
 
 
     def openpose_callback(self, timestamp, source, response):
@@ -57,19 +54,21 @@ class ActionRecognition:
             self.converter.create_index_map(response.recognitions)
             angles = self.get_angles(response.recognitions)
             positions = self.get_positions(response.recognitions)
-            with open("/home/alex/angles.log", 'w') as f:
+            with open("/home/rasberry/angles.log", 'w') as f:
                 json.dump(angles, f)
-            with open("/home/alex/positions.log", 'w') as f:
+            with open("/home/rasberry/positions.log", 'w') as f:
                 json.dump(positions, f)
             action = self.get_action(angles, positions)
-            with open("/home/alex/action.log", 'w') as f:
+            with open("/home/rasberry/action.log", 'w') as f:
                 json.dump(action, f)
             if action is not None:
+                rospy.loginfo("ACR: Detected behavior '{}'".format(action))
                 outmsg = Action()
+                # outmsg.header.stamp = rospy.get_rostime()
                 outmsg.header.stamp = timestamp
                 outmsg.action = action
                 #TODO: identify picker
-                outmsg.id = "picker01"
+                outmsg.id = self.picker
                 self.action_publisher.publish(outmsg)
                 # outmsg = Command()
                 # outmsg.header.stamp = timestamp
@@ -119,12 +118,17 @@ class ActionRecognition:
 
     def get_action(self, angles, positions):
         action_label, error = self.classifier.classify(angles, positions)
+        try:
+            rospy.logdebug("ACR: Detected behavior '{}' with penalty {}, counts {}".format(action_label, error, self.last_detected_count[action_label]))
+        except:
+            rospy.logdebug("ACR: Detected behavior '{}' with penalty {}, counts {}".format(action_label, error, 0))
         if error < self.classifier.limit:
             if not action_label in self.last_detected_count:
                 self.last_detected_count[action_label] = 1
             else:
                 self.last_detected_count[action_label] +=  1
-            if self.last_detected_count[action_label] > 4:
+            if self.last_detected_count[action_label] == self.detection_count:
+                self.last_detected_count[action_label] = self.cooldown
                 return action_label
         else:
             self.last_detected_count = {}

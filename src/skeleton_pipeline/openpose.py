@@ -27,8 +27,8 @@ class Openpose(threading.Thread):
         # self.publisher = rospy.Publisher('/lcas/hri/joints/positions/raw', Recognitions, queue_size=10)
         self.died = False
         self.last_processed = Openpose.RGB
-        self.latest_rgb = deque(maxlen=1)
-        self.latest_thermal = deque(maxlen=1)
+        self.latest_rgb = deque(maxlen=5)
+        self.latest_thermal = deque(maxlen=5)
         signal.signal(signal.SIGINT, self.signal_handler)
 
 
@@ -50,11 +50,12 @@ class Openpose(threading.Thread):
                     response = self.interface(latest)
                     self.callback(latest.header.stamp, "THERMAL", response)
                 else:
-                    sleep(0.025)
+                    pass
+                    # sleep(0.025)
 
             except rospy.ServiceException as exc:
                 self.died = True
-                print("Service did not process request: " + str(exc))
+                rospy.logwarn("OPN: Service did not process request: " + str(exc))
 
 
     # def send_message(self, response, category, timestamp):

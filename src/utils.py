@@ -1,6 +1,9 @@
 import rospy
+import os
 from contextlib import contextmanager
 from math import sqrt
+from subprocess import Popen
+from threading import Thread
 
 from opencog.atomspace import AtomSpace, types, TruthValue
 from opencog.type_constructors import *
@@ -68,6 +71,50 @@ class OrderedConsistentSet:
 
 
 
+def run(cmd, stdout, stderr):
+    """Run a given `cmd` in a subprocess, write logs to stdout / stderr.
+
+    Parameters
+    ----------
+    cmd : list of str
+      Command to run.
+    stdout : str or subprocess.PIPE object
+      Destination of stdout output.
+    stderr : str or subprocess.PIPE object
+      Destination of stderr output.
+
+    Returns
+    -------
+    A subprocess.Popen instance.
+    """
+    return Popen(cmd, stdout=stdout, stderr=stderr, shell=False, preexec_fn=os.setsid)
+
+
+def start_process(cmd, typ, start_time, dpath_logs):
+    """Start a subprocess with the given command `cmd`.
+
+    Parameters
+    ----------
+    cmd : list of str
+      Command to run.
+    typ : str
+      Type of subprocess. This will be included in the logs' file names.
+    start_time : str
+      Datetime string, will be included in the logs' file names as well as
+      the resulting bag's name.
+    dpath_logs :
+      Path to log direcotry.
+
+    Returns
+    -------
+    A subprocess.Popen instance.
+    """
+    print('Starting', typ.upper())
+    stdout, stderr = get_stdout_stderr(typ, start_time, dpath_logs)
+    with open(stdout, 'wb') as out, open(stderr, 'wb') as err:
+        return run(cmd, stdout=out, stderr=err)
+
+
 def wp2sym(waypoint):
     return waypoint
 
@@ -110,15 +157,13 @@ def free_path(origin, destination):
     return link
 
 
-def has_crate(picker):
-    link = StateLink(ListLink(picker, PredicateNode("has_crate")), ConceptNode("TRUE"))
-    # link = EvaluationLink(PredicateNode("has_crate"), picker)
+def called_robot(picker):
+    link = StateLink(ListLink(picker, PredicateNode("called robot")), ConceptNode("TRUE"))
     return link
 
 
-def not_has_crate(picker):
-    link = StateLink(ListLink(picker, PredicateNode("has_crate")), ConceptNode("FALSE"))
-    # link = NotLink(EvaluationLink(PredicateNode("has_crate"), picker).truth_value(0,1))
+def not_called_robot(picker):
+    link = StateLink(ListLink(picker, PredicateNode("called robot")), ConceptNode("FALSE"))
     return link
 
 
@@ -139,13 +184,11 @@ def standing(picker):
 
 def seen_picking(picker):
     link = StateLink(ListLink(picker, PredicateNode("seen_picking")), ConceptNode("TRUE"))
-    # link = EvaluationLink(PredicateNode("seen_picking"), picker)
     return link
 
 
 def not_seen_picking(picker):
     link = StateLink(ListLink(picker, PredicateNode("seen_picking")), ConceptNode("FALSE"))
-    # link = NotLink(EvaluationLink(PredicateNode("seen_picking"), picker).truth_value(0,1))
     return link
 
 

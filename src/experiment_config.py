@@ -1,7 +1,7 @@
 from opencog.type_constructors import *
 
 from bdi.goals import DeliverGoal, ExchangeGoal
-from utils import not_has_crate, has_crate, seen_picking, not_seen_picking
+from utils import not_called_robot, called_robot, seen_picking, not_seen_picking
 
 TRUE = TruthValue(1,1)
 
@@ -21,7 +21,7 @@ class Deliver(Goal):
     log_name_prefix = "Deliver"
 
     def set_facts(self):
-        not_has_crate(ConceptNode(self.picker_name)).tv = TRUE
+        not_called_robot(ConceptNode(self.picker_name)).tv = TRUE
         not_seen_picking(ConceptNode(self.picker_name)).tv = TRUE
 
 
@@ -30,7 +30,7 @@ class Exchange(Goal):
     log_name_prefix = "Exchange"
 
     def set_facts(self):
-        has_crate(ConceptNode(self.picker_name)).tv = TRUE
+        called_robot(ConceptNode(self.picker_name)).tv = TRUE
         seen_picking(ConceptNode(self.picker_name)).tv = TRUE
 
 

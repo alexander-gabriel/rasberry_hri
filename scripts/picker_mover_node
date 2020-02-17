@@ -10,15 +10,15 @@ from std_msgs.msg import String
 
 from marvelmind_nav.msg import hedge_pos_a
 
-AVG_POLE_DISTANCE = 2.95 # m
+MEAN_WAYPOINT_DISTANCE = rospy.get_param("mean_waypoint_distance", 2.95) # m
 FREQUENCY = 50 # Hz  1/s
-SPEED = 1.3 # m/s
+SPEED = rospy.get_param("picker_speed", 1.3) # m/s
 PICKER_ID = 2
-EVADE_DISTANCE = 2 * AVG_POLE_DISTANCE # m
-DELIVER_DISTANCE = 1 * AVG_POLE_DISTANCE # m
+EVADE_DISTANCE = 2 * MEAN_WAYPOINT_DISTANCE # m
+DELIVER_DISTANCE = 1 * MEAN_WAYPOINT_DISTANCE # m
 DELIVER_COUNTS = int(DELIVER_DISTANCE / SPEED * FREQUENCY)
-DELIVER_WAIT = 5 # s
-DELIVER_WAIT_COUNTS = DELIVER_WAIT * FREQUENCY
+EXCHANGE_WAIT_COUNTS = rospy.get_param("exchange_cost", 5) * FREQUENCY
+GIVE_WAIT_COUNTS = rospy.get_param("give_cost", 5) * FREQUENCY
 ANGLE = 0.0 # angle between direction of travel and X coordinate
 
 #102: 8.675 4.65
@@ -46,7 +46,7 @@ class PickerMover(object):
 
 
     def switch_strategy(self, strategy):
-        if strategy in ["deliver", "evade", "stand", "reset"]:
+        if strategy in ["exchange", "give", "evade", "stand", "reset"]:
             self.strategy = strategy
             rospy.loginfo("PMO: Switched to movement strategy {:}".format(strategy))
         else:
@@ -66,15 +66,36 @@ class PickerMover(object):
                 self.counter += 1
             else:
                 self.counter = 0
-                self.switch_strategy("stand")
-        elif self.strategy == "deliver":
+        elif self.strategy == "exchange":
             if self.counter < DELIVER_COUNTS and self.return1 == False:
                 self.x = self.x - cos(ANGLE) * SPEED / FREQUENCY
                 self.y = self.y - sin(ANGLE) * SPEED / FREQUENCY
                 self.counter += 1
                 self.wait = 0
             elif self.counter == DELIVER_COUNTS:
-                if self.wait < DELIVER_WAIT_COUNTS:
+                if self.wait < EXCHANGE_WAIT_COUNTS:
+                    self.wait += 1
+                else:
+                    self.x = self.x + cos(ANGLE) * SPEED / FREQUENCY
+                    self.y = self.y + sin(ANGLE) * SPEED / FREQUENCY
+                    self.counter += 1
+                    self.return1 = True
+            elif self.counter < 2 * DELIVER_COUNTS and self.return1 == True:
+                self.x = self.x + cos(ANGLE) * SPEED / FREQUENCY
+                self.y = self.y + sin(ANGLE) * SPEED / FREQUENCY
+                self.counter += 1
+            else:
+                self.return1 = False
+                self.counter = 0
+                self.switch_strategy("stand")
+        elif self.strategy == "give":
+            if self.counter < DELIVER_COUNTS and self.return1 == False:
+                self.x = self.x - cos(ANGLE) * SPEED / FREQUENCY
+                self.y = self.y - sin(ANGLE) * SPEED / FREQUENCY
+                self.counter += 1
+                self.wait = 0
+            elif self.counter == DELIVER_COUNTS:
+                if self.wait < GIVE_WAIT_COUNTS:
                     self.wait += 1
                 else:
                     self.x = self.x + cos(ANGLE) * SPEED / FREQUENCY

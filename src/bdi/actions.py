@@ -6,7 +6,7 @@ import rospy
 
 
 SPEED = rospy.get_param("robot_speed", 0.5) # m/s
-MEAN_WAYPOINT_DISTANCE = 2.95 # m
+MEAN_WAYPOINT_DISTANCE = rospy.get_param("mean_waypoint_distance", 2.95) # m
 
 class Action(object):
 
@@ -125,7 +125,6 @@ class MoveAction(Action):
     condition_templates = [[is_at, ["me", "origin"]], [free_path, ["origin", "destination"]]]
     consequence_templates = [[is_at, ["me", "destination"]]]
     placeholders = ["me", "origin", "destination"] # in same order as constructor arguments
-    gain = rospy.get_param("move_gain", 0)
 
 
     def __init__(self, world_state, robco, args):
@@ -133,15 +132,18 @@ class MoveAction(Action):
         super(MoveAction, self).__init__(world_state, args)
         self.robco = robco
         self.destination = args[2]
+        self.gain = rospy.get_param("move_gain", 0)
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?origin", origin).replace(ME, me))
     #     for consequence in self.consequence_templates:
     #         self.consequences.append(consequence.replace("?destination", destination).replace(ME, me))
 
+
     def perform(self):
         super(MoveAction, self).perform()
-        result = self.robco.move_to(self.destination)
-        return result.success
+        self.robco.move_to(self.destination)
+        # return self.robco.get_result().success
+        return True
 
 
     def get_cost(self):
@@ -158,7 +160,6 @@ class MoveToAction(Action):
     condition_templates = [[is_at, ["me", "origin"]], [is_at, ["picker", "destination"]]]
     consequence_templates = [[is_at, ["me", "destination"]]]
     placeholders = ["me", "picker", "origin", "destination"] # in same order as constructor arguments
-    gain = rospy.get_param("moveto_gain", 0)
 
 
     def __init__(self, world_state, robco, args):
@@ -166,15 +167,18 @@ class MoveToAction(Action):
         super(MoveToAction, self).__init__(world_state, args)
         self.robco = robco
         self.destination = args[3]
+        self.gain = rospy.get_param("moveto_gain", 0)
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?origin", origin).replace(ME, me))
     #     for consequence in self.consequence_templates:
     #         self.consequences.append(consequence.replace("?destination", destination).replace(ME, me))
 
+
     def perform(self):
         super(MoveToAction, self).perform()
         self.robco.move_to(self.destination)
-        return self.robco.get_result().success
+        # return self.robco.get_result().success
+        return True
 
 
     def get_cost(self):
@@ -191,7 +195,7 @@ class EvadeAction(Action):
     condition_templates = [[is_at, ["picker", "place1"]], [is_at, ["me", "origin"]], [leads_to, ["destination", "origin"]], [leads_to, ["origin", "place1"]], [approaching, ["picker"]], [called_robot, ["picker"]], [not_seen_picking, ["picker"]], [not_called_robot, ["picker"]]]
     consequence_templates = [[is_at, ["me", "destination"]]]
     placeholders = ["me", "picker", "origin", "destination"] # in same order as constructor arguments
-    gain = rospy.get_param("evade_gain", 200)
+
 
 
     def __init__(self, world_state, robco, args):
@@ -200,6 +204,7 @@ class EvadeAction(Action):
         self.robco = robco
         self.picker = args[1]
         self.destination = args[3]
+        self.gain = rospy.get_param("evade_gain", 200)
 
     def perform(self):
         super(EvadeAction, self).perform()
@@ -220,14 +225,15 @@ class GiveCrateAction(Action):
     condition_templates = [[not_seen_picking, ["picker"]], [called_robot, ["picker"]], [is_at, ["picker", "destination"]], [is_at, ["me", "destination"]], [is_a, ["picker", "human"]]]
     consequence_templates = [[not_called_robot, ["picker"]]]
     placeholders = ["me", "picker", "destination"] # in same order as constructor arguments
-    gain = rospy.get_param("give_gain", 240)
-    cost = rospy.get_param("give_cost", 90)
 
 
     def __init__(self, world_state, robco, args):
         # [me, picker]
         super(GiveCrateAction, self).__init__(world_state, args)
+        self.robco = robco
         self.picker = args[1]
+        self.gain = rospy.get_param("give_gain", 240)
+        self.cost = rospy.get_param("give_cost", 2.5)
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?picker", picker).replace(ME, me))
     #     for consequence in self.consequence_templates:
@@ -239,6 +245,8 @@ class GiveCrateAction(Action):
 
 
     def perform(self):
+        if not self.robco.get_result():
+            return False
         super(GiveCrateAction, self).perform()
         for fun, args in self.consequences:
             new_args = []
@@ -261,14 +269,15 @@ class ExchangeCrateAction(Action):
     condition_templates = [[seen_picking, ["picker"]], [called_robot, ["picker"]], [is_at, ["picker", "destination"]], [is_at, ["me", "destination"]], [is_a, ["picker", "human"]]]
     consequence_templates = [[not_seen_picking, ["picker"]], [not_called_robot, ["picker"]]]
     placeholders = ["me", "picker", "destination"] # in same order as constructor arguments
-    gain = rospy.get_param("exchange_gain", 240)
-    cost = rospy.get_param("exchange_cost", 120)
 
 
     def __init__(self, world_state, robco, args):
         # [me, picker, destination]
         super(ExchangeCrateAction, self).__init__(world_state, args)
+        self.robco = robco
         self.picker = args[1]
+        self.gain = rospy.get_param("exchange_gain", 240)
+        self.cost = rospy.get_param("exchange_cost", 5)
 
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?picker", picker).replace(ME, me))
@@ -281,7 +290,9 @@ class ExchangeCrateAction(Action):
 
 
     def perform(self):
-        super(GiveCrateAction, self).perform()
+        if not self.robco.get_result():
+            return False
+        super(ExchangeCrateAction, self).perform()
         for fun,args in self.consequences:
             new_args = []
             for arg in args:

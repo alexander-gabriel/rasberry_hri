@@ -1,5 +1,7 @@
 import rospy
 import sys
+import time
+
 from actions import MoveAction, MoveToAction, GiveCrateAction, ExchangeCrateAction, EvadeAction
 from utils import OrderedConsistentSet, suppress, atomspace, TRUE
 from opencog.type_constructors import *
@@ -157,7 +159,7 @@ class Goal(object):
 
     @classmethod
     def find_instances(cls, world_state):
-        # rospy.loginfo("GOL: Checking goal {:} for targets".format(cls.__name__))
+        start_time = time.time()
         templates = cls.get_condition_templates()
         rospy.logdebug("GOL: Templates: {}".format(templates))
         conditions = []
@@ -203,11 +205,12 @@ class Goal(object):
                 targets.append(cls.get_targets(variables, result))
         else:
             rospy.logwarn("Strange result: {:}".format(results))
+        rospy.logdebug("GOL: Checked goal {:} for targets -- {:.4f}".format(cls.__name__, time.time() - start_time))
         return targets
 
 
     def is_achieved(self, world_state):
-        rospy.logdebug("GOL: Checking if goal {:} was achieved".format(self))
+        start_time = time.time()
         consequences = []
         for fun, args in self.get_consequences():
             rospy.logdebug("{}: {}".format(fun, args))
@@ -226,15 +229,15 @@ class Goal(object):
         results = world_state.check(query)
         rospy.logdebug("------ is achieved? ------")
         rospy.logdebug(results)
+        rospy.logdebug("GOL: Checked if goal {:} was achieved -- {:.4f}".format(self, time.time() - start_time))
         if (results.tv == TRUE):
             rospy.logdebug("pleasure achieved")
             return True
         else:
             rospy.logdebug("no bueno")
             return False
-        rospy.logdebug("--------------------------")
-        sys.exit(0)
-        return True
+        # rospy.logdebug("--------------------------")
+        # return True
 
             #TODO: fix achievement checking
             # truth = self.world_state.truth(consequence.replace(TARGET, target))
@@ -244,7 +247,7 @@ class Goal(object):
             # else:
             #     if truth is None or truth <= TRUTH_THRESHOLD:
             #         return False
-        return False #TODO cache result
+        # return False #TODO cache result
 
 
     def get_action_queue(self):
@@ -381,7 +384,7 @@ class EvadeGoal(Goal):
 
 
     def __repr__(self):
-        return "<Goal:Evade {:} by moving to {:}>".format(self.picker, self.destination)
+        return "<Goal:Evade {:} by moving to {:} ({}, {})>".format(self.picker, self.destination, self.get_gain(), self.get_cost())
 
 
 
@@ -403,7 +406,7 @@ class DeliverGoal(Goal):
 
 
     def __repr__(self):
-        return "<Goal:Deliver crate to {:} at {:}>".format(self.picker, self.destination)
+        return "<Goal:Deliver crate to {:} at {:} ({}, {})>".format(self.picker, self.destination, self.get_gain(), self.get_cost())
 
 
 class ExchangeGoal(Goal):
@@ -422,4 +425,4 @@ class ExchangeGoal(Goal):
         self.subgoals.append(MoveGoal(world_state, robco, [me, self.destination, origin]))
 
     def __repr__(self):
-        return "<Goal:Exchange crate with {:} at {:}>".format(self.picker, self.destination)
+        return "<Goal:Exchange crate with {:} at {:} ({}, {})>".format(self.picker, self.destination, self.get_gain(), self.get_cost())

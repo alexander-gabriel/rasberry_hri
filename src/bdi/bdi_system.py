@@ -16,14 +16,18 @@ from world_state import WorldState, TRUE, FALSE
 from goals import ExchangeGoal, DeliverGoal, EvadeGoal, WrongParameterException
 from robot_control import RobotControl
 
-MAX_COST = 10
-MIN_GAIN = 10
+MAX_COST = rospy.get_param("max_cost", 240)
+MIN_GAIN = rospy.get_param("min_gain", 100)
 TRUTH_THRESHOLD = 0.5
 TARGET = "target"
 ME = "me"
 INF = float('inf')
 SPEED = 0.55
-MINIMUM_DISTANCE = 0.5 # m
+MINIMUM_DISTANCE = rospy.get_param("minimum_distance", 0.5) # m
+ROBOT_LENGTH = 1.5
+ROBOT_WIDTH = 1.35584
+PICKER_LENGTH = 0.4
+PICKER_WIDTH = 0.6
 
 # TODO test conditions
 # is_at(Thorvald,Waypoint4)
@@ -57,7 +61,8 @@ class BDISystem:
         self.people_tracks = {}
         self.directions = {}
         self.latest_directions = {}
-        self.goals = [DeliverGoal, ExchangeGoal, EvadeGoal]
+        # self.goals = [DeliverGoal, ExchangeGoal, EvadeGoal]
+        self.goals = [DeliverGoal, ExchangeGoal]
         # self.goals = [DeliverGoal]
         # self.goals = [ExchangeGoal]
         # self.goals = [EvadeGoal]
@@ -119,7 +124,8 @@ class BDISystem:
         for intention in self.intentions:
             if intention in desires and intention.is_achieved(self.world_state):
                 desires.remove(intention)
-        rospy.loginfo("BDI: Desires: {}".format(desires))
+        if len(desires) > 0:
+            rospy.loginfo("BDI: Desires: {}".format(desires))
         return desires
 
 
@@ -131,7 +137,8 @@ class BDISystem:
             cost = desire.get_cost()
             if gain > MIN_GAIN and cost < MAX_COST:
                 intentions.append(desire)
-        rospy.loginfo("BDI: Intentions: {}".format(self.intentions))
+        if len(self.intentions) > 0:
+            rospy.loginfo("BDI: Intentions: {}".format(self.intentions))
         return intentions
 
 
@@ -153,20 +160,25 @@ class BDISystem:
 
 
     def loop(self):
-        self.pause()
-        rospy.logwarn("BDI: ----- Started Loop -----")
+        # self.pause()
+        rospy.logdebug("BDI: ----- Started Loop -----")
+        start_time = time.time()
         self.update_beliefs()
-        rospy.logwarn("BDI: --  updated beliefs   --")
+        rospy.logdebug("BDI: --  updated beliefs   -- {:.4f}".format(time.time() - start_time))
+        start_time = time.time()
         desires = self.generate_options()
-        rospy.logwarn("BDI: -- generated desires  --")
+        rospy.logdebug("BDI: -- generated desires  -- {:.4f}".format(time.time() - start_time))
+        start_time = time.time()
         self.intentions = self.filter(desires)
-        rospy.logwarn("BDI: -- filtered desires   --")
+        rospy.logdebug("BDI: -- filtered desires   -- {:.4f}".format(time.time() - start_time))
+        start_time = time.time()
         self.perform_action()
-        rospy.logwarn("BDI: -- performed action   --")
+        rospy.logdebug("BDI: -- performed action   -- {:.4f}".format(time.time() - start_time))
+        start_time = time.time()
         self.clean_intentions()
-        rospy.logwarn("BDI: -- cleaned intentions --")
-        rospy.logwarn("BDI: -----  Ended  Loop -----")
-        self.unpause()
+        rospy.logdebug("BDI: -- cleaned intentions -- {:.4f}".format(time.time() - start_time))
+        rospy.logdebug("BDI: -----  Ended  Loop -----")
+        # self.unpause()
 
 
     def clean_intentions(self):
@@ -187,7 +199,7 @@ class BDISystem:
         added_picker = False
         for person, msg in self.latest_people_msgs.items():
             pairs.append((self.me.capitalize(), person))
-            position = Object_State(name=person, timestamp=timestamp, x=msg.pose.position.x, y=msg.pose.position.y, xsize=0.6, ysize=0.4, object_type="Person")
+            position = Object_State(name=person, timestamp=timestamp, x=msg.pose.position.x, y=msg.pose.position.y, xsize=PICKER_WIDTH, ysize=PICKER_LENGTH, object_type="Person")
             (current_node, closest_node) = self.locator.localise_pose(msg)
             latest_node = None
             with suppress(KeyError):
@@ -210,7 +222,7 @@ class BDISystem:
             world.add_object_state_series(self.people_tracks[person])
             added_picker = True
         if added_picker and not self.latest_robot_msg is None:
-            self.robot_track.append(Object_State(name=self.me.capitalize(), timestamp=timestamp, x=self.latest_robot_msg.position.x, y=self.latest_robot_msg.position.y, xsize=1.35584, ysize=1.5))
+            self.robot_track.append(Object_State(name=self.me.capitalize(), timestamp=timestamp, x=self.latest_robot_msg.position.x, y=self.latest_robot_msg.position.y, xsize=ROBOT_WIDTH, ysize=ROBOT_LENGTH))
             world.add_object_state_series(self.robot_track)
 
             dynamic_args = {"qtcbs": {"quantisation_factor": 0.1,
@@ -244,10 +256,10 @@ class BDISystem:
                         rospy.logwarn("BDI: Updating movement: {} is standing".format(picker))
                     # stop if we're to close to a picker
                     distance =  get_distance(self.latest_robot_msg, self.latest_people_msgs[picker].pose)
-                    if distance < MINIMUM_DISTANCE:
+                    if distance < MINIMUM_DISTANCE + 0.5 * (ROBOT_LENGTH + PICKER_LENGTH):
                         pass
-                        # rospy.loginfo("BDI: Robot too close to picker")
-                        # self.robco.cancel_movement()
+                        rospy.loginfo("BDI: Robot has met picker")
+                        self.robco.cancel_movement()
 
 
     def write(self):

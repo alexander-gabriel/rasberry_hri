@@ -21,6 +21,9 @@ class Config():
         self.parameters = {"called_robot": [False],
                             "target_picker": ["Picker02"]}
         self.behaviours = {
+                            5: {"type": "message",
+                                "target": "action_label",
+                                "message": "picking berries left"},
                             8: {"type": "rosbag",
                                 "label": "call",
                                 "start": 76,
@@ -28,17 +31,14 @@ class Config():
                                 "filename": "/data/subject-1.bag",
                                 "topics": ["/camera/color/image_raw"]
                                 },
-                            5: {"type": "message",
-                                "target": "action_label",
-                                "message": "picking berries left"},
-                            11: {"type": "message",
+                            14: {"type": "message",
                                 "target": "picker_movement",
                                 "message": "exchange"}
                                 }
         self.behaviour_times = sorted(self.behaviours.keys())
         self.termination_time = 60
-        self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch", "/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
-        # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
+        # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch", "/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
+        self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
         self.robot_pose = PoseWithCovarianceStamped()
         self.robot_pose.pose.pose.position.x = 11.649
         self.robot_pose.pose.pose.position.y = 4.64

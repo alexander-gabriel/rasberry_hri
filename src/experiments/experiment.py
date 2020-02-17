@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import sys
 
 import rospy
 import rosbag
@@ -46,7 +47,6 @@ def convert_bags(config):
                 out_paths.append(out_path)
                 with rosbag.Bag(out_path, 'w') as out_bag:
                     for msg in msgs:
-
                             out_bag.write(topic, msg, msg.header.stamp)
             return out_paths
 
@@ -54,20 +54,22 @@ class Experiment():
 
     def __init__(self, parameters, config):
         # super(Config, self).__init__()
-        self.last_clock = 0
         self.is_finished = False
         self.parameters = parameters
         self.config = config
         self.robco = RobotControl(self.config.robot_id)
+        self.last_clock = rospy.get_time()
+        self.start_clock = int(self.last_clock + 10)
         self.reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
         self.reset_world = rospy.ServiceProxy('/gazebo/reset_world', Empty)
         rospy.loginfo("EXP: Waiting for gazebo services")
         rospy.wait_for_service('/gazebo/reset_simulation')
         rospy.wait_for_service('/gazebo/reset_world')
         rospy.loginfo("EXP: Found gazebo services")
-        self.robot_pose_publisher = rospy.Publisher('/{:}/initialpose'.format(self.config.robot_id), PoseWithCovarianceStamped, queue_size=10)
+        self.initial_pose_subscriber = rospy.Subscriber('/{:}/initialpose'.format(self.config.robot_id), PoseWithCovarianceStamped, self.initial_pose_callback)
         self.picker_pose_publisher = rospy.Publisher('/picker_mover', String, queue_size=10)
         self.human_action_publisher = rospy.Publisher('/human_actions', Action, queue_size=10)
+        self.robot_pose_publisher = rospy.Publisher('/{:}/set_pose'.format(self.config.robot_id), PoseWithCovarianceStamped, queue_size=10)
         self.camera_publisher = rospy.Publisher("/camera/color/image_raw", Image, queue_size=10)
 
         self.bag_paths = convert_bags(self.config)
@@ -78,9 +80,27 @@ class Experiment():
         # self.picker_pose.y_m = 4.568
 
         self.robot_pose = PoseWithCovarianceStamped()
+        # self.robot_pose.pose.pose.position.x = 11.649
+        # self.robot_pose.pose.pose.position.y = 4.64
+        # self.robot_pose.pose.pose.position.z = 0.0
+        # self.robot_pose.pose.pose.orientation.x = 0.0
+        # self.robot_pose.pose.pose.orientation.y = 0.0
+        # self.robot_pose.pose.pose.orientation.z = 0.0
+        # self.robot_pose.pose.pose.orientation.w = 0.0
+
         self.robot_pose.pose.pose.position.x = 11.649
         self.robot_pose.pose.pose.position.y = 4.64
-        self.robot_pose.pose.pose.position.z = 0.0
+        self.robot_pose.pose.pose.orientation.w = 1.0
+        self.robot_pose.header.frame_id = 'map'
+        self.robot_pose.header.stamp = rospy.get_rostime()
+        self.robot_pose.header.stamp.secs += 15
+        self.robot_pose_publisher.publish(self.robot_pose)
+
+
+    def initial_pose_callback(self, msg):
+        rospy.loginfo("EXP: Got initial pose")
+
+        rospy.loginfo(msg)
 
 
     def launch_services(self):
@@ -131,9 +151,9 @@ class Experiment():
 
     def setup(self):
         self.clock_sub = rospy.Subscriber('/clock', Clock, self.clock_callback)
-        self.reset_simulation()
+        # self.reset_simulation()
         self.set_parameters(self.parameters)
-        self.robot_pose_publisher.publish(self.robot_pose)
+        # self.robot_pose_publisher.publish(self.robot_pose)
         self.launch_services()
 
         # add config specific stuff to reasoning system, <- do this as defined by rosparameters inside the respective nodes instead
@@ -154,7 +174,8 @@ class Experiment():
     def clock_callback(self, msg):
         if msg.clock.nsecs == 0:
             clock = msg.clock.to_sec()
-            if clock >= self.config.termination_time:
+            if clock >= self.config.termination_time + self.start_clock:
+                rospy.loginfo("EXP: Timeout condition reached")
                 self.is_finished = True
                 return
             difference = clock - self.last_clock
@@ -166,7 +187,7 @@ class Experiment():
             #     else:
             #         index+=1
             try:
-                while clock == self.config.get_next_behaviour_time():
+                while clock == self.config.get_next_behaviour_time() + self.start_clock:
                     behaviour = self.config.get_next_behaviour()
                     if behaviour["type"] == "rosbag":
                         rospy.loginfo("EXP: Playing rosbag action '{}'".format(behaviour["label"]))
@@ -203,3 +224,4 @@ class Experiment():
         self.launch.shutdown()
         self.robco.cancel_movement()
         self.unset_parameters(self.parameters)
+        rospy.loginfo("EXP: Experiment ended")

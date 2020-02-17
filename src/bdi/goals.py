@@ -211,31 +211,34 @@ class Goal(object):
 
     def is_achieved(self, world_state):
         start_time = time.time()
-        consequences = []
-        for fun, args in self.get_consequences():
-            rospy.logdebug("{}: {}".format(fun, args))
-            new_args = []
-            for arg in args:
-                if arg == "me":
-                    new_args.append(ConceptNode(world_state.me.capitalize()))
-                else:
-                    new_args.append(ConceptNode(arg))
-            candidate = fun(*new_args)
-            consequences.append(candidate)
-        # query = AndLink(*consequences)
-        query = consequences[0]
-        # query = GetLink(AndLink(*consequences))
-        rospy.logdebug("GOL: Check: {:}".format(query))
-        results = world_state.check(query)
-        rospy.logdebug("------ is achieved? ------")
-        rospy.logdebug(results)
+        success = False
+        if not self.get_action_queue():
+            consequences = []
+            for fun, args in self.get_consequences():
+                rospy.logdebug("{}: {}".format(fun, args))
+                new_args = []
+                for arg in args:
+                    if arg == "me":
+                        new_args.append(ConceptNode(world_state.me.capitalize()))
+                    else:
+                        new_args.append(ConceptNode(arg))
+                candidate = fun(*new_args)
+                consequences.append(candidate)
+            # query = AndLink(*consequences)
+            query = consequences[0]
+            # query = GetLink(AndLink(*consequences))
+            rospy.logdebug("GOL: Check: {:}".format(query))
+            results = world_state.check(query)
+            rospy.logdebug("------ is achieved? ------")
+            rospy.logdebug(results)
+            if (results.tv == TRUE):
+                rospy.logdebug("pleasure achieved")
+                success = True
+            else:
+                rospy.logdebug("no bueno")
+                success = False
         rospy.logdebug("GOL: Checked if goal {:} was achieved -- {:.4f}".format(self, time.time() - start_time))
-        if (results.tv == TRUE):
-            rospy.logdebug("pleasure achieved")
-            return True
-        else:
-            rospy.logdebug("no bueno")
-            return False
+        return success
         # rospy.logdebug("--------------------------")
         # return True
 

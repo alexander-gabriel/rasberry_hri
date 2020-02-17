@@ -234,32 +234,30 @@ class BDISystem:
                 qsrlib_response_message = self.qsrlib.request_qsrs(qsrlib_request_message)
                 t = qsrlib_response_message.qsrs.get_sorted_timestamps()[-1]
                 for k, v in qsrlib_response_message.qsrs.trace[t].qsrs.items():
-                    entity = k.split(",")[1]
+                    picker = k.split(",")[1]
                     direction = v.qsr.get("qtcbs").split(",")[1]
-                    self.directions[entity] = direction
-            except (ValueError, KeyError, AttributeError, IndexError) as err:
-                rospy.logwarn("BDI: {}".format(err))
-            for picker, direction in self.directions.items():
-                try:
-                    latest_direction = self.latest_directions[picker]
-                except:
-                    self.latest_directions[picker] = direction
-                if self.latest_directions[picker] != direction:
-                    if direction == "+":
-                        leaving(ConceptNode(picker)).tv = TRUE
-                        rospy.logwarn("BDI: Updating movement: {} is leaving".format(picker))
-                    elif direction == "-":
-                        approaching(ConceptNode(picker)).tv = TRUE
-                        rospy.logwarn("BDI: Updating movement: {} is approaching".format(picker))
-                    else:
-                        standing(ConceptNode(picker)).tv = TRUE
-                        rospy.logwarn("BDI: Updating movement: {} is standing".format(picker))
+                    self.directions[picker] = direction
+                    if not self.latest_directions.has_key(picker):
+                        self.latest_directions[picker] = direction
+                    elif self.latest_directions[picker] != direction:
+                        if direction == "+":
+                            leaving(ConceptNode(picker)).tv = TRUE
+                            rospy.logwarn("BDI: Updating movement: {} is leaving".format(picker))
+                        elif direction == "-":
+                            approaching(ConceptNode(picker)).tv = TRUE
+                            rospy.logwarn("BDI: Updating movement: {} is approaching".format(picker))
+                        else:
+                            standing(ConceptNode(picker)).tv = TRUE
+                            rospy.logwarn("BDI: Updating movement: {} is standing".format(picker))
+                        self.latest_directions[picker] = direction
+                    distance = get_distance(self.latest_robot_msg, self.latest_people_msgs[picker].pose)
                     # stop if we're to close to a picker
-                    distance =  get_distance(self.latest_robot_msg, self.latest_people_msgs[picker].pose)
                     if distance < MINIMUM_DISTANCE + 0.5 * (ROBOT_LENGTH + PICKER_LENGTH):
-                        pass
                         rospy.loginfo("BDI: Robot has met picker")
                         self.robco.cancel_movement()
+            except (ValueError, KeyError, AttributeError, IndexError) as err:
+                pass
+                # rospy.logwarn("BDI: {}".format(err))
 
 
     def write(self):

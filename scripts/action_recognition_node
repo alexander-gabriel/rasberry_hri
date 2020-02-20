@@ -11,5 +11,4 @@ if __name__ == '__main__':
     rospy.myargv(argv=sys.argv)
     rospy.init_node('action_recognition_node', anonymous=False)
     ar = ActionRecognition()
-    ar.openpose.run()
-    # rospy.spin()
+    ar.run()

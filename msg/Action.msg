@@ -1,3 +1,4 @@
 std_msgs/Header header
-string id
+string person
 string action
+Joint[] joints

@@ -39,7 +39,11 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   Log.msg
-#  Joint.msg
+  Criterium.msg
+  Pose.msg
+  Classification.msg
+
+  Joint.msg
 #  Joints.msg
   Action.msg
   Command.msg
@@ -64,6 +68,7 @@ add_message_files(
    DEPENDENCIES
    std_msgs  # Or other packages containing msgs
    sensor_msgs
+   geometry_msgs
  )
 
 
@@ -75,6 +80,7 @@ catkin_package(
                actionlib_msgs
                move_base_msgs
                sensor_msgs
+               geometry_msgs
 
 #  DEPENDS system_lib
 )

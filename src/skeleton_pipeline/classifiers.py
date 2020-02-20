@@ -1,7 +1,7 @@
 import rospy
 
 from numpy import arctan2, abs, mean
-
+from rasberry_hri.msg import Classification, Pose, Criterium
 from poses import pose_list
 from utils import suppress
 
@@ -9,16 +9,22 @@ class MinimumDifferenceClassifier:
 
     def __init__(self):
         self.limit = rospy.get_param("classification_error", 20)
-        self.angle_weight = rospy.get_param("angle_weight", 0.25)
+        self.angle_weight = rospy.get_param("angle_weight", 1.0)
 
     def classify(self, angles, positions):
         errors = dict()
+        classification = Classification()
+        classification.poses = list()
         min_error = ('Initial', 1000000)
         rospy.logdebug("CLA: -----------------")
         for name, pose in pose_list.items():
-            error_list = list()
+            classification.poses.append(Pose())
+            classification.poses[-1].label = name
+            classification.poses[-1].criteria = list()
+            error_list = [self.limit]
             rospy.logdebug("CLA: checking pose: {}".format(name))
             for label, target in pose.items():
+                    value = None
                 # with suppress(TypeError):
                     rospy.logdebug("CLA: target: {}:{}".format(label, target))
                     angle_or_position, direction, limit = target.split(" ")
@@ -27,18 +33,7 @@ class MinimumDifferenceClassifier:
                             limit = float(limit)
                         except:
                             limit = angles[limit]
-                        if direction == "=":
-                            rospy.logdebug("CLA: error: {}-{}={}".format(limit, angles[label], abs(limit - angles[label])))
-                            error_list.append(self.angle_weight * abs(limit - angles[label]))
-                        elif direction == ">":
-                            rospy.logdebug("CLA: error: max(0,{}-{})={}".format(limit, angles[label], abs(limit - angles[label])))
-                            error_list.append(self.angle_weight * max(0, limit - angles[label]))
-                        elif direction == "<":
-                            rospy.logdebug("CLA: error: max(0,{}-{})={}".format(limit, angles[label], abs(angles[label] - limit)))
-                            error_list.append(self.angle_weight * max(0, angles[label] - limit))
-                        else:
-                            rospy.logerr("CLA: wrong direction code {}".format(direction))
-                            pass
+                        value = angles[label]
                     else:
                         if positions[label] is None:
                             error_list.append(self.limit)
@@ -47,23 +42,30 @@ class MinimumDifferenceClassifier:
                             limit = float(limit)
                         except:
                             limit = positions[limit]
-                        if direction == "=":
-                            rospy.logdebug("CLA: error: {}-{}={}".format(limit, positions[label], abs(limit - positions[label])))
-                            error_list.append(abs(limit - positions[label]))
-                        elif direction == ">":
-                            rospy.logdebug("CLA: error: max(0,{}-{})={}".format(limit, positions[label], abs(limit - positions[label])))
-                            error_list.append(max(0, limit - positions[label]))
-                        elif direction == "<":
-                            rospy.logdebug("CLA: error: max(0,{}-{})={}".format(limit, positions[label], abs(positions[label] - limit)))
-                            error_list.append(max(0, positions[label] - limit))
-                        else:
-                            rospy.logerr("CLA: wrong direction code {}".format(direction))
-                            pass
+                        value = positions[label]
+
+                    if direction == "=":
+                        rospy.logdebug("CLA: error: {}-{}={}".format(limit, value, abs(limit - value)))
+                        error_list.append(abs(limit - value))
+                    elif direction == ">":
+                        rospy.logdebug("CLA: error: max(0,{}-{})={}".format(limit, value, abs(limit - value)))
+                        error_list.append(max(0, limit - value))
+                    elif direction == "<":
+                        rospy.logdebug("CLA: error: max(0,{}-{})={}".format(limit, value, abs(value - limit)))
+                        error_list.append(max(0, value - limit))
+                    else:
+                        rospy.logerr("CLA: wrong direction code {}".format(direction))
+                        pass
+                    criterium = Criterium()
+                    criterium.code = label
+                    criterium.limit = limit
+                    criterium.value = value
+                    criterium.error = error_list[-1]
+                    classification.poses[-1].criteria.append(criterium)
             error = mean(error_list)
-            errors[name] = error
             if error < min_error[1]:
                 min_error = (name, error)
             rospy.logdebug("CLA: {:}: {:f}".format(name, error))
         rospy.logdebug("CLA: -----------------")
         rospy.logdebug("CLA: {:}: {:f}".format(min_error[0], min_error[1]))
-        return min_error
+        return min_error, classification

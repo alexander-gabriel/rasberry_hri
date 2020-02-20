@@ -1,0 +1,2 @@
+string label
+Criterium[] criteria

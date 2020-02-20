@@ -21,7 +21,7 @@ class Converter:
                              'Upper-Spine-X' : ("RHip", "LHip", "Neck"),
                              'Mid-Spine-X' : ("RHip", "LHip", "Neck"),
                              'Lower-Spine-X' : ("RHip", "LHip", "Neck"),
-                             'Neck-Z' : ("REar", "LEar", "Neck")}
+                             'Neck-X' : ("REar", "LEar", "Neck")}
 
         self.position_table = {}
 

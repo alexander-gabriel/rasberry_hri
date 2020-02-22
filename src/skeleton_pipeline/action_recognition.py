@@ -2,6 +2,8 @@ import sys
 import json
 import time
 
+from math import pi
+
 import rospy
 from openpose import Openpose
 
@@ -20,27 +22,32 @@ from utils import get_angle_prototype, get_position_prototype, suppress
 class ActionRecognition:
 
 
-    def __init__(self):
+    def __init__(self, normal_mode=False):
+        self.normal_mode = normal_mode
         rospy.loginfo("ACR: ActionRecognition Node starting")
-        self.action_publisher = rospy.Publisher('/human_actions', Action, queue_size=10)
-        self.joint_publisher = rospy.Publisher('/joints', Action, queue_size=10)
+        if self.normal_mode:
+            self.action_publisher = rospy.Publisher('/human_actions', Action, queue_size=10)
+        else:
+            self.joint_publisher = rospy.Publisher('/joints', Action, queue_size=10)
         self.command_publisher = rospy.Publisher('/movement_control', Command, queue_size=10)
         self.classification_publisher = rospy.Publisher('/pose_classification', Classification, queue_size=10)
         self.picker = rospy.get_param("target_picker", "Picker02")
         self.converter = Converter()
         self.classifier = MinimumDifferenceClassifier()
-        rospy.wait_for_service('recognize')
-        self.interface = rospy.ServiceProxy('recognize', Recognize)
-        rospy.loginfo("ACR: Waiting for OpenPose")
-        self.openpose = Openpose(self.interface, self.openpose_callback)
+        if self.normal_mode:
+            rospy.wait_for_service('recognize')
+            self.interface = rospy.ServiceProxy('recognize', Recognize)
+            rospy.loginfo("ACR: Waiting for OpenPose")
+            self.openpose = Openpose(self.interface, self.openpose_callback)
         self.detection_count = rospy.get_param("detection_count", 2)
         self.cooldown = rospy.get_param("cooldown", -5)
         self.last_detected_count = {}
         camera = rospy.get_param("~camera", "/camera/color/image_raw")
         rospy.loginfo("ACR: Subscribing to {:}".format(camera))
-        ## TODO: readjust
-        rospy.Subscriber(camera, Image, self.callback_rgb)
-        # rospy.Subscriber('/human_actions', Action, self.action_callback)
+        if self.normal_mode:
+            rospy.Subscriber(camera, Image, self.callback_rgb)
+        else:
+            rospy.Subscriber('/human_actions', Action, self.action_callback)
 
 
 
@@ -56,9 +63,10 @@ class ActionRecognition:
         rospy.loginfo("ACR: Initialization Complete")
 
     def run(self):
-        ## TODO: readjust
-        # rospy.spin()
-        self.openpose.run()
+        if self.normal_mode:
+            self.openpose.run()
+        else:
+            rospy.spin()
 
 
     def openpose_callback(self, timestamp, source, response):
@@ -88,12 +96,12 @@ class ActionRecognition:
                 joint = Joint()
                 joint.label = key
                 try:
-                    joint.angle = angles[key+"-X"] or -1
+                    joint.angle = angles[key+"-X"]
                 except:
                     pass
                 try:
-                    joint.position.x = positions[key+"-X"] or -1
-                    joint.position.y = positions[key+"-Y"] or -1
+                    joint.position.x = positions[key+"-X"]
+                    joint.position.y = positions[key+"-Y"]
                 except:
                     pass
                 outmsg.joints.append(joint)
@@ -111,14 +119,12 @@ class ActionRecognition:
         positions = {} #get_position_prototype()
         angles = {} #get_angle_prototype()
         for joint in msg.joints:
-            if joint.label not in ["Right:Hi", "Left:Hi", "Right:Kne", "Left:Kne", "Nec", "Right:Elbo", "Left:Elbo", "Lower-Spin", "Mid-Spin", "Upper-Spin", "Left:Shoulde", "Right:Shoulde"]:
-                angle_key = "{:}-X".format(joint.label)
-                pos_x_key = "{:}-X".format(joint.label)
-                pos_y_key = "{:}-Y".format(joint.label)
-                angles[angle_key] = joint.angle
-                rospy.logwarn("{}: {}".format(angle_key, joint.angle))
-                positions[pos_x_key] = joint.position.x
-                positions[pos_y_key] = joint.position.y
+            angle_key = "{:}-X".format(joint.label)
+            pos_x_key = "{:}-X".format(joint.label)
+            pos_y_key = "{:}-Y".format(joint.label)
+            angles[angle_key] = joint.angle
+            positions[pos_x_key] = joint.position.x
+            positions[pos_y_key] = joint.position.y
         # rospy.loginfo(angles)
         # sys.exit(0)
         with open("/home/rasberry/angles.log", 'w') as f:
@@ -131,8 +137,7 @@ class ActionRecognition:
         with open("/home/rasberry/action.log", 'w') as f:
             json.dump(action, f)
         if action is not None:
-            pass
-            # rospy.loginfo("ACR: Detected behavior '{}'".format(action))
+            rospy.loginfo("ACR: Detected behavior '{}'".format(action))
         outmsg = Action()
         outmsg.header.stamp = msg.header.stamp
         outmsg.action = action or ""
@@ -145,12 +150,12 @@ class ActionRecognition:
             joint = Joint()
             joint.label = key
             try:
-                joint.angle = angles[key+"-X"] or -1
+                joint.angle = angles[key+"-X"]
             except:
                 pass
             try:
-                joint.position.x = positions[key+"-X"] or -1
-                joint.position.y = positions[key+"-Y"] or -1
+                joint.position.x = positions[key+"-X"]
+                joint.position.y = positions[key+"-Y"]
             except:
                 pass
             outmsg.joints.append(joint)

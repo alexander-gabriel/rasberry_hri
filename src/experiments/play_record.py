@@ -9,7 +9,7 @@ import rosbag
 
 from rasberry_hri.msg import Action
 
-SLEEP=0.05 #0.01
+SLEEP=0.1 # 0.1 640x480, 0.05 320x240, 0.01 only action rec
 PATH='/data'
 
 def get_rosbag_from_file(filename, mode='r'):

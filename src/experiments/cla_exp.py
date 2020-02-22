@@ -58,7 +58,7 @@ def classification_callback(msg):
     classifications.append(msg)
 
 
-def create_graph(filename, classifications):
+def create_graph(filename, classifications, action_label):
     classifications = sorted(classifications, key=lambda c: c.header.stamp.to_sec())
     l = len(classifications)
     m = len(classifications[0].poses)
@@ -78,8 +78,8 @@ def create_graph(filename, classifications):
         #     poses[index].append(classification.poses[index])
 
     for pose_index in range(m):
-        for criterium_index in range(n):
-            for classification_index in range(l):
+        for classification_index in range(l):
+            for criterium_index in range(len(classifications[classification_index].poses[pose_index].criteria)):
                 in_pose = classifications[classification_index].poses[pose_index]
                 pose_label = in_pose.label
                 if not pose_label in poses:
@@ -94,38 +94,66 @@ def create_graph(filename, classifications):
                 pose[code]["error"].append(in_criterium.error)
 
     for pose_index, (pose_label, pose) in enumerate(poses.items()):
-        fig = plt.figure(figsize=plt.figaspect(5.))
-        # fig,ax=plt.subplots(len(pose.keys()), 1, figsize=[])
-        for criterium_index, (code, criterium) in enumerate(pose.items()):
-            ax = fig.add_subplot(len(pose), 1, criterium_index+1)
-            # plt.subplot(m*n, pose_index+1, criterium_index+1)
-            # fig, ax = plt.subplots()
-            ax.set_title("{:} - {:}".format(pose_label, code))
-            ax.set_xlim((t[0], t[-1]))
-            ax.set_ylabel("values")
-            ax.set_xlabel("time")
-            ax.plot(t, criterium["value"], label='value')
-            ax.plot(t, criterium["limit"], label='limit')
-            ax.plot(t, criterium["error"], label='error')
-            ax.legend()
+        if action_label == pose_label:
+        # if "gesture_stop" == pose_label or "neutral" == pose_label:
+            fig = plt.figure(figsize=plt.figaspect(9.))
+            l1 = None
+            l2 = None
+            l3 = None
+            # fig,ax=plt.subplots(len(pose.keys()), 1, figsize=[])
+            for criterium_index, (code, criterium) in enumerate(pose.items()):
+                ax = fig.add_subplot(len(pose), 1, criterium_index+1)
+                # plt.subplot(m*n, pose_index+1, criterium_index+1)
+                # fig, ax = plt.subplots()
+                ax.set_title("{:} - {:}".format(pose_label, code))
+                ax.set_xlim((t[0], t[-1]))
+                ax.set_ylabel("values")
+                ax.set_xlabel("time")
+                l1 = ax.plot(t, criterium["value"], label='value')
+                l2 = ax.plot(t, criterium["limit"], label='limit')
+                l3 = ax.plot(t, criterium["error"], label='error', linewidth=2)
+                plt.legend()
+                # ax.legend()
 
-            # plt.setp(lines[0], linewidth=2)
-            # plt.setp(lines[1], linewidth=2)
-            # plt.setp(lines[2], linewidth=2)
+
+
+                # plt.setp(lines[0], linewidth=2)
+                # plt.setp(lines[1], linewidth=2)
+                # plt.setp(lines[2], linewidth=2)
+                # fig.tight_layout()
+                # axs[0].grid(True)
             # fig.tight_layout()
-            # axs[0].grid(True)
-        # fig.tight_layout()
-        plt.margins(0.2)
-        # plt.show()
-        plt.savefig(filename)
+            fig.set_tight_layout(True)
+            # fig.legend((l1, l2, l3), ('value', 'limit', 'error'), bbox_to_anchor=(1.04,1), loc="upper left")
+
+            plt.margins(0.2)
+            plt.show()
+            # plt.savefig(filename)
 
 
-
-
-
-
+# deliver_crate-23-joints.bag
+# deposit_crate-31-joints.bag
+# gesture_backward-72-joints.bag
+# gesture_backward-88-joints.bag
+# gesture_call-75-joints.bag
+# gesture_call-92-joints.bag
+# gesture_cancel-77-joints.bag
+# gesture_cancel-96-joints.bag
+# gesture_forward-69-joints.bag
+# gesture_forward-83-joints.bag
+# gesture_stop-81-joints.bag
+# gesture_stop-99-joints.bag
+# picking_berries-34-joints.bag
+# pickup_crate-49-joints.bag
+# return_crate-59-joints.bag
+# turning-67-joints.bag
+# walk_away-62-joints.bag
+# walk_away_crate-26-joints.bag
+# walk_towards-18-joints.bag
+# walk_towards_crate-54-joints.bag
 
 if __name__ == '__main__':
+    normal_mode = False
     rospy.init_node("cla_exp")
     rospy.Subscriber("/pose_classification", Classification, classification_callback)
     ids = [1,2,3,4,5,6,7,8,9,10]
@@ -139,7 +167,7 @@ if __name__ == '__main__':
         ## TODO: readjust
         source_folder = os.path.join(PATH, "subject-{:}-out".format(sid))
         print(source_folder)
-        for filename in os.listdir(source_folder):
+        for filename in ["picking_berries-34-joints.bag"]: #os.listdir(source_folder):
             classifications = []
             try:
                 print("starting with {}".format(filename))
@@ -153,4 +181,4 @@ if __name__ == '__main__':
                 rospy.sleep(1)
             except Exception as err:
                 print(traceback.format_exc())
-            create_graph(os.path.join(source_folder,"{:}.png".format(filename[:-4])), classifications)
+            create_graph(os.path.join(source_folder,"{:}.png".format(filename[:-4])), classifications, filename.split("-")[0])

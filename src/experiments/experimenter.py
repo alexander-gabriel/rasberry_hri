@@ -14,18 +14,24 @@ from experiment import Experiment
 # x TODO: check rosbag player
 # x TODO: check pose detection
 # x TODO: check experimenter
+# x TODO: annotate the latest rosbags
+# x TODO: split the rosbags
+# x TODO: add pose for picking berries
+# x TODO: add pose for call
+# x TODO: add pose for cancel
+# x TODO: add pose for stop
+# x TODO: add new detected actions to bdi system
+# x FIX concurrency stopping message reception
 
-# . FIX concurrency stopping message reception
+# . TODO: add is_a(.., human) back in and fix inheritance reasoning
+# . TODO: fix reasoning (not, is_a, linked)
+
 # . TODO: make sure all important steps are logged (distance metric!!)
-# . TODO: implement log parser
-# . TODO: annotate the latest rosbags
-# . TODO: split the rosbags 
 
-# . TODO: add pose for picking berries
-# . TODO: add pose for call
-# . TODO: add pose for cancel
-# . TODO: add pose for stop
-# . TODO: in bdi system: pause, start simulation, change simulation realtime factor
+# ? TODO: in bdi system: pause, start simulation, change simulation realtime factor
+# . TODO: implement log parser
+
+
 
 
 class Experimenter:

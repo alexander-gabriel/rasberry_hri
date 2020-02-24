@@ -170,8 +170,8 @@ neutral.update(left_arm_straight)
 #              "facing away": facing_away,
 #              "has cart": has_cart}
 
-pose_list = {"gesture_call": gesture_call_robot,
-             "picking_berries": picking_berries_left,
+pose_list = {"calling": gesture_call_robot,
+             "picking berries": picking_berries_left,
              "picking_berries_right": picking_berries_right,
              # "standing": standing,
              "gesture_cancel": gesture_cancel,

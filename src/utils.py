@@ -1,21 +1,18 @@
-import rospy
-import os
+from threading import Lock
 from contextlib import contextmanager
 from math import sqrt, pi
+import os
+import sys
+
 from subprocess import Popen
 from threading import Thread
+
+import rospy
 
 from opencog.atomspace import AtomSpace, types, TruthValue
 from opencog.type_constructors import *
 from opencog.utilities import initialize_opencog
 
-
-atomspace = AtomSpace()
-initialize_opencog(atomspace)
-set_type_ctor_atomspace(atomspace)
-
-TRUE = TruthValue(1,1)
-FALSE = TruthValue(0,1)
 
 @contextmanager
 def suppress(*exceptions):
@@ -121,75 +118,6 @@ def wp2sym(waypoint):
 
 def combine_terms(terms):
     return zip(terms)
-
-
-def is_at(thing, place):
-    link = StateLink(thing, place)
-    return link
-
-
-def is_a(thing, category):
-    link = InheritanceLink(thing, category)
-    return link
-
-
-def not_same(thing1, thing2):
-    link = NotLink(IdenticalLink(thing1, thing2))
-    return link
-
-
-def colocated(thing1, thing2): # ??
-    link = EvaluationLink(PredicateNode("colocated"), ListLink(thing1, thing2))
-    return link
-
-
-def leads_to(origin, destination):
-    link = EvaluationLink(
-        PredicateNode("leads_to"),
-        ListLink(origin, destination))
-    return link
-
-
-def free_path(origin, destination):
-    link = EvaluationLink(
-        PredicateNode("linked"),
-        ListLink(origin, destination))
-    return link
-
-
-def called_robot(picker):
-    link = StateLink(ListLink(picker, PredicateNode("called robot")), ConceptNode("TRUE"))
-    return link
-
-
-def not_called_robot(picker):
-    link = StateLink(ListLink(picker, PredicateNode("called robot")), ConceptNode("FALSE"))
-    return link
-
-
-def approaching(picker):
-    link = StateLink(ListLink(picker, PredicateNode("movement")), ConceptNode("APPROACHING"))
-    return link
-
-
-def leaving(picker):
-    link = StateLink(ListLink(picker, PredicateNode("movement")), ConceptNode("LEAVING"))
-    return link
-
-
-def standing(picker):
-    link = StateLink(ListLink(picker, PredicateNode("movement")), ConceptNode("STANDING"))
-    return link
-
-
-def seen_picking(picker):
-    link = StateLink(ListLink(picker, PredicateNode("seen_picking")), ConceptNode("TRUE"))
-    return link
-
-
-def not_seen_picking(picker):
-    link = StateLink(ListLink(picker, PredicateNode("seen_picking")), ConceptNode("FALSE"))
-    return link
 
 
 def sym2wp(symbol):
@@ -330,7 +258,6 @@ def get_position_prototype_3d():
         'Left:Ankle-X': pi,
         'Left:Ankle-Y': pi,
         'Left:Ankle-Z': pi}.copy()
-
 
 
 def mean(l):

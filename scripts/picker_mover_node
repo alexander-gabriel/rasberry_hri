@@ -11,7 +11,7 @@ from std_msgs.msg import String
 from marvelmind_nav.msg import hedge_pos_a
 
 MEAN_WAYPOINT_DISTANCE = rospy.get_param("mean_waypoint_distance", 2.95) # m
-FREQUENCY = 50 # Hz  1/s
+FREQUENCY = 10 # Hz  1/s
 SPEED = rospy.get_param("picker_speed", 1.3) # m/s
 PICKER_ID = 2
 EVADE_DISTANCE = 2 * MEAN_WAYPOINT_DISTANCE # m

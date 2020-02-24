@@ -20,22 +20,25 @@ from geometry_msgs.msg import Pose, PoseStamped
 
 from bdi_system import BDISystem
 from bdi_system import INF
-from utils import suppress, wp2sym, sym2wp, seen_picking, called_robot, TRUE, FALSE
+from utils import suppress, wp2sym, sym2wp
 
+from knowledge_base import KnowledgeBase
 
+FREQUENCY = 0.5 # Hz
 
 class Scheduler:
 
 
     def __init__(self, robot_id):
         rospy.loginfo("SCH: Initializing Scheduler")
+        self.kb = KnowledgeBase()
         self.robot_id = robot_id
         self.latest_robot_node = None
-        self.bdi = BDISystem(self.robot_id)
+        self.bdi = BDISystem(self.robot_id, self.kb)
         self.bdi.world_state.add_thing(self.robot_id.capitalize(), "robot")
         self.robot_pose_sub = rospy.Subscriber('/{:}/robot_pose'.format(self.robot_id), Pose, self.robot_position_coordinate_callback)
-        self.robot_sub = rospy.Subscriber('/{:}/current_node'.format(self.robot_id), String, self.robot_position_node_callback)
-        self.human_action_sub = rospy.Subscriber('/human_actions', Action, self.human_intention_callback)
+        self.robot_sub = rospy.Subscriber('/{:}/closest_node'.format(self.robot_id), String, self.robot_position_node_callback)
+        self.human_action_sub = rospy.Subscriber('/human_actions_fast', Action, self.human_intention_callback)
         self.picker01_sub = rospy.Subscriber("/picker01/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker01") )
         self.picker02_sub = rospy.Subscriber("/picker02/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker02") )
         #TODO: move to multiple pickers
@@ -60,51 +63,58 @@ class Scheduler:
         rospy.logdebug("node[%s, %s] entering spin(), pid[%s]", rospy.core.get_caller_id(), rospy.core.get_node_uri(), os.getpid())
         try:
             while not rospy.core.is_shutdown():
-                try:
-                    if not bdi.is_alive():
-                        bdi = threading.Thread(target=self.bdi.loop)
-                        bdi.start()
-                    else:
-                        # rospy.loginfo("SCH: sleeping")
-                        rospy.rostime.wallsleep(0.001)
-                except:
-                    bdi = threading.Thread(target=self.bdi.loop)
-                    bdi.start()
-                # self.bdi.loop()
-                # rospy.rostime.wallsleep(0.01)
+                # try:
+                #     if not bdi.is_alive():
+                #         bdi = threading.Thread(target=self.bdi.loop)
+                #         bdi.start()
+                #     else:
+                #         # rospy.loginfo("SCH: sleeping")
+                #         rospy.rostime.wallsleep(0.001)
+                # except:
+                #     bdi = threading.Thread(target=self.bdi.loop)
+                #     bdi.start()
+                self.bdi.loop()
+                rospy.rostime.wallsleep(1.0/FREQUENCY)
         except KeyboardInterrupt:
             rospy.logdebug("keyboard interrupt, shutting down")
             rospy.core.signal_shutdown('keyboard interrupt')
 
 
     def robot_position_coordinate_callback(self, msg):
+        # rospy.loginfo("SCH: Robot position coordinate callback")
+        start_time = time.time()
         self.bdi.latest_robot_msg = msg
+        duration = time.time() - start_time
+        if duration > 0.01:
+            rospy.loginfo("SCH: handled robot_position_coordinate_callback -- {:.4f}".format(duration))
 
 
     def robot_position_node_callback(self, msg):
-        # if not self.latest_robot_node is None:
-        #     try:
-        #         self.bdi.world_state.update_position(self.robot_id.capitalize(), self.latest_robot_node)
-        #
-        #     except:
-        #          pass
+        # rospy.loginfo("SCH: Robot position node callback")
+        start_time = time.time()
         if msg.data != "none":
             self.latest_robot_node = wp2sym(msg.data)
             self.bdi.world_state.update_position(self.robot_id.capitalize(), self.latest_robot_node)
         else:
             self.latest_robot_node = None
+        duration = time.time() - start_time
+        if duration > 0.01:
+            rospy.loginfo("SCH: handled robot_position_callback -- {:.4f}".format(duration))
 
 
     def human_intention_callback(self, msg):
-        rospy.loginfo("SCH: Observed behaviour: '{}'".format(msg.action))
-        if msg.action == "picking berries left" or msg.action == "picking berries right":
-            seen_picking(ConceptNode(msg.id.capitalize())).tv = TRUE
-        elif msg.action == "call robot":
-            called_robot(ConceptNode(msg.id.capitalize())).tv = TRUE
+        rospy.loginfo("SCH: Perceived human action {}, {}".format(msg.person.capitalize(), msg.action))
+        person = msg.person.capitalize()
+        self.bdi.world_state.update_action(person, msg.action)
 
 
     def picker_tracker_callback(self, msg, id):
+        # rospy.loginfo("SCH: Picker position node callback")
+        start_time = time.time()
         self.bdi.latest_people_msgs[id] = msg
+        duration = time.time() - start_time
+        if duration > 0.01:
+            rospy.loginfo("SCH: handled picker_tracker_callback -- {:.4f}".format(duration))
 
 
     # def people_tracker_callback(self, msg, id):

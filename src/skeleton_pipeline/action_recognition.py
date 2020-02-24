@@ -28,7 +28,7 @@ class ActionRecognition:
         if self.normal_mode:
             self.action_publisher = rospy.Publisher('/human_actions', Action, queue_size=10)
         else:
-            self.joint_publisher = rospy.Publisher('/joints', Action, queue_size=10)
+            self.action_publisher2 = rospy.Publisher('/human_actions_fast', Action, queue_size=10)
         self.command_publisher = rospy.Publisher('/movement_control', Command, queue_size=10)
         self.classification_publisher = rospy.Publisher('/pose_classification', Classification, queue_size=10)
         self.picker = rospy.get_param("target_picker", "Picker02")
@@ -39,8 +39,8 @@ class ActionRecognition:
             self.interface = rospy.ServiceProxy('recognize', Recognize)
             rospy.loginfo("ACR: Waiting for OpenPose")
             self.openpose = Openpose(self.interface, self.openpose_callback)
-        self.detection_count = rospy.get_param("detection_count", 2)
-        self.cooldown = rospy.get_param("cooldown", -5)
+        self.detection_count = rospy.get_param("detection_count", 10)
+        self.cooldown = rospy.get_param("cooldown", 0)
         self.last_detected_count = {}
         camera = rospy.get_param("~camera", "/camera/color/image_raw")
         rospy.loginfo("ACR: Subscribing to {:}".format(camera))
@@ -115,7 +115,7 @@ class ActionRecognition:
 
 
     def action_callback(self, msg):
-        start_time = time.time()
+        # start_time = time.time()
         positions = {} #get_position_prototype()
         angles = {} #get_angle_prototype()
         for joint in msg.joints:
@@ -137,31 +137,32 @@ class ActionRecognition:
         with open("/home/rasberry/action.log", 'w') as f:
             json.dump(action, f)
         if action is not None:
-            rospy.loginfo("ACR: Detected behavior '{}'".format(action))
-        outmsg = Action()
-        outmsg.header.stamp = msg.header.stamp
-        outmsg.action = action or ""
-        outmsg.person = self.picker
-        # outmsg.header.stamp = rospy.get_rostime()
-        outmsg.joints = []
-        for key in angles.keys():
-            key = key[:-3]
+            # pass
+            rospy.logdebug("ACR: Detected behavior '{}'".format(action))
+            outmsg = Action()
+            outmsg.header.stamp = msg.header.stamp
+            outmsg.action = action or ""
+            outmsg.person = self.picker
+            # outmsg.header.stamp = rospy.get_rostime()
+            outmsg.joints = []
+            for key in angles.keys():
+                key = key[:-2]
 
-            joint = Joint()
-            joint.label = key
-            try:
-                joint.angle = angles[key+"-X"]
-            except:
-                pass
-            try:
-                joint.position.x = positions[key+"-X"]
-                joint.position.y = positions[key+"-Y"]
-            except:
-                pass
-            outmsg.joints.append(joint)
-            #TODO: identify picker
-        # rospy.logwarn("ACR: action recognition took {:.4f}s".format(time.time()-start_time))
-        # self.joint_publisher.publish(outmsg)
+                joint = Joint()
+                joint.label = key
+                try:
+                    joint.angle = angles[key+"-X"]
+                except:
+                    pass
+                try:
+                    joint.position.x = positions[key+"-X"]
+                    joint.position.y = positions[key+"-Y"]
+                except:
+                    pass
+                outmsg.joints.append(joint)
+                #TODO: identify picker
+            # rospy.logwarn("ACR: action recognition took {:.4f}s".format(time.time()-start_time))
+            self.action_publisher2.publish(outmsg)
 
 
 
@@ -217,13 +218,16 @@ class ActionRecognition:
             if not action_label in self.last_detected_count:
                 self.last_detected_count[action_label] = 1
             else:
-                self.last_detected_count[action_label] +=  1
+                self.last_detected_count[action_label] += 1
             ## TODO: readjust
-            #if self.last_detected_count[action_label] == self.detection_count:
-            self.last_detected_count[action_label] = self.cooldown
-            return (action_label, classification)
+            if self.last_detected_count[action_label] == self.detection_count:
+                self.last_detected_count.clear()
+                self.last_detected_count[action_label] = self.cooldown
+                return (action_label, classification)
+            else:
+                return (None, classification)
+
         else:
-            self.last_detected_count = {}
             return (None, classification)
 
 

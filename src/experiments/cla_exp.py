@@ -127,8 +127,8 @@ def create_graph(filename, classifications, action_label):
             # fig.legend((l1, l2, l3), ('value', 'limit', 'error'), bbox_to_anchor=(1.04,1), loc="upper left")
 
             plt.margins(0.2)
-            plt.show()
-            # plt.savefig(filename)
+            # plt.show()
+            plt.savefig(filename)
 
 
 # deliver_crate-23-joints.bag

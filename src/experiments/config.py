@@ -19,26 +19,33 @@ class Config():
     def __init__(self, robot_id):
         self.robot_id = robot_id
         self.parameters = {"called_robot": [False],
-                            "target_picker": ["Picker02"]}
+                            "seen_picking": [False],
+                            "target_picker": ["Picker02"],
+                            "iterations": ["30"]}
         self.behaviours = {
-                            5: {"type": "message",
-                                "target": "action_label",
-                                "message": "picking berries left"},
-                            8: {"type": "rosbag",
-                                "label": "call",
-                                "start": 76,
-                                "duration": 1,
-                                "filename": "/data/subject-1.bag",
-                                "topics": ["/camera/color/image_raw"]
+                            1: {"type": "rosbag",
+                                "label": "picking_berries",
+                                "start": 0,
+                                "duration": 3,
+                                "filename": "/data/subject-1-out/picking_berries-34-joints.bag",
+                                "topics": ["/human_actions"]
                                 },
-                            14: {"type": "message",
+                            3: {"type": "rosbag",
+                                "label": "call",
+                                "start": 0,
+                                "duration": 2,
+                                "filename": "/data/subject-1-out/gesture_call-75-joints.bag",
+                                "topics": ["/human_actions"]
+                                },
+                            6: {"type": "message",
                                 "target": "picker_movement",
-                                "message": "exchange"}
+                                "message": "exchange"
                                 }
+                            }
         self.behaviour_times = sorted(self.behaviours.keys())
-        self.termination_time = 60
-        # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch", "/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
-        self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
+        self.termination_time = 25
+        self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch", "/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
+        # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
         self.robot_pose = PoseWithCovarianceStamped()
         self.robot_pose.pose.pose.position.x = 11.649
         self.robot_pose.pose.pose.position.y = 4.64

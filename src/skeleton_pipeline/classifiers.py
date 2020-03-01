@@ -1,16 +1,18 @@
 import rospy
+from math import pi
 
 from numpy import arctan2, abs, mean
-from rasberry_hri.msg import Classification, Pose, Criterium
-from poses import pose_list
+
+from parameters import *
 from utils import suppress
-from math import pi
+from poses import pose_list
+from rasberry_hri.msg import Classification, Pose, Criterium
 
 class MinimumDifferenceClassifier:
 
     def __init__(self):
-        self.limit = rospy.get_param("classification_error", 20)
-        self.angle_weight = rospy.get_param("angle_weight", 1.0)
+        self.limit = CLASSIFICATION_TOLERANCE
+        self.angle_weight = ANGLE_WEIGHT
 
     def classify(self, angles, positions):
         errors = dict()
@@ -26,6 +28,7 @@ class MinimumDifferenceClassifier:
             rospy.logdebug("CLA: checking pose: {}".format(name))
             for label, target in pose.items():
                     value = None
+                    limit = None
                 # with suppress(TypeError):
                     rospy.logdebug("CLA: target: {}:{}".format(label, target))
                     angle_or_position, direction, limit = target.split(" ")
@@ -35,6 +38,7 @@ class MinimumDifferenceClassifier:
                         except:
                             limit = angles[limit]
                         value = angles[label]
+                        probability = positions[joint]["P"]
                     else:
                         # if positions[label] is None:
                         #     error_list.append(self.limit)
@@ -42,24 +46,34 @@ class MinimumDifferenceClassifier:
                         try:
                             limit = float(limit)
                         except:
-                            limit = positions[limit]
-                        value = positions[label]
+                            joint, dimension = limit.split("-")
+                            limit = positions[joint][dimension]
+                            # old
+                            # limit = positions[limit]
+                        joint, dimension = label.split("-")
+                        value = positions[joint][dimension]
+                        probability = positions[joint]["P"]
+                        # old
+                        # value = positions[label]
                     error = False
 
                     if limit is None or abs(limit - 3.14159) < 0.001:
                         if limit is None:
                             rospy.logwarn("DETECTED NONE ERROR")
-                            rospy.loginfo(positions)
+                            rospy.loginfo("{}-{}".format(label, target))
                         else:
                             rospy.logwarn("DETECTED PI ERROR")
+                            rospy.loginfo("{}-{}".format(label, target))
                         limit = pi
                         rospy.logwarn("{}".format(label))
                         error = True
                     if value is None or abs(value - 3.14159) < 0.001:
                         if value is None:
                             rospy.logwarn("DETECTED NONE ERROR")
+                            rospy.loginfo("{}-{}".format(label, target))
                         else:
                             rospy.logwarn("DETECTED PI ERROR")
+                            rospy.loginfo("{}-{}".format(label, target))
                         value = pi
                         rospy.logwarn("{}".format(label))
                         error = True
@@ -88,6 +102,8 @@ class MinimumDifferenceClassifier:
             if error < min_error[1]:
                 min_error = (name, error)
             rospy.logdebug("CLA: {:}: {:f}".format(name, error))
+        classification.label = min_error[0]
+        classification.error_score = min_error[1]
         rospy.logdebug("CLA: -----------------")
         rospy.logdebug("CLA: {:}: {:f}".format(min_error[0], min_error[1]))
         return min_error, classification

@@ -10,18 +10,18 @@ from utils import suppress
 class Converter:
 
     def __init__(self):
-        self.angle_joints = {'Right:Elbow-X' : ("RWrist", "RElbow", "RShoulder"),
-                             'Left:Elbow-X' : ("LShoulder", "LElbow", "LWrist"),
-                             'Right:Shoulder-X' : ("Neck", "RShoulder", "RElbow"),
-                             'Left:Shoulder-X' : ("LElbow", "LShoulder", "Neck"),
-                             'Right:Knee-X' : ("RAnkle", "RKnee", "RHip"),
-                             'Left:Knee-X' : ("LAnkle", "LKnee", "LHip"),
-                             'Right:Hip-X' : ("RKnee", "RHip", "LHip"),
-                             'Left:Hip-X' : ("LKnee", "LHip", "RHip"),
-                             'Upper-Spine-X' : ("RHip", "LHip", "Neck"),
-                             'Mid-Spine-X' : ("RHip", "LHip", "Neck"),
-                             'Lower-Spine-X' : ("RHip", "LHip", "Neck"),
-                             'Neck-X' : ("REar", "LEar", "Neck")}
+        self.angle_joints = {'Right:Elbow' : ("RWrist", "RElbow", "RShoulder"),
+                             'Left:Elbow' : ("LShoulder", "LElbow", "LWrist"),
+                             'Right:Shoulder' : ("Neck", "RShoulder", "RElbow"),
+                             'Left:Shoulder' : ("LElbow", "LShoulder", "Neck"),
+                             'Right:Knee' : ("RAnkle", "RKnee", "RHip"),
+                             'Left:Knee' : ("LAnkle", "LKnee", "LHip"),
+                             'Right:Hip' : ("RKnee", "RHip", "LHip"),
+                             'Left:Hip' : ("LKnee", "LHip", "RHip"),
+                             'Upper-Spine' : ("RHip", "LHip", "Neck"),
+                             'Mid-Spine' : ("RHip", "LHip", "Neck"),
+                             'Lower-Spine' : ("RHip", "LHip", "Neck"),
+                             'Neck' : ("REar", "LEar", "Neck")}
 
         self.position_table = {}
 
@@ -66,8 +66,13 @@ class Converter:
             with suppress(KeyError):
                 position = recognitions[self.index_map[label]].roi
                 new_label = self.label_table[label]
-                self.positions["{:}-X".format(new_label)] = position.x_offset - centerX
-                self.positions["{:}-Y".format(new_label)] = position.y_offset - centerY
+                self.positions[new_label] = {}
+                self.positions[new_label]["X"] = position.x_offset - centerX
+                self.positions[new_label]["Y"] = position.y_offset - centerY
+                self.positions[new_label]["P"] = recognitions[self.index_map[label]].categorical_distribution.probabilities[0].probability
+                # old
+                # self.positions["{:}-X".format(new_label)] = position.x_offset - centerX
+                # self.positions["{:}-Y".format(new_label)] = position.y_offset - centerY
 
 
     def X(self, label):

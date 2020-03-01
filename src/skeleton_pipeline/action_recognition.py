@@ -1,7 +1,6 @@
 import sys
 import json
 import time
-
 from math import pi
 
 import rospy
@@ -11,8 +10,8 @@ from sensor_msgs.msg import Image
 from image_recognition_msgs.srv import Recognize
 from image_recognition_msgs.msg import Recognitions
 
+from parameters import *
 from rasberry_hri.msg import Action, Command, Joint, Classification
-
 from converter import Converter
 from classifiers import MinimumDifferenceClassifier
 from utils import get_angle_prototype, get_position_prototype, suppress
@@ -22,7 +21,7 @@ from utils import get_angle_prototype, get_position_prototype, suppress
 class ActionRecognition:
 
 
-    def __init__(self, normal_mode=False):
+    def __init__(self, normal_mode=True):
         self.normal_mode = normal_mode
         rospy.loginfo("ACR: ActionRecognition Node starting")
         if self.normal_mode:
@@ -31,7 +30,7 @@ class ActionRecognition:
             self.action_publisher2 = rospy.Publisher('/human_actions_fast', Action, queue_size=10)
         self.command_publisher = rospy.Publisher('/movement_control', Command, queue_size=10)
         self.classification_publisher = rospy.Publisher('/pose_classification', Classification, queue_size=10)
-        self.picker = rospy.get_param("target_picker", "Picker02")
+        self.picker = TARGET_PICKER
         self.converter = Converter()
         self.classifier = MinimumDifferenceClassifier()
         if self.normal_mode:
@@ -39,10 +38,10 @@ class ActionRecognition:
             self.interface = rospy.ServiceProxy('recognize', Recognize)
             rospy.loginfo("ACR: Waiting for OpenPose")
             self.openpose = Openpose(self.interface, self.openpose_callback)
-        self.detection_count = rospy.get_param("detection_count", 10)
-        self.cooldown = rospy.get_param("cooldown", 0)
+        self.detection_count = DETECTION_COUNT
+        self.cooldown = COOLDOWN
         self.last_detected_count = {}
-        camera = rospy.get_param("~camera", "/camera/color/image_raw")
+        camera = CAMERA_TOPIC
         rospy.loginfo("ACR: Subscribing to {:}".format(camera))
         if self.normal_mode:
             rospy.Subscriber(camera, Image, self.callback_rgb)
@@ -92,16 +91,19 @@ class ActionRecognition:
             # outmsg.header.stamp = rospy.get_rostime()
             outmsg.joints = []
             for key in angles.keys():
-                key = key[:-2]
                 joint = Joint()
                 joint.label = key
                 try:
-                    joint.angle = angles[key+"-X"]
+                    joint.angle = angles[key]
                 except:
                     pass
                 try:
-                    joint.position.x = positions[key+"-X"]
-                    joint.position.y = positions[key+"-Y"]
+                    joint.position.x = positions[key]["X"]
+                    joint.position.y = positions[key]["Y"]
+                except:
+                    pass
+                try:
+                    join.confidence = positions[key]["P"]
                 except:
                     pass
                 outmsg.joints.append(joint)
@@ -116,15 +118,18 @@ class ActionRecognition:
 
     def action_callback(self, msg):
         # start_time = time.time()
-        positions = {} #get_position_prototype()
-        angles = {} #get_angle_prototype()
+        positions = get_position_prototype()
+        angles = get_angle_prototype()
         for joint in msg.joints:
-            angle_key = "{:}-X".format(joint.label)
-            pos_x_key = "{:}-X".format(joint.label)
-            pos_y_key = "{:}-Y".format(joint.label)
-            angles[angle_key] = joint.angle
-            positions[pos_x_key] = joint.position.x
-            positions[pos_y_key] = joint.position.y
+            #old
+            # angle_key = "{:}-X".format(joint.label)
+            # pos_x_key = "{:}-X".format(joint.label)
+            # pos_y_key = "{:}-Y".format(joint.label)
+            angles[joint.label] = joint.angle
+            positions[joint.label] = {}
+            positions[joint.label]['X'] = joint.position.x
+            positions[joint.label]['Y'] = joint.position.y
+            positions[joint.label]['P'] = 0.5 #joint.confidence
         # rospy.loginfo(angles)
         # sys.exit(0)
         with open("/home/rasberry/angles.log", 'w') as f:
@@ -151,12 +156,16 @@ class ActionRecognition:
                 joint = Joint()
                 joint.label = key
                 try:
-                    joint.angle = angles[key+"-X"]
+                    joint.angle = angles[key]
                 except:
                     pass
                 try:
-                    joint.position.x = positions[key+"-X"]
-                    joint.position.y = positions[key+"-Y"]
+                    joint.position.x = positions[key]["X"]
+                    joint.position.y = positions[key]["Y"]
+                except:
+                    pass
+                try:
+                    join.confidence = positions[key]["P"]
                 except:
                     pass
                 outmsg.joints.append(joint)
@@ -179,18 +188,18 @@ class ActionRecognition:
 
     def get_angles(self, recognitions):
         model = get_angle_prototype()
-        for id in ['Neck-Z', 'Upper-Spine-X', 'Mid-Spine-X', 'Lower-Spine-X']:
+        for id in ['Neck', 'Upper-Spine', 'Mid-Spine', 'Lower-Spine']:
             try:
                 model[id] = self.converter.get_angle2(id)
             except:
                 pass
 
-        for id in ['Right:Elbow-X', 'Upper-Spine-X', 'Mid-Spine-X', 'Lower-Spine-X', 'Right:Shoulder-X', 'Right:Hip-X', 'Right:Knee-X']:
+        for id in ['Right:Elbow', 'Upper-Spine', 'Mid-Spine', 'Lower-Spine', 'Right:Shoulder', 'Right:Hip', 'Right:Knee']:
             try:
                 model[id] = self.converter.get_angle1(id)
             except:
                 pass
-        for id in ['Left:Elbow-X', 'Left:Shoulder-X', 'Left:Hip-X', 'Left:Knee-X']:
+        for id in ['Left:Elbow', 'Left:Shoulder', 'Left:Hip', 'Left:Knee']:
             try:
                 model[id] = self.converter.get_angle1(id)
             except:

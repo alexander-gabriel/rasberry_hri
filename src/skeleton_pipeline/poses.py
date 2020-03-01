@@ -33,17 +33,17 @@ standing = {
     "Right:Knee-Y" : "p = Left:Knee-Y",
 }
 
-right_arm_up = {"Right:Shoulder-X": "a > 230.0"}
-right_arm_down = {"Right:Shoulder-X": "a < 120.0"}
-right_arm_side = {"Right:Shoulder-X": "a = 180.0"}
-right_arm_angled = {"Right:Elbow-X": "a < 115.0"}
-right_arm_straight = {"Right:Elbow-X": "a > 140.0"}
+right_arm_up = {"Right:Shoulder": "a > 230.0"}
+right_arm_down = {"Right:Shoulder": "a < 120.0"}
+right_arm_side = {"Right:Shoulder": "a = 180.0"}
+right_arm_angled = {"Right:Elbow": "a < 115.0"}
+right_arm_straight = {"Right:Elbow": "a > 140.0"}
 
-left_arm_up = {"Left:Shoulder-X": "a > 230"}
-left_arm_down = {"Left:Shoulder-X": "a < 120.0"}
-left_arm_side = {"Left:Shoulder-X": "a = 180.0"}
-left_arm_angled = {"Left:Elbow-X": "a < 115.0"}
-left_arm_straight = {"Left:Elbow-X": "a > 140.0"}
+left_arm_up = {"Left:Shoulder": "a > 230"}
+left_arm_down = {"Left:Shoulder": "a < 120.0"}
+left_arm_side = {"Left:Shoulder": "a = 180.0"}
+left_arm_angled = {"Left:Elbow": "a < 115.0"}
+left_arm_straight = {"Left:Elbow": "a > 140.0"}
 
 arms_crossed_frontfacing = {
     "Left:Wrist-X": "p < Neck-X", "Right:Wrist-X": "p > Neck-X",

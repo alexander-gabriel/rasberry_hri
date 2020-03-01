@@ -6,16 +6,22 @@ from threading import Thread
 import rospy
 import rosbag
 import roslaunch
-from config import Config
-from bdi.robot_control import RobotControl
-import rosbag
+
 from std_srvs.srv import Empty
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Pose, PoseWithCovarianceStamped, Point, Quaternion, Twist
 from rosgraph_msgs.msg import Clock
 from rasberry_hri.msg import Action
+
 from utils import start_process
+from config import Config
+from bdi.robot_control import RobotControl
+
+from gazebo_msgs.msg import ModelState
+from gazebo_msgs.srv import SetModelState, GetModelState
+
+
 
 SLEEP = 0.01
 LOG_PATH = "."
@@ -105,14 +111,17 @@ class Experiment():
 
     def __init__(self, parameters, config):
         # super(Config, self).__init__()
+        rospy.loginfo("EXP: Starting Experiment")
         self.is_finished = False
         self.parameters = parameters
         self.config = config
         self.robco = RobotControl(self.config.robot_id)
         self.last_clock = rospy.get_time()
-        self.start_clock = int(self.last_clock + 10)
+        self.start_clock = int(self.last_clock+3)
         self.reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
         self.reset_world = rospy.ServiceProxy('/gazebo/reset_world', Empty)
+        self.get_model_state = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
+        self.set_model_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
         rospy.loginfo("EXP: Waiting for gazebo services")
         rospy.wait_for_service('/gazebo/reset_simulation')
         rospy.wait_for_service('/gazebo/reset_world')
@@ -130,7 +139,7 @@ class Experiment():
         # self.picker_pose.x_m = 19.997
         # self.picker_pose.y_m = 4.568
 
-        self.robot_pose = PoseWithCovarianceStamped()
+        # self.robot_pose = PoseWithCovarianceStamped()
         # self.robot_pose.pose.pose.position.x = 11.649
         # self.robot_pose.pose.pose.position.y = 4.64
         # self.robot_pose.pose.pose.position.z = 0.0
@@ -139,13 +148,24 @@ class Experiment():
         # self.robot_pose.pose.pose.orientation.z = 0.0
         # self.robot_pose.pose.pose.orientation.w = 0.0
 
-        self.robot_pose.pose.pose.position.x = 11.649
-        self.robot_pose.pose.pose.position.y = 4.64
-        self.robot_pose.pose.pose.orientation.w = 1.0
-        self.robot_pose.header.frame_id = 'map'
-        self.robot_pose.header.stamp = rospy.get_rostime()
-        self.robot_pose.header.stamp.secs += 15
-        self.robot_pose_publisher.publish(self.robot_pose)
+        # self.robot_pose.pose.pose.position.x = 11.649
+        # self.robot_pose.pose.pose.position.y = 4.64
+        # self.robot_pose.pose.pose.orientation.w = 1.0
+        # self.robot_pose.header.frame_id = 'map'
+        # self.robot_pose.header.stamp = rospy.get_rostime()
+        # self.robot_pose.header.stamp.secs += 15
+        # self.robot_pose_publisher.publish(self.robot_pose)
+        rospy.wait_for_service('/gazebo/get_model_state')
+        resp = self.get_model_state(self.config.robot_id, "")
+
+        rospy.wait_for_service('/gazebo/set_model_state')
+        state_msg = ModelState()
+        state_msg.model_name = self.config.robot_id
+        state_msg.pose = resp.pose
+        state_msg.pose.position.x = 13.35 #11.649
+        state_msg.pose.position.y = 4.61 #4.64
+        resp = self.set_model_state( state_msg )
+
 
 
     def initial_pose_callback(self, msg):
@@ -192,20 +212,25 @@ class Experiment():
 
     def set_parameters(self, parameters):
         for key, value in parameters.items():
+            key = "/{}/hri/{}".format(self.config.robot_id, key)
+            rospy.loginfo("Set parameter: {}:{}".format(key, value))
             rospy.set_param(key, value)
 
 
     def unset_parameters(self, parameters):
-        for label in parameters.keys():
-            rospy.delete_param(label)
+        for key in parameters.keys():
+            key = "/{}/hri/{}".format(self.config.robot_id, key)
+            rospy.delete_param(key)
 
 
     def setup(self):
+        self.set_parameters(self.parameters)
+        self.launch_services()
         self.clock_sub = rospy.Subscriber('/clock', Clock, self.clock_callback)
         # self.reset_simulation()
-        self.set_parameters(self.parameters)
+
         # self.robot_pose_publisher.publish(self.robot_pose)
-        self.launch_services()
+
 
         # add config specific stuff to reasoning system, <- do this as defined by rosparameters inside the respective nodes instead
 
@@ -229,7 +254,7 @@ class Experiment():
                 return
             difference = clock - self.last_clock
             self.last_clock = clock
-            index = 0
+            # index = 0
             # while index < len(self.running_bags):
             #     if not self.running_bags[index] is None:
             #         del self.running_bags[i]
@@ -257,7 +282,7 @@ class Experiment():
                             rospy.loginfo("EXP: Sending Behaviour message '{}'".format(behaviour["message"]))
                             outmsg = Action()
                             outmsg.action = behaviour["message"]
-                            outmsg.id = rospy.get_param("target_picker", "Picker02")
+                            outmsg.id = rospy.get_param("{}/hri/target_picker".format(self.config.robot_id), "Picker02")
                             self.human_action_publisher.publish(outmsg)
             except AttributeError as err:
                 rospy.logerr("EXP: clock_callback - {}".format(err))

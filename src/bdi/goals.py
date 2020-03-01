@@ -1,13 +1,17 @@
 import rospy
 import sys
 import time
+from copy import copy
 
-from actions import MoveAction, MoveToAction, GiveCrateAction, ExchangeCrateAction, EvadeAction
+# from opencog.bindlink import execute_atom, evaluate_atom
+
+from parameters import *
 from utils import OrderedConsistentSet, suppress
-from opencog.type_constructors import *
-from opencog.bindlink import execute_atom, evaluate_atom
+from actions import MoveAction, MoveToAction, GiveCrateAction, ExchangeCrateAction, EvadeAction
+from opencog.atomspace import types
 
-from time import sleep
+
+
 
 class WrongParameterException(Exception):
 
@@ -141,24 +145,92 @@ class Goal(object):
 
     @classmethod
     def get_targets(cls, targets, variables, results):
-        variables = variables.get_out()
-        if results.is_link():
+        # variables = variables.get_out()
+        if results.is_a(types.ListLink):
             results_out = results.get_out()
         else:
             results_out = [results]
         for index in range(len(variables)):
             if variables[index].type_name == "TypedVariableLink":
                 variable = variables[index].get_out()[0]
+                rospy.logwarn("GOL: Adding: {}: {}".format(variable.name, results_out[index].name))
                 targets[variable.name] = results_out[index].name
             elif variables[index].type_name == "VariableNode":
                 targets[variables[index].name] = results_out[index].name
+                rospy.logwarn("GOL: Adding: {}: {}".format(variables[index].name, results_out[index].name))
         rospy.logdebug("GOL: Found targets: {:} for goal: {:}".format(targets, cls.__name__))
         return targets
 
 
     @classmethod
-    def find_instances(cls, world_state):
+    def build_query_fancy(cls, world_state, templates, picker, picker_location, me, my_location):
+        conditions = []
+        full_conditions = []
+        picker_location_var = None
+        my_location_var = None
+        clauses = []
+        variables = OrderedConsistentSet()
+        target = {}
+        for fun, args in templates:
+            if fun.__name__ == "is_at" and args[0] == "picker":
+                picker_location_var = args[1]
+            elif fun.__name__ == "is_at" and args[0] == ME:
+                my_location_var = args[1]
+        for fun, args in templates:
+            new_args = []
+            full_args = []
+            skip = False
+            if fun.__name__ == "is_at" and args[0] == "picker":
+                target["picker"] = picker.name
+                skip = True
+            elif fun.__name__ == "is_at" and args[0] == ME:
+                target[ME] = me.name
+                skip = True
+            elif fun.__name__ == "is_a" and (args[0] == "picker"):
+                target["picker"] = picker.name
+                skip = True
+            for arg in args:
+                if arg == ME:
+                    full_args.append(me)
+                    if not skip:
+                        new_args.append(me)
+                        target[ME] = me.name
+                elif arg == "picker":
+                    full_args.append(picker)
+                    if not skip:
+                        new_args.append(picker)
+                        target["picker"] = picker.name
+                elif arg == picker_location_var:
+                    full_args.append(picker_location)
+                    if not skip:
+                        new_args.append(picker_location)
+                        target[picker_location_var] = picker_location.name
+                elif arg == my_location_var:
+                    full_args.append(my_location)
+                    if not skip:
+                        new_args.append(my_location)
+                        target[my_location_var] = my_location.name
+                elif fun.__name__ == "is_a" and args.index(arg) == 1:
+                    full_args.append(world_state.kb.concept(arg))
+                    if not skip:
+                        new_args.append(world_state.kb.concept(arg))
+                else:
+                    variable = world_state.kb.variable(arg)
+                    full_args.append(variable)
+                    if not skip:
+                        new_args.append(variable)
+                        variables.append(world_state.kb.typed_variable(variable, world_state.kb.type("ConceptNode")))
+            if not skip:
+                conditions.append(fun(world_state, *new_args))
+            full_conditions.append(fun(world_state, *full_args))
+        query = world_state.kb.And(*conditions)
+        # rospy.logwarn("Built query:\n{:}".format(query))
+        # rospy.logwarn("Built variables:\n{:}".format(variables))
+        return query, variables, target
 
+    @classmethod
+    def find_instances_fancy(cls, world_state):
+        rospy.loginfo("GOL: Checking goal {:} for targets --".format(cls.__name__))
         targets = []
         start_time = time.time()
         templates = cls.get_condition_templates()
@@ -167,89 +239,92 @@ class Goal(object):
         my_location = world_state.get_location(me)
         if my_location is None:
             return targets
-
         for picker, picker_location in picker_locations:
-            conditions = []
-            full_conditions = []
-            picker_location_var = None
-            my_location_var = None
-            clauses = []
-            variables = OrderedConsistentSet()
-            target = {}
-            for fun, args in templates:
-                if fun.__name__ == "is_at" and args[0] == "picker":
-                    picker_location_var = args[1]
-                elif fun.__name__ == "is_at" and args[0] == "me":
-                    my_location_var = args[1]
-            for fun, args in templates:
-                new_args = []
-                full_args = []
-                skip = False
-                if fun.__name__ == "is_at" and args[0] == "picker":
-                    target["picker"] = picker.name
-                    skip = True
-                elif fun.__name__ == "is_at" and args[0] == "me":
-                    target["me"] = me.name
-                    skip = True
-                elif fun.__name__ == "is_a" and (args[0] == "picker"):
-                    target["picker"] = picker.name
-                    skip = True
-                for arg in args:
-                    if arg == "me":
-                        full_args.append(me)
-                        if not skip:
-                            new_args.append(me)
-                            target["me"] = me.name
-                    elif arg == "picker":
-                        full_args.append(picker)
-                        if not skip:
-                            new_args.append(picker)
-                            target["picker"] = picker.name
-                    elif arg == picker_location_var:
-                        full_args.append(picker_location)
-                        if not skip:
-                            new_args.append(picker_location)
-                            target[picker_location_var] = picker_location.name
-                    elif arg == my_location_var:
-                        full_args.append(my_location)
-                        if not skip:
-                            new_args.append(my_location)
-                            target[my_location_var] = my_location.name
-                    elif fun.__name__ == "is_a" and args.index(arg) == 1:
-                        full_args.append(world_state.kb.concept(arg))
-                        if not skip:
-                            new_args.append(world_state.kb.concept(arg))
-                    else:
-                        variable = world_state.kb.variable(arg)
-                        full_args.append(variable)
-                        if not skip:
-                            new_args.append(variable)
-                            variables.append(world_state.kb.typed_variable(variable, world_state.kb.type("ConceptNode")))
-                if not skip:
-                    conditions.append(fun(world_state, *new_args))
-                full_conditions.append(fun(world_state, *full_args))
-            query = world_state.kb.And(*conditions)
+            query, variables, target = cls.build_query(world_state, templates, picker, picker_location, me, my_location)
             if len(variables) > 0:
-                # rospy.loginfo("GOL: Reason (has args): {:}".format(query))
-                variables = world_state.kb.variable_list(*variables.items)
-                results = world_state.kb.reason(world_state.kb.get(variables,query), variables)
+                # rospy.loginfo("GOL: Reason (has args):\n{:}".format(query))
+                vars = world_state.kb.variable_list(*variables.items)
+                # rospy.loginfo("GOL: Reason Variables:\n{:}".format(vars))
+                results = world_state.kb.reason(query, vars)
+                # rospy.logwarn("GOL: incl. variable results:\n{}".format(results))
                 for result in results.get_out():
                     if result.tv == world_state.kb.TRUE:
-                        rospy.logwarn("WE'VE GOT RESULTS - ARGS")
-                        rospy.logwarn(result)
-                        targets.append(cls.get_targets(target, variables, result))
+                        rospy.logwarn("GOL: Found a target for goal: {}".format(cls.__name__))
+                        this_target = copy(target)
+                        world_state.kb.recursive_query_matcher(query, result, this_target)
+                        # rospy.logwarn(result)
+                        rospy.logwarn(this_target)
+                        targets.append(this_target)
             else:
-                # rospy.loginfo("GOL: Reason (no args): {:}".format(query))
+                # rospy.loginfo("GOL: Reason (no args):\n{:}".format(query))
                 results = world_state.kb.reason(query, world_state.kb.variable_list())
+                # rospy.logwarn("GOL: excl. variable results:\n{}".format(results))
                 for result in results.get_out():
                     if result.tv == world_state.kb.TRUE:
-                        rospy.logwarn("WE'VE GOT RESULTS - NO ARGS")
-                        rospy.logwarn(result)
-                        rospy.logwarn(target)
-                        targets.append(target)
+                        rospy.logwarn("GOL: Found a target for goal: {}".format(cls.__name__))
+                        this_target = copy(target)
+                        # rospy.logwarn("WE'VE GOT RESULTS - NO ARGS")
+                        # rospy.logwarn(result)
+                        rospy.logwarn(this_target)
+                        targets.append(this_target)
         duration = time.time() - start_time
         # if duration > 0.01:
         rospy.loginfo("GOL: Checked goal {:} for targets -- {:.4f}".format(cls.__name__, duration))
+        return targets
+
+
+    @classmethod
+    def build_query(cls, world_state, templates, me):
+        full_conditions = []
+        clauses = []
+        variables = OrderedConsistentSet()
+        target = {}
+        for fun, args in templates:
+            full_args = []
+            skip = False
+            if fun.__name__ == "is_at" and args[0] == ME:
+                target[ME] = me.name
+            for arg in args:
+                if arg == ME:
+                    full_args.append(me)
+                else:
+                    variable = world_state.kb.variable(arg)
+                    full_args.append(variable)
+                    variables.append(world_state.kb.typed_variable(variable, world_state.kb.type("ConceptNode")))
+            full_conditions.append(fun(world_state, *full_args))
+        query = world_state.kb.And(*full_conditions)
+        # rospy.logwarn("Built query:\n{:}".format(query))
+        # rospy.logwarn("Built variables:\n{:}".format(variables))
+        return query, variables, target
+
+
+    @classmethod
+    def find_instances(cls, world_state):
+        # rospy.loginfo("GOL: Checking goal {:} for targets --".format(cls.__name__))
+        targets = []
+        start_time = time.time()
+        templates = cls.get_condition_templates()
+        me = world_state.kb.concept(world_state.me.capitalize())
+        query, variables, target = cls.build_query(world_state, templates, me)
+        # rospy.loginfo("GOL: Reason (has args):\n{:}".format(query))
+        vars = world_state.kb.variable_list(*variables.items)
+        # rospy.loginfo("GOL: Reason Variables:\n{:}".format(vars))
+        results = world_state.kb.reason(world_state.kb.get(vars,query), vars)
+        # rospy.logwarn("GOL: classic reasoning results:\n{}".format(results))
+        for setlink in results.get_out():
+            for listlink in setlink.get_out():
+                # if result.tv == world_state.kb.TRUE:
+                # (SetLink (ListLink (ConceptNode "Picker02") (ConceptNode "human") (ConceptNode "WayPoint106") (ConceptNode "WayPoint104")))
+                rospy.logwarn("GOL: Found a target for goal: {}".format(cls.__name__))
+                this_target = copy(target)
+                rospy.logwarn(listlink)
+                cls.get_targets(this_target, variables, listlink)
+                rospy.logwarn(this_target)
+                # world_state.kb.recursive_query_matcher(query, result, this_target)
+                targets.append(this_target)
+        duration = time.time() - start_time
+        # if duration > 0.01:
+        # rospy.loginfo("GOL: Checked goal {:} for targets -- {:.4f}".format(cls.__name__, duration))
         return targets
 
 
@@ -263,25 +338,39 @@ class Goal(object):
                 rospy.logdebug("{}: {}".format(fun, args))
                 new_args = []
                 for arg in args:
-                    if arg == "me":
+                    if arg == ME:
                         new_args.append(world_state.kb.concept(world_state.me.capitalize()))
                     else:
                         new_args.append(world_state.kb.concept(arg))
-                candidate = fun(*new_args)
+                candidate = fun(world_state, *new_args)
                 consequences.append(candidate)
+            # rospy.logwarn("Consequences from is_achieved:\n{}".format(consequences))
             # query = world_state.kb.And(*consequences)
             query = consequences[0]
-            # query = world_state.kb.get(world_state.kb.And(*consequences))
-            rospy.logdebug("GOL: Check: {:}".format(query))
-            results = world_state.check(query)
+            consequence_count = len(consequences)
+            if consequence_count > 1:
+                query = world_state.kb.And(*consequences)
+            elif consequence_count == 1:
+                query = consequences[0]
+            else:
+                return True
+            rospy.logdebug("GOL: Check:\n{:}".format(query))
+            results = world_state.kb.reason(query, world_state.kb.variable_list())
             rospy.logdebug("------ is achieved? ------")
             rospy.logdebug(results)
-            if (results.tv == world_state.kb.TRUE):
-                rospy.logdebug("pleasure achieved")
-                success = True
-            else:
-                rospy.logdebug("no bueno")
-                success = False
+            for listlink in results.get_out():
+                if listlink.tv == world_state.kb.TRUE:
+                    rospy.logwarn("pleasure achieved")
+                    success = True
+                else:
+                    rospy.logdebug("no bueno")
+                    success = False
+            # if (results.tv == world_state.kb.TRUE):
+            #     rospy.logdebug("pleasure achieved")
+            #     success = True
+            # else:
+            #     rospy.logdebug("no bueno")
+            #     success = False
         rospy.logdebug("GOL: Checked if goal {:} was achieved -- {:.4f}".format(self, time.time() - start_time))
 
         return success

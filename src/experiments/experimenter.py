@@ -48,7 +48,6 @@ class Experimenter:
         for config in self.configs:
             self.current_config = config
             for parameters in config.get_parameter_set():
-                print("EXP: Starting config")
                 # this is one experiment run
                 experiment = Experiment(parameters, config)
                 experiment.setup()

@@ -6,9 +6,13 @@ import actionlib
 
 from opencog.atomspace import TruthValue
 
+from topological_navigation.msg import GotoNodeAction
+
+
+
 from bdi.scheduler import Scheduler
 # from geometry_msgs.msg import Pose, PoseStamped
-from topological_navigation.msg import GotoNodeAction
+
 
 # def setup(bdi, me):
 #     bdi.world_state.add_formula("is_a({:}, Robot)".format(me), INF)
@@ -93,7 +97,8 @@ def deduction_formula(AC, AB, BC):
 
 if __name__ == '__main__':
     rospy.init_node("scheduler")
-    robot_id = rospy.names.get_namespace().strip("/")
+    from parameters import * # doesn't work before init_node
+    robot_id = NS.strip("/hri")
     if robot_id == "":
         robot_id = "thorvald_014"
     rospy.loginfo("SES: Robot name is: {:}".format(robot_id))

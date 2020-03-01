@@ -20,32 +20,34 @@ class Config():
         self.robot_id = robot_id
         self.parameters = {"called_robot": [False],
                             "seen_picking": [False],
+                            "picker_speed": [0.55],
                             "target_picker": ["Picker02"],
-                            "iterations": ["30"]}
+                            "iterations": ["90"]}
         self.behaviours = {
-                            1: {"type": "rosbag",
-                                "label": "picking_berries",
-                                "start": 0,
-                                "duration": 3,
-                                "filename": "/data/subject-1-out/picking_berries-34-joints.bag",
-                                "topics": ["/human_actions"]
-                                },
-                            3: {"type": "rosbag",
-                                "label": "call",
-                                "start": 0,
-                                "duration": 2,
-                                "filename": "/data/subject-1-out/gesture_call-75-joints.bag",
-                                "topics": ["/human_actions"]
-                                },
-                            6: {"type": "message",
+                            # 1: {"type": "rosbag",
+                            #     "label": "picking_berries",
+                            #     "start": 0,
+                            #     "duration": 3,
+                            #     "filename": "/data/subject-1-out/picking_berries-34-joints.bag",
+                            #     "topics": ["/human_actions"]
+                            #     },
+                            # 3: {"type": "rosbag",
+                            #     "label": "call",
+                            #     "start": 0,
+                            #     "duration": 2,
+                            #     "filename": "/data/subject-1-out/gesture_call-75-joints.bag",
+                            #     "topics": ["/human_actions"]
+                            #     },
+                            0: {"type": "message",
                                 "target": "picker_movement",
-                                "message": "exchange"
+                                "message": "evade"
                                 }
                             }
         self.behaviour_times = sorted(self.behaviours.keys())
-        self.termination_time = 25
+        self.termination_time = 15
         self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch", "/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
         # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
+        # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch"]
         self.robot_pose = PoseWithCovarianceStamped()
         self.robot_pose.pose.pose.position.x = 11.649
         self.robot_pose.pose.pose.position.y = 4.64

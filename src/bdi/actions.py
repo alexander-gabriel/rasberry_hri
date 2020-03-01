@@ -2,10 +2,10 @@ from time import sleep
 
 import rospy
 
+from parameters import *
 from world_state import WorldState as ws
 
-SPEED = rospy.get_param("robot_speed", 0.5) # m/s
-MEAN_WAYPOINT_DISTANCE = rospy.get_param("mean_waypoint_distance", 2.95) # m
+
 
 class Action(object):
 
@@ -122,10 +122,10 @@ class Action(object):
 
 class MoveAction(Action):
 
-    condition_templates = [[ws.is_at, ["me", "origin"]]]
-    # condition_templates = [[ws.is_at, ["me", "origin"]], [ws.linked, ["origin", "destination"]]]
-    consequence_templates = [[ws.is_at, ["me", "destination"]]]
-    placeholders = ["me", "origin", "destination"] # in same order as constructor arguments
+    condition_templates = [[ws.is_at, [ME, "origin"]]]
+    # condition_templates = [[ws.is_at, [ME, "origin"]], [ws.linked, ["origin", "destination"]]]
+    consequence_templates = [[ws.is_at, [ME, "destination"]]]
+    placeholders = [ME, "origin", "destination"] # in same order as constructor arguments
 
 
     def __init__(self, world_state, robco, args):
@@ -133,7 +133,7 @@ class MoveAction(Action):
         super(MoveAction, self).__init__(world_state, args)
         self.robco = robco
         self.destination = args[2]
-        self.gain = rospy.get_param("move_gain", 0)
+        self.gain = MOVE_GAIN
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?origin", origin).replace(ME, me))
     #     for consequence in self.consequence_templates:
@@ -148,7 +148,7 @@ class MoveAction(Action):
 
 
     def get_cost(self):
-        return MEAN_WAYPOINT_DISTANCE / SPEED
+        return MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
 
 
     def __repr__(self):
@@ -158,12 +158,12 @@ class MoveAction(Action):
 
 class MoveToAction(Action):
 
-    condition_templates = [[ws.is_at, ["me", "origin"]], [ws.is_at, ["picker", "destination"]]]
-    # condition_templates = [[ws.is_at, ["me", "origin"]], [ws.linked, ["origin", "destination"]], [ws.is_at, ["picker", "destination"]]]
+    condition_templates = [[ws.is_at, [ME, "origin"]], [ws.is_at, ["picker", "destination"]]]
+    # condition_templates = [[ws.is_at, [ME, "origin"]], [ws.linked, ["origin", "destination"]], [ws.is_at, ["picker", "destination"]]]
 
-    consequence_templates = [[ws.is_at, ["me", "destination"]]]
+    consequence_templates = [[ws.is_at, [ME, "destination"]]]
 
-    placeholders = ["me", "picker", "origin", "destination"] # in same order as constructor arguments
+    placeholders = [ME, "picker", "origin", "destination"] # in same order as constructor arguments
 
 
     def __init__(self, world_state, robco, args):
@@ -171,7 +171,7 @@ class MoveToAction(Action):
         super(MoveToAction, self).__init__(world_state, args)
         self.robco = robco
         self.destination = args[3]
-        self.gain = rospy.get_param("moveto_gain", 0)
+        self.gain = MOVETO_GAIN
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?origin", origin).replace(ME, me))
     #     for consequence in self.consequence_templates:
@@ -186,7 +186,7 @@ class MoveToAction(Action):
 
 
     def get_cost(self):
-        return MEAN_WAYPOINT_DISTANCE / SPEED
+        return MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
 
 
     def __repr__(self):
@@ -195,14 +195,37 @@ class MoveToAction(Action):
 
 
 class EvadeAction(Action):
+    # works
+    # condition_templates = [[ws.is_a, ["picker", "human"]],[ws.is_at, [ME, "origin"]], [ws.is_at, ["picker", "place1"]], [ws.leads_to, ["origin", "place1"]], [ws.leads_to, ["origin", "destination"]]]
 
-    # condition_templates = [[ws.is_a, ["picker", "human"]],[ws.seen_picking, ["picker"]], [ws.called_robot, ["picker"]]]
-    condition_templates = [[ws.is_at, ["picker", "place1"]], [ws.is_at, ["me", "origin"]], [ws.leads_to, ["destination", "origin"]], [ws.leads_to, ["origin", "place1"]], [ws.seen_picking, ["picker"]], [ws.called_robot, ["picker"]]]
-    # condition_templates = [[ws.is_a, ["picker", "human"]],[ws.is_at, ["picker", "place1"]], [ws.is_at, ["me", "origin"]], [ws.leads_to, ["destination", "origin"]], [ws.leads_to, ["origin", "place1"]], [ws.approaching, ["picker"]], [ws.not_seen_picking, ["picker"]], [ws.not_called_robot, ["picker"]], [ws.not_same, ["destination", "place1"]], [ws.not_same, ["destination", "origin"]]]
+    condition_templates = [
+    [ws.is_a, ["picker", "human"]],
+    [ws.is_at, ["picker", "place1"]],
+    # [ws.not_is_at, ["picker", "destination"]],
+    [ws.is_at, [ME, "origin"]],
+    [ws.leads_to, ["origin", "destination"]],
+    [ws.leads_to, ["place1", "origin"]],
+    [ws.approaching, ["picker"]],
+    [ws.not_seen_picking, ["picker"]],
+    # [ws.not_called_robot, ["bla"]],
+    ]
 
-    consequence_templates = [[ws.is_at, ["me", "destination"]]]
+    # condition_templates = [[ws.is_a, ["picker", "human"]], [ws.is_at, ["picker", "place1"]], [ws.is_at, [ME, "origin"]], [ws.leads_to, ["origin", "destination"]], [ws.leads_to, ["place1", "origin"]], [ws.approaching, ["picker"]], [ws.not_seen_picking, ["picker"]], [ws.not_called_robot, ["picker"]], [ws.is_not_occupied, ["destination"]]]
 
-    placeholders = ["me", "picker", "origin", "destination"] # in same order as constructor arguments
+    # condition_templates = [[ws.is_a, ["picker", "human"]], [ws.is_at, ["picker", "place1"]], [ws.is_at, [ME, "origin"]], [ws.leads_to, ["origin", "destination"]], [ws.leads_to, ["place1", "origin"]], [ws.approaching, ["picker"]], [ws.not_seen_picking, ["picker"]], [ws.not_called_robot, ["picker"]], [ws.not_is_at, ["picker", "destination"]]]
+
+    # condition_templates = [[ws.is_a, ["picker", "human"]], [ws.is_at, ["picker", "place1"]], [ws.is_at, [ME, "origin"]], [ws.approaching, ["picker"]], [ws.not_seen_picking, ["picker"]], [ws.not_called_robot, ["picker"]], [ws.not_is_at, ["picker", "destination"]]]
+
+    # last try
+    # condition_templates = [[ws.is_a, ["picker", "human"]], [ws.is_at, ["picker", "place1"]], [ws.is_at, [ME, "origin"]], [ws.approaching, ["picker"]], [ws.not_seen_picking, ["picker"]], [ws.not_called_robot, ["picker"]], [ws.leads_to, ["origin", "destination"]], [ws.leads_to, ["origin", "place1"]]]
+
+    # condition_templates = [[ws.is_a, ["picker", "human"]], [ws.is_at, ["picker", "place1"]], [ws.is_at, [ME, "origin"]], [ws.approaching, ["picker"]], [ws.not_seen_picking, ["picker"]], [ws.not_called_robot, ["picker"]]]
+
+    # condition_templates = [[ws.is_a, ["picker", "human"]], [ws.is_at, ["picker", "place1"]], [ws.is_at, [ME, "origin"]], [ws.leads_to, ["origin", "destination"]], [ws.leads_to, ["place1", "origin"]], [ws.approaching, ["picker"]], [ws.not_seen_picking, ["picker"]], [ws.not_called_robot, ["picker"]], [ws.not_same, ["destination", "place1"]]]
+
+    consequence_templates = [[ws.is_at, [ME, "destination"]]]
+
+    placeholders = [ME, "picker", "origin", "destination"] # in same order as constructor arguments
 
 
     def __init__(self, world_state, robco, args):
@@ -211,16 +234,16 @@ class EvadeAction(Action):
         self.robco = robco
         self.picker = args[1]
         self.destination = args[3]
-        self.gain = rospy.get_param("evade_gain", 200)
+        self.gain = EVADE_GAIN
 
     def perform(self):
         super(EvadeAction, self).perform()
-        self.robco.move_to(self.destination)
+        # self.robco.move_to(self.destination)
         # self.robco.get_result().success <-- needs a check for None
         return True
 
     def get_cost(self):
-        return MEAN_WAYPOINT_DISTANCE / SPEED
+        return MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
 
 
     def __repr__(self):
@@ -231,13 +254,13 @@ class EvadeAction(Action):
 class GiveCrateAction(Action):
 
 
-    condition_templates = [[ws.not_seen_picking, ["picker"]], [ws.called_robot, ["picker"]], [ws.is_at, ["picker", "destination"]], [ws.is_at, ["me", "destination"]]]
+    condition_templates = [[ws.not_seen_picking, ["picker"]], [ws.called_robot, ["picker"]], [ws.is_at, ["picker", "destination"]], [ws.is_at, [ME, "destination"]]]
 
-    # condition_templates = [[ws.not_seen_picking, ["picker"]], [ws.called_robot, ["picker"]], [ws.is_at, ["picker", "destination"]], [ws.is_at, ["me", "destination"]], [ws.is_a, ["picker", "human"]]]
+    # condition_templates = [[ws.not_seen_picking, ["picker"]], [ws.called_robot, ["picker"]], [ws.is_at, ["picker", "destination"]], [ws.is_at, [ME, "destination"]], [ws.is_a, ["picker", "human"]]]
 
     consequence_templates = [[ws.not_called_robot, ["picker"]]]
 
-    placeholders = ["me", "picker", "destination"] # in same order as constructor arguments
+    placeholders = [ME, "picker", "destination"] # in same order as constructor arguments
 
 
     def __init__(self, world_state, robco, args):
@@ -245,8 +268,8 @@ class GiveCrateAction(Action):
         super(GiveCrateAction, self).__init__(world_state, args)
         self.robco = robco
         self.picker = args[1]
-        self.gain = rospy.get_param("give_gain", 240)
-        self.cost = rospy.get_param("give_cost", 2.5)
+        self.gain = GIVE_GAIN
+        self.cost = GIVE_COST
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?picker", picker).replace(ME, me))
     #     for consequence in self.consequence_templates:
@@ -280,13 +303,13 @@ class GiveCrateAction(Action):
 class ExchangeCrateAction(Action):
 
 
-    condition_templates = [[ws.seen_picking, ["picker"]], [ws.called_robot, ["picker"]], [ws.is_at, ["picker", "destination"]], [ws.is_at, ["me", "destination"]]]
+    # condition_templates = [[ws.seen_picking, ["picker"]], [ws.called_robot, ["picker"]], [ws.is_at, ["picker", "destination"]], [ws.is_at, [ME, "destination"]]]
 
-    # condition_templates = [[ws.seen_picking, ["picker"]], [ws.called_robot, ["picker"]], [ws.is_at, ["picker", "destination"]], [ws.is_at, ["me", "destination"]], [ws.is_a, ["picker", "human"]]]
+    condition_templates = [[ws.seen_picking, ["picker"]], [ws.called_robot, ["picker"]], [ws.is_at, ["picker", "destination"]], [ws.is_at, [ME, "destination"]], [ws.is_a, ["picker", "human"]]]
 
     consequence_templates = [[ws.not_seen_picking, ["picker"]], [ws.not_called_robot, ["picker"]]]
 
-    placeholders = ["me", "picker", "destination"] # in same order as constructor arguments
+    placeholders = [ME, "picker", "destination"] # in same order as constructor arguments
 
 
     def __init__(self, world_state, robco, args):
@@ -294,8 +317,8 @@ class ExchangeCrateAction(Action):
         super(ExchangeCrateAction, self).__init__(world_state, args)
         self.robco = robco
         self.picker = args[1]
-        self.gain = rospy.get_param("exchange_gain", 240)
-        self.cost = rospy.get_param("exchange_cost", 5)
+        self.gain = EXCHANGE_GAIN
+        self.cost = EXCHANGE_COST
 
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?picker", picker).replace(ME, me))

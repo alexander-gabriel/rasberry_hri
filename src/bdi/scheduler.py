@@ -8,23 +8,21 @@ from qsrlib_io.world_trace import Object_State,World_Trace
 from opencog.type_constructors import *
 
 import rospy
-
 import actionlib
 from rasberry_hri.msg import Action
 from topological_navigation.msg import GotoNodeAction, GotoNodeGoal
 from bayes_people_tracker.msg import PeopleTracker
-
 from std_srvs.srv import Empty
 from std_msgs.msg import String
 from geometry_msgs.msg import Pose, PoseStamped
 
-from bdi_system import BDISystem
-from bdi_system import INF
+from parameters import *
 from utils import suppress, wp2sym, sym2wp
 
+from bdi_system import BDISystem
 from knowledge_base import KnowledgeBase
 
-FREQUENCY = 0.5 # Hz
+
 
 class Scheduler:
 
@@ -35,7 +33,6 @@ class Scheduler:
         self.robot_id = robot_id
         self.latest_robot_node = None
         self.bdi = BDISystem(self.robot_id, self.kb)
-        self.bdi.world_state.add_thing(self.robot_id.capitalize(), "robot")
         self.robot_pose_sub = rospy.Subscriber('/{:}/robot_pose'.format(self.robot_id), Pose, self.robot_position_coordinate_callback)
         self.robot_sub = rospy.Subscriber('/{:}/closest_node'.format(self.robot_id), String, self.robot_position_node_callback)
         self.human_action_sub = rospy.Subscriber('/human_actions_fast', Action, self.human_intention_callback)

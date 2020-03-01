@@ -5,12 +5,13 @@ import time
 import rospy
 import rospkg
 
+from parameters import *
 from utils import suppress
 
 
 rospack = rospkg.RosPack()
 path = join(rospack.get_path('rasberry_hri'), 'src', 'bdi')
-VERBOSE = False
+
 
 
 
@@ -26,8 +27,36 @@ class WorldState(object):
         return link
 
 
+    def not_is_at(self, thing, place, atsp=None):
+        link = self.kb.absent(self.kb.state(thing, place, atsp=atsp), atsp=atsp)
+        return link
+
+
+    def query_at(self, thing, place, atsp=None):
+        link = self.kb.identical(thing, self.kb.get(self.kb.state(self.kb.variable("x"), place, atsp=atsp), atsp=atsp), atsp=atsp)
+        # link = self.kb.state(thing, place, atsp=atsp)
+        return link
+
+
+    def is_occupied(self, place, atsp=None):
+        someone = self.kb.variable("someone", atsp=atsp)
+        link = self.kb.exists(someone, self.kb.And(self.kb.Or(self.is_a(someone, self.kb.concept("human", atsp=atsp), atsp=atsp), self.is_a(someone, self.kb.concept("robot", atsp=atsp), atsp=atsp), atsp=atsp), self.is_at(someone, place, atsp=atsp), atsp=atsp), atsp=atsp)
+        return link
+
+
+    def is_not_occupied(self, place, atsp=None):
+        link = self.kb.Not(self.is_occupied(place, atsp=atsp), atsp=atsp)
+        return link
+
+
     def is_a(self, thing, category, atsp=None):
         link = self.kb.inheritance(thing, category, atsp=atsp)
+        return link
+
+
+    def query_a(self, thing, category, atsp=None):
+        link = self.kb.identical(category, self.kb.get(self.kb.inheritance(thing, self.kb.variable("x"), atsp=atsp), atsp=atsp), atsp=atsp)
+        # link = self.kb.inheritance(thing, category, atsp=atsp)
         return link
 
 
@@ -56,12 +85,21 @@ class WorldState(object):
 
 
     def called_robot(self, picker, atsp=None):
-        link = self.kb.state(self.kb.list(picker, self.kb.predicate("called robot", atsp=atsp), atsp=atsp), self.kb.concept("TRUE", atsp=atsp), atsp=atsp)
+        link = self.kb.evaluation(self.kb.predicate("called_robot", atsp=atsp), picker, atsp=atsp)
+        # link = self.kb.state(self.kb.list(picker, self.kb.predicate("called robot", atsp=atsp), atsp=atsp), self.kb.concept("TRUE", atsp=atsp), atsp=atsp)
         return link
 
 
     def not_called_robot(self, picker, atsp=None):
-        link = self.kb.state(self.kb.list(picker, self.kb.predicate("called robot", atsp=atsp), atsp=atsp), self.kb.concept("FALSE", atsp=atsp), atsp=atsp)
+        link = self.kb.Not(self.called_robot(picker, atsp), atsp=atsp)
+        # link = self.kb.state(self.kb.list(picker, self.kb.predicate("called robot", atsp=atsp), atsp=atsp), self.kb.concept("FALSE", atsp=atsp), atsp=atsp)
+        return link
+
+#(Equal (OtherAtom) (Get (State (SomeAtom) (Variable "x"))))
+
+    def is_approaching(self, picker, atsp=None):
+        link = self.kb.identical(picker, self.kb.get(self.kb.state(self.kb.variable("x", atsp=atsp), self.kb.concept("APPROACHING", atsp=atsp), atsp=atsp), atsp=atsp), atsp=atsp)
+        # link = self.kb.state(self.kb.list(picker, self.kb.predicate("movement", atsp=atsp), atsp=atsp), self.kb.concept("APPROACHING", atsp=atsp), atsp=atsp)
         return link
 
 
@@ -70,8 +108,20 @@ class WorldState(object):
         return link
 
 
+    def is_leaving(self, picker, atsp=None):
+        link = self.kb.identical(picker, self.kb.get(self.kb.state(self.kb.variable("x", atsp=atsp), self.kb.concept("LEAVING", atsp=atsp), atsp=atsp), atsp=atsp), atsp=atsp)
+        # link = self.kb.state(self.kb.list(picker, self.kb.predicate("movement", atsp=atsp), atsp=atsp), self.kb.concept("APPROACHING", atsp=atsp), atsp=atsp)
+        return link
+
+
     def leaving(self, picker, atsp=None):
         link = self.kb.state(self.kb.list(picker, self.kb.predicate("movement", atsp=atsp), atsp=atsp), self.kb.concept("LEAVING", atsp=atsp), atsp=atsp)
+        return link
+
+
+    def is_standing(self, picker, atsp=None):
+        link = self.kb.identical(picker, self.kb.get(self.kb.state(self.kb.variable("x", atsp=atsp), self.kb.concept("STANDING", atsp=atsp), atsp=atsp), atsp=atsp), atsp=atsp)
+        # link = self.kb.state(self.kb.list(picker, self.kb.predicate("movement", atsp=atsp), atsp=atsp), self.kb.concept("APPROACHING", atsp=atsp), atsp=atsp)
         return link
 
 
@@ -81,12 +131,14 @@ class WorldState(object):
 
 
     def seen_picking(self, picker, atsp=None):
-        link = self.kb.state(self.kb.list(picker, self.kb.predicate( "seen_picking", atsp=atsp), atsp=atsp), self.kb.concept("TRUE", atsp=atsp), atsp=atsp)
+        link = self.kb.evaluation(self.kb.predicate("seen_picking", atsp=atsp), picker, atsp=atsp)
+        # link = self.kb.state(self.kb.list(picker, self.kb.predicate( "seen_picking", atsp=atsp), atsp=atsp), self.kb.concept("TRUE", atsp=atsp), atsp=atsp)
         return link
 
 
     def not_seen_picking(self, picker, atsp=None):
-        link = self.kb.state(self.kb.list(picker, self.kb.predicate( "seen_picking", atsp=atsp), atsp=atsp), self.kb.concept("FALSE", atsp=atsp), atsp=atsp)
+        link = self.kb.Not(self.seen_picking(picker, atsp), atsp=atsp)
+        # link = self.kb.state(self.kb.list(picker, self.kb.predicate( "seen_picking", atsp=atsp), atsp=atsp), self.kb.concept("FALSE", atsp=atsp), atsp=atsp)
         return link
 
 
@@ -169,7 +221,7 @@ class WorldState(object):
         _as = self.kb.atomspace
         node1 = self.kb.concept(person, atsp=_as)
         node2 = self.kb.concept(place, atsp=_as)
-        self.kb.state(node1, node2, atsp=_as).tv = self.kb.TRUE
+        self.is_at(node1, node2).tv = self.kb.TRUE
         rospy.loginfo("WST: {:} is at {:}".format(person, place))
 
 
@@ -184,10 +236,10 @@ class WorldState(object):
             self.is_a(picker, self.kb.concept("human")),
             self.is_at(picker, location))
         results = self.kb.reason(self.kb.get(variables, query), variables)
-        setlink = results.get_out()[0]
-        for listlink in setlink.get_out():
-                picker, location = listlink.get_out()
-                pickers.append([picker, location])
+
+        for listlink in results.get_out()[0].get_out():
+            picker, location = listlink.get_out()
+            pickers.append([picker, location])
         return pickers
 
 
@@ -196,8 +248,7 @@ class WorldState(object):
         variables = self.kb.variable_list(
             self.kb.typed_variable(location, self.kb.type("ConceptNode")))
         query = self.is_at(target, location)
-        results = self.kb.reason(query, variables)
-        setlink = results.get_out()
-        for statelink in setlink:
-            return statelink.get_out()[1]
+        results = self.kb.reason(self.kb.get(variables, query), variables)
+        for concept_node in results.get_out()[0].get_out():
+            return concept_node
         return None

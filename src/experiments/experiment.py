@@ -162,9 +162,10 @@ class Experiment():
         state_msg = ModelState()
         state_msg.model_name = self.config.robot_id
         state_msg.pose = resp.pose
-        state_msg.pose.position.x = 13.35 #11.649
-        state_msg.pose.position.y = 4.61 #4.64
+        state_msg.pose.position.x = 11.649 #11.649
+        state_msg.pose.position.y = 4.62 #4.64
         resp = self.set_model_state( state_msg )
+        rospy.logwarn(resp)
 
 
 

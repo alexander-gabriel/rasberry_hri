@@ -85,14 +85,14 @@ class WorldState(object):
 
 
     def called_robot(self, picker, atsp=None):
-        link = self.kb.evaluation(self.kb.predicate("called_robot", atsp=atsp), picker, atsp=atsp)
-        # link = self.kb.state(self.kb.list(picker, self.kb.predicate("called robot", atsp=atsp), atsp=atsp), self.kb.concept("TRUE", atsp=atsp), atsp=atsp)
+        # link = self.kb.evaluation(self.kb.predicate("called_robot", atsp=atsp), picker, atsp=atsp)
+        link = self.kb.state(self.kb.list(picker, self.kb.predicate("called robot", atsp=atsp), atsp=atsp), self.kb.concept("TRUE", atsp=atsp), atsp=atsp)
         return link
 
 
     def not_called_robot(self, picker, atsp=None):
-        link = self.kb.Not(self.called_robot(picker, atsp), atsp=atsp)
-        # link = self.kb.state(self.kb.list(picker, self.kb.predicate("called robot", atsp=atsp), atsp=atsp), self.kb.concept("FALSE", atsp=atsp), atsp=atsp)
+        # link = self.kb.Not(self.called_robot(picker, atsp), atsp=atsp)
+        link = self.kb.state(self.kb.list(picker, self.kb.predicate("called robot", atsp=atsp), atsp=atsp), self.kb.concept("FALSE", atsp=atsp), atsp=atsp)
         return link
 
 #(Equal (OtherAtom) (Get (State (SomeAtom) (Variable "x"))))
@@ -131,14 +131,14 @@ class WorldState(object):
 
 
     def seen_picking(self, picker, atsp=None):
-        link = self.kb.evaluation(self.kb.predicate("seen_picking", atsp=atsp), picker, atsp=atsp)
-        # link = self.kb.state(self.kb.list(picker, self.kb.predicate( "seen_picking", atsp=atsp), atsp=atsp), self.kb.concept("TRUE", atsp=atsp), atsp=atsp)
+        # link = self.kb.evaluation(self.kb.predicate("seen_picking", atsp=atsp), picker, atsp=atsp)
+        link = self.kb.state(self.kb.list(picker, self.kb.predicate( "seen_picking", atsp=atsp), atsp=atsp), self.kb.concept("TRUE", atsp=atsp), atsp=atsp)
         return link
 
 
     def not_seen_picking(self, picker, atsp=None):
-        link = self.kb.Not(self.seen_picking(picker, atsp), atsp=atsp)
-        # link = self.kb.state(self.kb.list(picker, self.kb.predicate( "seen_picking", atsp=atsp), atsp=atsp), self.kb.concept("FALSE", atsp=atsp), atsp=atsp)
+        # link = self.kb.Not(self.seen_picking(picker, atsp), atsp=atsp)
+        link = self.kb.state(self.kb.list(picker, self.kb.predicate( "seen_picking", atsp=atsp), atsp=atsp), self.kb.concept("FALSE", atsp=atsp), atsp=atsp)
         return link
 
 

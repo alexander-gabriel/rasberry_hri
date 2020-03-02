@@ -40,11 +40,11 @@ class BDISystem:
             self.people_tracks = {}
             self.directions = {}
             self.latest_directions = {}
-            # self.goals = [DeliverGoal, ExchangeGoal, EvadeGoal]
+            self.goals = [DeliverGoal, ExchangeGoal, EvadeGoal]
             # self.goals = [DeliverGoal, ExchangeGoal]
             # self.goals = [DeliverGoal]
             # self.goals = [ExchangeGoal]
-            self.goals = [EvadeGoal]
+            # self.goals = [EvadeGoal]
             # self.goals = []
             self.intentions = []
             self.latest_robot_msg = None
@@ -87,7 +87,7 @@ class BDISystem:
             self.world_state.seen_picking(self.kb.concept(picker)).tv = self.kb.TRUE
         else:
             self.world_state.not_seen_picking(self.kb.concept(picker)).tv = self.kb.TRUE
-        self.robco.move_to(INITIAL_WAYPOINT)
+        # self.robco.move_to(INITIAL_WAYPOINT)
 
 
     def generate_options(self):
@@ -170,7 +170,7 @@ class BDISystem:
         while index < len(self.intentions):
             if self.intentions[index].is_achieved(self.world_state):
                 rospy.loginfo("BDI: Finished following {}".format(self.intentions[index]))
-                self.robco.move_to(INITIAL_WAYPOINT)
+                # self.robco.move_to(INITIAL_WAYPOINT)
                 del self.intentions[index]
             else:
                 index += 1
@@ -242,12 +242,15 @@ class BDISystem:
                         self.latest_directions[picker] = direction
                     distance = get_distance(self.latest_robot_msg, self.latest_people_msgs[picker].pose)
                     # stop if we're to close to a picker
+                    rospy.logwarn("here")
                     if distance < MINIMUM_DISTANCE + 0.5 * (ROBOT_LENGTH + PICKER_LENGTH):
                         if not self.too_close:
                             self.too_close = True
                             rospy.loginfo("BDI: Robot has met picker. Distance: {}".format(distance - 0.5 * (ROBOT_LENGTH + PICKER_LENGTH)))
                             self.picker_pose_publisher.publish("at robot")
                             self.robco.cancel_movement()
+                        else:
+                            rospy.logwarn("collision")
                     elif self.too_close:
                         rospy.loginfo("BDI: Robot has left picker. Distance: {}".format(distance - 0.5 * (ROBOT_LENGTH + PICKER_LENGTH)))
                         self.too_close = False

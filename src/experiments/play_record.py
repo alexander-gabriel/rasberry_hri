@@ -77,6 +77,7 @@ if __name__ == '__main__':
     for sid in sids:
         ## TODO: readjust
         source_folder = os.path.join(PATH, "subject-{:}".format(sid))
+        # source_folder = PATH
         target_folder = os.path.join(PATH, "subject-{:}-out".format(sid))
         try:
             os.mkdir(target_folder)
@@ -84,16 +85,17 @@ if __name__ == '__main__':
             pass
         print(source_folder)
         for filename in os.listdir(source_folder):
-            try:
-                print("starting with {}".format(filename))
-                recorder = Recorder(os.path.join(target_folder, "{:}-joints.bag".format(filename[:-4])), topic="/human_actions", klass=Action)
-                ## TODO: readjust
-                # player = Player(os.path.join(source_folder,"{:}".format(filename)), topics=["/human_actions"], start_time=None)
-                player = Player(os.path.join(source_folder,"{:}".format(filename)), topics=["/camera/color/image_raw"], start_time=None)
-                player.start()
-                player.join()
-                player.close()
-                rospy.sleep(1)
-                recorder.close()
-            except Exception as err:
-                print(traceback.format_exc())
+            if filename.endswith(".bag"):
+                try:
+                    print("starting with {}".format(filename))
+                    recorder = Recorder(os.path.join(target_folder, "{:}-joints.bag".format(filename[:-4])), topic="/human_actions", klass=Action)
+                    ## TODO: readjust
+                    # player = Player(os.path.join(source_folder,"{:}".format(filename)), topics=["/human_actions"], start_time=None)
+                    player = Player(os.path.join(source_folder,"{:}".format(filename)), topics=["/camera/color/image_raw"], start_time=None)
+                    player.start()
+                    player.join()
+                    player.close()
+                    rospy.sleep(1)
+                    recorder.close()
+                except Exception as err:
+                    print(traceback.format_exc())

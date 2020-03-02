@@ -153,11 +153,11 @@ class Goal(object):
         for index in range(len(variables)):
             if variables[index].type_name == "TypedVariableLink":
                 variable = variables[index].get_out()[0]
-                rospy.logwarn("GOL: Adding: {}: {}".format(variable.name, results_out[index].name))
+                # rospy.logwarn("GOL: Adding: {}: {}".format(variable.name, results_out[index].name))
                 targets[variable.name] = results_out[index].name
             elif variables[index].type_name == "VariableNode":
                 targets[variables[index].name] = results_out[index].name
-                rospy.logwarn("GOL: Adding: {}: {}".format(variables[index].name, results_out[index].name))
+                # rospy.logwarn("GOL: Adding: {}: {}".format(variables[index].name, results_out[index].name))
         rospy.logdebug("GOL: Found targets: {:} for goal: {:}".format(targets, cls.__name__))
         return targets
 
@@ -253,7 +253,7 @@ class Goal(object):
                         this_target = copy(target)
                         world_state.kb.recursive_query_matcher(query, result, this_target)
                         # rospy.logwarn(result)
-                        rospy.logwarn(this_target)
+                        # rospy.logwarn(this_target)
                         targets.append(this_target)
             else:
                 # rospy.loginfo("GOL: Reason (no args):\n{:}".format(query))
@@ -265,7 +265,7 @@ class Goal(object):
                         this_target = copy(target)
                         # rospy.logwarn("WE'VE GOT RESULTS - NO ARGS")
                         # rospy.logwarn(result)
-                        rospy.logwarn(this_target)
+                        # rospy.logwarn(this_target)
                         targets.append(this_target)
         duration = time.time() - start_time
         # if duration > 0.01:
@@ -315,13 +315,19 @@ class Goal(object):
             for listlink in setlink.get_out():
                 # if result.tv == world_state.kb.TRUE:
                 # (SetLink (ListLink (ConceptNode "Picker02") (ConceptNode "human") (ConceptNode "WayPoint106") (ConceptNode "WayPoint104")))
-                rospy.logwarn("GOL: Found a target for goal: {}".format(cls.__name__))
+
                 this_target = copy(target)
-                rospy.logwarn(listlink)
+                # rospy.logwarn(listlink)
                 cls.get_targets(this_target, variables, listlink)
-                rospy.logwarn(this_target)
+                if "place1" in this_target:
+                    if this_target["place1"] != this_target["destination"]:
+                        rospy.logwarn("GOL: Found a target for goal: {}".format(cls.__name__))
+                    # rospy.logwarn(this_target)
                 # world_state.kb.recursive_query_matcher(query, result, this_target)
-                targets.append(this_target)
+                    targets.append(this_target)
+                else:
+                    rospy.logwarn("GOL: Found a target for goal: {}".format(cls.__name__))
+                    targets.append(this_target)
         duration = time.time() - start_time
         # if duration > 0.01:
         # rospy.loginfo("GOL: Checked goal {:} for targets -- {:.4f}".format(cls.__name__, duration))
@@ -417,7 +423,7 @@ class Goal(object):
             tries -= 1
             if not succeeded:
                 rospy.logwarn("GOL: Tried to peform action; result: {}, {:d} tries remaining".format(succeeded, tries))
-                sleep(2)
+                # rospy.sleep(2)
         if not succeeded:
             action_queue.insert(0,action)
         else:

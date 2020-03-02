@@ -122,8 +122,11 @@ class Action(object):
 
 class MoveAction(Action):
 
-    condition_templates = [[ws.is_at, [ME, "origin"]]]
-    # condition_templates = [[ws.is_at, [ME, "origin"]], [ws.linked, ["origin", "destination"]]]
+    condition_templates = [
+    [ws.is_at, [ME, "origin"]],
+    # [ws.linked, ["origin", "destination"]]
+    ]
+
     consequence_templates = [[ws.is_at, [ME, "destination"]]]
     placeholders = [ME, "origin", "destination"] # in same order as constructor arguments
 
@@ -154,12 +157,18 @@ class MoveAction(Action):
     def __repr__(self):
         return "<Action:Move to {:}>".format(self.destination)
 
+# TODO:   File "/home/rasberry/catkin_ws/src/rasberry_hri/src/bdi/actions.py", line 287, in perform
+#     new_args.append(ConceptNode(arg))
+# NameError: global name 'ConceptNode' is not defined
 
 
 class MoveToAction(Action):
 
-    condition_templates = [[ws.is_at, [ME, "origin"]], [ws.is_at, ["picker", "destination"]]]
-    # condition_templates = [[ws.is_at, [ME, "origin"]], [ws.linked, ["origin", "destination"]], [ws.is_at, ["picker", "destination"]]]
+    condition_templates = [
+    [ws.is_at, [ME, "origin"]],
+    [ws.is_at, ["picker", "destination"]],
+    # [ws.linked, ["origin", "destination"]]
+    ]
 
     consequence_templates = [[ws.is_at, [ME, "destination"]]]
 
@@ -207,21 +216,8 @@ class EvadeAction(Action):
     [ws.leads_to, ["place1", "origin"]],
     [ws.approaching, ["picker"]],
     [ws.not_seen_picking, ["picker"]],
-    # [ws.not_called_robot, ["bla"]],
+    [ws.not_called_robot, ["picker"]],
     ]
-
-    # condition_templates = [[ws.is_a, ["picker", "human"]], [ws.is_at, ["picker", "place1"]], [ws.is_at, [ME, "origin"]], [ws.leads_to, ["origin", "destination"]], [ws.leads_to, ["place1", "origin"]], [ws.approaching, ["picker"]], [ws.not_seen_picking, ["picker"]], [ws.not_called_robot, ["picker"]], [ws.is_not_occupied, ["destination"]]]
-
-    # condition_templates = [[ws.is_a, ["picker", "human"]], [ws.is_at, ["picker", "place1"]], [ws.is_at, [ME, "origin"]], [ws.leads_to, ["origin", "destination"]], [ws.leads_to, ["place1", "origin"]], [ws.approaching, ["picker"]], [ws.not_seen_picking, ["picker"]], [ws.not_called_robot, ["picker"]], [ws.not_is_at, ["picker", "destination"]]]
-
-    # condition_templates = [[ws.is_a, ["picker", "human"]], [ws.is_at, ["picker", "place1"]], [ws.is_at, [ME, "origin"]], [ws.approaching, ["picker"]], [ws.not_seen_picking, ["picker"]], [ws.not_called_robot, ["picker"]], [ws.not_is_at, ["picker", "destination"]]]
-
-    # last try
-    # condition_templates = [[ws.is_a, ["picker", "human"]], [ws.is_at, ["picker", "place1"]], [ws.is_at, [ME, "origin"]], [ws.approaching, ["picker"]], [ws.not_seen_picking, ["picker"]], [ws.not_called_robot, ["picker"]], [ws.leads_to, ["origin", "destination"]], [ws.leads_to, ["origin", "place1"]]]
-
-    # condition_templates = [[ws.is_a, ["picker", "human"]], [ws.is_at, ["picker", "place1"]], [ws.is_at, [ME, "origin"]], [ws.approaching, ["picker"]], [ws.not_seen_picking, ["picker"]], [ws.not_called_robot, ["picker"]]]
-
-    # condition_templates = [[ws.is_a, ["picker", "human"]], [ws.is_at, ["picker", "place1"]], [ws.is_at, [ME, "origin"]], [ws.leads_to, ["origin", "destination"]], [ws.leads_to, ["place1", "origin"]], [ws.approaching, ["picker"]], [ws.not_seen_picking, ["picker"]], [ws.not_called_robot, ["picker"]], [ws.not_same, ["destination", "place1"]]]
 
     consequence_templates = [[ws.is_at, [ME, "destination"]]]
 
@@ -238,7 +234,7 @@ class EvadeAction(Action):
 
     def perform(self):
         super(EvadeAction, self).perform()
-        # self.robco.move_to(self.destination)
+        self.robco.move_to(self.destination)
         # self.robco.get_result().success <-- needs a check for None
         return True
 
@@ -254,9 +250,13 @@ class EvadeAction(Action):
 class GiveCrateAction(Action):
 
 
-    condition_templates = [[ws.not_seen_picking, ["picker"]], [ws.called_robot, ["picker"]], [ws.is_at, ["picker", "destination"]], [ws.is_at, [ME, "destination"]]]
-
-    # condition_templates = [[ws.not_seen_picking, ["picker"]], [ws.called_robot, ["picker"]], [ws.is_at, ["picker", "destination"]], [ws.is_at, [ME, "destination"]], [ws.is_a, ["picker", "human"]]]
+    condition_templates = [
+    [ws.is_a, ["picker", "human"]],
+    [ws.is_at, ["picker", "destination"]],
+    [ws.is_at, [ME, "origin"]],
+    [ws.not_seen_picking, ["picker"]],
+    [ws.called_robot, ["picker"]],
+    ]
 
     consequence_templates = [[ws.not_called_robot, ["picker"]]]
 
@@ -303,9 +303,13 @@ class GiveCrateAction(Action):
 class ExchangeCrateAction(Action):
 
 
-    # condition_templates = [[ws.seen_picking, ["picker"]], [ws.called_robot, ["picker"]], [ws.is_at, ["picker", "destination"]], [ws.is_at, [ME, "destination"]]]
-
-    condition_templates = [[ws.seen_picking, ["picker"]], [ws.called_robot, ["picker"]], [ws.is_at, ["picker", "destination"]], [ws.is_at, [ME, "destination"]], [ws.is_a, ["picker", "human"]]]
+    condition_templates = [
+    [ws.is_a, ["picker", "human"]],
+    [ws.is_at, ["picker", "destination"]],
+    [ws.is_at, [ME, "origin"]],
+    [ws.seen_picking, ["picker"]],
+    [ws.called_robot, ["picker"]],
+    ]
 
     consequence_templates = [[ws.not_seen_picking, ["picker"]], [ws.not_called_robot, ["picker"]]]
 

@@ -24,7 +24,7 @@ DELIVER_COUNTS = int(DELIVER_DISTANCE / PICKER_SPEED * FREQUENCY)
 EXCHANGE_DISTANCE = 1 * MEAN_WAYPOINT_DISTANCE # m
 EXCHANGE_COUNTS = int(EXCHANGE_DISTANCE / PICKER_SPEED * FREQUENCY)
 EXCHANGE_WAIT_COUNTS = rospy.get_param("/thorvald_001/hri/exchange_cost", 5) * FREQUENCY
-GIVE_WAIT_COUNTS = rospy.get_param("/thorvald_001/hri/give_cost", 5) * FREQUENCY
+DELIVER_WAIT_COUNTS = rospy.get_param("/thorvald_001/hri/give_cost", 5) * FREQUENCY
 
 
 ANGLE = 0.0 # angle between direction of travel and X coordinate
@@ -57,7 +57,7 @@ class PickerMover(object):
 
 
     def switch_strategy(self, strategy):
-        if strategy in ["exchange", "give", "evade", "stand", "reset", "at robot", "return"]:
+        if strategy in ["exchange", "deliver", "evade", "stand", "reset", "at robot", "return"]:
             self.old_strategy = self.strategy
             self.strategy = strategy
             rospy.loginfo("PMO: Switched to movement strategy {:}".format(strategy))
@@ -72,12 +72,12 @@ class PickerMover(object):
             elif self.old_strategy == "exchange":
                 self.counter = EXCHANGE_COUNTS
                 self.switch_strategy("exchange")
-            elif self.old_strategy == "give":
+            elif self.old_strategy == "deliver":
                 self.counter = DELIVER_COUNTS
-                self.switch_strategy("give")
+                self.switch_strategy("deliver")
         elif self.strategy == "return":
             if self.x < self.initial_x:
-                self.y += X_DISTANCE
+                self.x += X_DISTANCE
                 self.y += Y_DISTANCE
             else:
                 self.counter = 0
@@ -108,14 +108,14 @@ class PickerMover(object):
                     self.y += X_DISTANCE
                     self.y += Y_DISTANCE
                     self.switch_strategy("return")
-        elif self.strategy == "give":
+        elif self.strategy == "deliver":
             if self.counter < DELIVER_COUNTS:
                 self.x -= X_DISTANCE
                 self.y -= Y_DISTANCE
                 self.counter += 1
                 self.wait = 0
             elif self.counter == DELIVER_COUNTS:
-                if self.wait < GIVE_WAIT_COUNTS:
+                if self.wait < DELIVER_WAIT_COUNTS:
                     self.wait += 1
                 else:
                     self.x += X_DISTANCE

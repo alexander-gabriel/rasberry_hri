@@ -18,7 +18,7 @@ class Config():
 
     def __init__(self, robot_id):
         self.robot_id = robot_id
-        self.parameters = {"called_robot": [False],
+        self.parameters = {"called_robot": [True],
                             "seen_picking": [False],
                             "picker_speed": [0.55],
                             "target_picker": ["Picker02"],
@@ -31,7 +31,7 @@ class Config():
                             #     "filename": "/data/subject-1-out/picking_berries-34-joints.bag",
                             #     "topics": ["/human_actions"]
                             #     },
-                            # 3: {"type": "rosbag",
+                            # 0: {"type": "rosbag",
                             #     "label": "call",
                             #     "start": 0,
                             #     "duration": 2,
@@ -40,18 +40,18 @@ class Config():
                             #     },
                             0: {"type": "message",
                                 "target": "picker_movement",
-                                "message": "evade"
+                                "message": "deliver"
                                 }
                             }
         self.behaviour_times = sorted(self.behaviours.keys())
-        self.termination_time = 15
+        self.termination_time = 20
         self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch", "/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
         # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
         # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch"]
         self.robot_pose = PoseWithCovarianceStamped()
         self.robot_pose.pose.pose.position.x = 11.649
-        self.robot_pose.pose.pose.position.y = 4.64
-        self.robot_pose.pose.pose.position.z = 0.0
+        self.robot_pose.pose.pose.position.y = 4.62
+        self.robot_pose.pose.pose.position.z = 0
 
     def get_bag_paths(self):
         bags = {}

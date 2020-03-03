@@ -157,9 +157,6 @@ class MoveAction(Action):
     def __repr__(self):
         return "<Action:Move to {:}>".format(self.destination)
 
-# TODO:   File "/home/rasberry/catkin_ws/src/rasberry_hri/src/bdi/actions.py", line 287, in perform
-#     new_args.append(ConceptNode(arg))
-# NameError: global name 'ConceptNode' is not defined
 
 
 class MoveToAction(Action):
@@ -270,6 +267,7 @@ class GiveCrateAction(Action):
         self.picker = args[1]
         self.gain = GIVE_GAIN
         self.cost = GIVE_COST
+        self.world_state = world_state
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?picker", picker).replace(ME, me))
     #     for consequence in self.consequence_templates:
@@ -287,7 +285,7 @@ class GiveCrateAction(Action):
         for fun, args in self.consequences:
             new_args = []
             for arg in args:
-                new_args.append(ConceptNode(arg))
+                new_args.append(self.world_state.kb.concept(arg))
             consequence = fun(*new_args)
             rospy.loginfo("Entering consequence: {}".format(consequence))
             consequence.truth_value(1,1)
@@ -323,6 +321,7 @@ class ExchangeCrateAction(Action):
         self.picker = args[1]
         self.gain = EXCHANGE_GAIN
         self.cost = EXCHANGE_COST
+        self.world_state = world_state
 
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?picker", picker).replace(ME, me))
@@ -341,7 +340,7 @@ class ExchangeCrateAction(Action):
         for fun,args in self.consequences:
             new_args = []
             for arg in args:
-                new_args.append(ConceptNode(arg))
+                new_args.append(self.world_state.kb.concept(arg))
             consequence = fun(*new_args)
             consequence.truth_value(1,1)
         sleep(5)

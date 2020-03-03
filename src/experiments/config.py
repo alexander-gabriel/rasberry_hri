@@ -18,7 +18,7 @@ class Config():
 
     def __init__(self, robot_id):
         self.robot_id = robot_id
-        self.parameters = {"called_robot": [True],
+        self.parameters = {"called_robot": [False],
                             "seen_picking": [False],
                             "picker_speed": [0.55],
                             "target_picker": ["Picker02"],
@@ -40,7 +40,7 @@ class Config():
                             #     },
                             0: {"type": "message",
                                 "target": "picker_movement",
-                                "message": "deliver"
+                                "message": "evade"
                                 }
                             }
         self.behaviour_times = sorted(self.behaviours.keys())

@@ -207,7 +207,7 @@ class EvadeAction(Action):
     condition_templates = [
     [ws.is_a, ["picker", "human"]],
     [ws.is_at, ["picker", "place1"]],
-    # [ws.not_is_at, ["picker", "destination"]],
+    [ws.query_not_at, ["picker", "destination"]],
     [ws.is_at, [ME, "origin"]],
     [ws.leads_to, ["origin", "destination"]],
     [ws.leads_to, ["place1", "origin"]],
@@ -286,7 +286,7 @@ class GiveCrateAction(Action):
             new_args = []
             for arg in args:
                 new_args.append(self.world_state.kb.concept(arg))
-            consequence = fun(*new_args)
+            consequence = fun(self.world_state, *new_args)
             rospy.loginfo("Entering consequence: {}".format(consequence))
             consequence.truth_value(1,1)
         sleep(5)
@@ -341,7 +341,7 @@ class ExchangeCrateAction(Action):
             new_args = []
             for arg in args:
                 new_args.append(self.world_state.kb.concept(arg))
-            consequence = fun(*new_args)
+            consequence = fun(self.world_state, *new_args)
             consequence.truth_value(1,1)
         sleep(5)
         return True

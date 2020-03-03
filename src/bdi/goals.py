@@ -315,19 +315,13 @@ class Goal(object):
             for listlink in setlink.get_out():
                 # if result.tv == world_state.kb.TRUE:
                 # (SetLink (ListLink (ConceptNode "Picker02") (ConceptNode "human") (ConceptNode "WayPoint106") (ConceptNode "WayPoint104")))
-
                 this_target = copy(target)
                 # rospy.logwarn(listlink)
                 cls.get_targets(this_target, variables, listlink)
-                if "place1" in this_target:
-                    if this_target["place1"] != this_target["destination"]:
-                        rospy.logwarn("GOL: Found a target for goal: {}".format(cls.__name__))
-                    # rospy.logwarn(this_target)
+                rospy.logwarn("GOL: Found a target for goal: {}".format(cls.__name__))
+                # rospy.logwarn(this_target)
                 # world_state.kb.recursive_query_matcher(query, result, this_target)
-                    targets.append(this_target)
-                else:
-                    rospy.logwarn("GOL: Found a target for goal: {}".format(cls.__name__))
-                    targets.append(this_target)
+                targets.append(this_target)
         duration = time.time() - start_time
         # if duration > 0.01:
         # rospy.loginfo("GOL: Checked goal {:} for targets -- {:.4f}".format(cls.__name__, duration))

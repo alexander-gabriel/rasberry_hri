@@ -118,6 +118,7 @@ class Experiment():
         self.robco = RobotControl(self.config.robot_id)
         self.last_clock = rospy.get_time()
         self.start_clock = int(self.last_clock+3)
+        self.request_nomotion_update = rospy.ServiceProxy('/{:}/request_nomotion_update'.format(self.config.robot_id), Empty)
         self.reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
         self.reset_world = rospy.ServiceProxy('/gazebo/reset_world', Empty)
         self.get_model_state = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
@@ -126,7 +127,7 @@ class Experiment():
         rospy.wait_for_service('/gazebo/reset_simulation')
         rospy.wait_for_service('/gazebo/reset_world')
         rospy.loginfo("EXP: Found gazebo services")
-        self.initial_pose_subscriber = rospy.Subscriber('/{:}/initialpose'.format(self.config.robot_id), PoseWithCovarianceStamped, self.initial_pose_callback)
+        self.initial_pose_publisher = rospy.Publisher('/{:}/initialpose'.format(self.config.robot_id), PoseWithCovarianceStamped, queue_size=10)
         self.picker_pose_publisher = rospy.Publisher('/picker_mover', String, queue_size=10)
         self.human_action_publisher = rospy.Publisher('/human_actions', Action, queue_size=10)
         self.robot_pose_publisher = rospy.Publisher('/{:}/set_pose'.format(self.config.robot_id), PoseWithCovarianceStamped, queue_size=10)
@@ -139,9 +140,7 @@ class Experiment():
         # self.picker_pose.x_m = 19.997
         # self.picker_pose.y_m = 4.568
 
-        # self.robot_pose = PoseWithCovarianceStamped()
-        # self.robot_pose.pose.pose.position.x = 11.649
-        # self.robot_pose.pose.pose.position.y = 4.64
+
         # self.robot_pose.pose.pose.position.z = 0.0
         # self.robot_pose.pose.pose.orientation.x = 0.0
         # self.robot_pose.pose.pose.orientation.y = 0.0
@@ -155,6 +154,7 @@ class Experiment():
         # self.robot_pose.header.stamp = rospy.get_rostime()
         # self.robot_pose.header.stamp.secs += 15
         # self.robot_pose_publisher.publish(self.robot_pose)
+        rospy.wait_for_service('/{:}/request_nomotion_update'.format(self.config.robot_id))
         rospy.wait_for_service('/gazebo/get_model_state')
         resp = self.get_model_state(self.config.robot_id, "")
 
@@ -162,10 +162,15 @@ class Experiment():
         state_msg = ModelState()
         state_msg.model_name = self.config.robot_id
         state_msg.pose = resp.pose
-        state_msg.pose.position.x = 11.649 #11.649
+        state_msg.pose.position.x = 16.649 #11.649
         state_msg.pose.position.y = 4.62 #4.64
+        robot_pose = PoseWithCovarianceStamped()
+        robot_pose.pose.pose.position.x = 16.649
+        robot_pose.pose.pose.position.y = 4.64
         resp = self.set_model_state( state_msg )
-        rospy.logwarn(resp)
+        self.initial_pose_publisher.publish(robot_pose)
+        self.request_nomotion_update()
+        # rospy.logwarn(resp)
 
 
 

@@ -157,19 +157,23 @@ class Experiment():
         rospy.wait_for_service('/{:}/request_nomotion_update'.format(self.config.robot_id))
         rospy.wait_for_service('/gazebo/get_model_state')
         resp = self.get_model_state(self.config.robot_id, "")
-
-        rospy.wait_for_service('/gazebo/set_model_state')
-        state_msg = ModelState()
-        state_msg.model_name = self.config.robot_id
-        state_msg.pose = resp.pose
-        state_msg.pose.position.x = 16.649 #11.649
-        state_msg.pose.position.y = 4.62 #4.64
-        robot_pose = PoseWithCovarianceStamped()
-        robot_pose.pose.pose.position.x = 16.649
-        robot_pose.pose.pose.position.y = 4.64
-        resp = self.set_model_state( state_msg )
-        self.initial_pose_publisher.publish(robot_pose)
-        self.request_nomotion_update()
+        #102: 8.675 4.65
+        #103: 11.649 4.64
+        #104: 14.12 4.612
+        #105: 17.061 4.609
+        #106: 19.997 4.568
+        # rospy.wait_for_service('/gazebo/set_model_state')
+        # state_msg = ModelState()
+        # state_msg.model_name = self.config.robot_id
+        # state_msg.pose = resp.pose
+        # state_msg.pose.position.x = 11.649 #11.649
+        # state_msg.pose.position.y = 4.62 #4.64
+        # robot_pose = PoseWithCovarianceStamped()
+        # robot_pose.pose.pose.position.x = 11.649
+        # robot_pose.pose.pose.position.y = 4.64
+        # resp = self.set_model_state( state_msg )
+        # self.initial_pose_publisher.publish(robot_pose)
+        # self.request_nomotion_update()
         # rospy.logwarn(resp)
 
 

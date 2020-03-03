@@ -18,7 +18,6 @@ from robot_control import RobotControl
 from world_state import WorldState
 from goals import ExchangeGoal, DeliverGoal, EvadeGoal, WrongParameterException
 
-
 class BDISystem:
 
     def __init__(self, me, kb):
@@ -240,19 +239,18 @@ class BDISystem:
                             self.world_state.standing(self.kb.concept(picker)).tv = self.kb.TRUE
                             rospy.logwarn("BDI: {} is standing".format(picker))
                         self.latest_directions[picker] = direction
-                    distance = get_distance(self.latest_robot_msg, self.latest_people_msgs[picker].pose)
+                    distance = get_distance(self.latest_robot_msg, self.latest_people_msgs[picker].pose) - 0.5 * (ROBOT_LENGTH + PICKER_LENGTH)
                     # stop if we're to close to a picker
-                    rospy.logwarn("here")
-                    if distance < MINIMUM_DISTANCE + 0.5 * (ROBOT_LENGTH + PICKER_LENGTH):
+                    if distance < MINIMUM_DISTANCE:
                         if not self.too_close:
                             self.too_close = True
-                            rospy.loginfo("BDI: Robot has met picker. Distance: {}".format(distance - 0.5 * (ROBOT_LENGTH + PICKER_LENGTH)))
+                            rospy.loginfo("BDI: Robot has met picker. Distance: {}".format(distance))
                             self.picker_pose_publisher.publish("at robot")
                             self.robco.cancel_movement()
-                        else:
-                            rospy.logwarn("collision")
+                        elif distance < 0.2:
+                            rospy.logwarn("BDI: Picker is too close. Distance: {}".format(distance))
                     elif self.too_close:
-                        rospy.loginfo("BDI: Robot has left picker. Distance: {}".format(distance - 0.5 * (ROBOT_LENGTH + PICKER_LENGTH)))
+                        rospy.loginfo("BDI: Robot has left picker. Distance: {}".format(distance))
                         self.too_close = False
             except (KeyError, AttributeError) as err:
                 rospy.logwarn("BDI: {}".format(err))

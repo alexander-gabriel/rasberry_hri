@@ -48,10 +48,10 @@ class Config():
         self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch", "/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
         # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
         # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch"]
-        self.robot_pose = PoseWithCovarianceStamped()
-        self.robot_pose.pose.pose.position.x = 11.649
-        self.robot_pose.pose.pose.position.y = 4.62
-        self.robot_pose.pose.pose.position.z = 0
+        # self.robot_pose = PoseWithCovarianceStamped()
+        # self.robot_pose.pose.pose.position.x = 11.649
+        # self.robot_pose.pose.pose.position.y = 4.62
+        # self.robot_pose.pose.pose.position.z = 0
 
     def get_bag_paths(self):
         bags = {}

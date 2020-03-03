@@ -27,14 +27,13 @@ class WorldState(object):
         return link
 
 
-    def not_is_at(self, thing, place, atsp=None):
-        link = self.kb.absent(self.kb.state(thing, place, atsp=atsp), atsp=atsp)
+    def query_at(self, thing, place, atsp=None):
+        # link = self.kb.equal(thing, self.kb.get(self.kb.state(self.kb.variable("x"), place, atsp=atsp), atsp=atsp), atsp=atsp)
+        link = self.kb.state(thing, place, atsp=atsp)
         return link
 
-
-    def query_at(self, thing, place, atsp=None):
-        link = self.kb.identical(thing, self.kb.get(self.kb.state(self.kb.variable("x"), place, atsp=atsp), atsp=atsp), atsp=atsp)
-        # link = self.kb.state(thing, place, atsp=atsp)
+    def query_not_at(self, thing, place, atsp=None):
+        link = self.kb.absent(self.kb.state(thing, place, atsp=atsp), atsp=atsp)
         return link
 
 
@@ -84,19 +83,6 @@ class WorldState(object):
         return link
 
 
-    def called_robot(self, picker, atsp=None):
-        # link = self.kb.evaluation(self.kb.predicate("called_robot", atsp=atsp), picker, atsp=atsp)
-        link = self.kb.state(self.kb.list(picker, self.kb.predicate("called robot", atsp=atsp), atsp=atsp), self.kb.concept("TRUE", atsp=atsp), atsp=atsp)
-        return link
-
-
-    def not_called_robot(self, picker, atsp=None):
-        # link = self.kb.Not(self.called_robot(picker, atsp), atsp=atsp)
-        link = self.kb.state(self.kb.list(picker, self.kb.predicate("called robot", atsp=atsp), atsp=atsp), self.kb.concept("FALSE", atsp=atsp), atsp=atsp)
-        return link
-
-#(Equal (OtherAtom) (Get (State (SomeAtom) (Variable "x"))))
-
     def is_approaching(self, picker, atsp=None):
         link = self.kb.identical(picker, self.kb.get(self.kb.state(self.kb.variable("x", atsp=atsp), self.kb.concept("APPROACHING", atsp=atsp), atsp=atsp), atsp=atsp), atsp=atsp)
         # link = self.kb.state(self.kb.list(picker, self.kb.predicate("movement", atsp=atsp), atsp=atsp), self.kb.concept("APPROACHING", atsp=atsp), atsp=atsp)
@@ -140,6 +126,19 @@ class WorldState(object):
         # link = self.kb.Not(self.seen_picking(picker, atsp), atsp=atsp)
         link = self.kb.state(self.kb.list(picker, self.kb.predicate( "seen_picking", atsp=atsp), atsp=atsp), self.kb.concept("FALSE", atsp=atsp), atsp=atsp)
         return link
+
+
+    def called_robot(self, picker, atsp=None):
+        # link = self.kb.evaluation(self.kb.predicate("called_robot", atsp=atsp), picker, atsp=atsp)
+        link = self.kb.state(self.kb.list(picker, self.kb.predicate("called robot", atsp=atsp), atsp=atsp), self.kb.concept("TRUE", atsp=atsp), atsp=atsp)
+        return link
+
+
+    def not_called_robot(self, picker, atsp=None):
+        # link = self.kb.Not(self.called_robot(picker, atsp), atsp=atsp)
+        link = self.kb.state(self.kb.list(picker, self.kb.predicate("called robot", atsp=atsp), atsp=atsp), self.kb.concept("FALSE", atsp=atsp), atsp=atsp)
+        return link
+
 
 
     # add a place ConceptNode to the KB

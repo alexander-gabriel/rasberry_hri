@@ -206,14 +206,14 @@ class EvadeAction(Action):
 
     condition_templates = [
     [ws.is_a, ["picker", "human"]],
-    [ws.is_at, ["picker", "place1"]],
-    [ws.query_not_at, ["picker", "destination"]],
-    [ws.is_at, [ME, "origin"]],
-    [ws.leads_to, ["origin", "destination"]],
-    [ws.leads_to, ["place1", "origin"]],
     [ws.approaching, ["picker"]],
     [ws.not_seen_picking, ["picker"]],
     [ws.not_called_robot, ["picker"]],
+    [ws.is_at, ["picker", "place1"]],
+    [ws.query_not_at, ["anyhing", "destination"]],
+    [ws.is_at, [ME, "origin"]],
+    [ws.leads_to, ["origin", "destination"]],
+    [ws.leads_to, ["place1", "origin"]],
     ]
 
     consequence_templates = [[ws.is_at, [ME, "destination"]]]

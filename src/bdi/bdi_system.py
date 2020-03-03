@@ -25,6 +25,7 @@ class BDISystem:
         self.too_close = False
         self.durations = []
         self.kb = kb
+        self.last_intention = None
         with self.kb.lock:
             self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
             self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
@@ -93,14 +94,15 @@ class BDISystem:
         rospy.logdebug("BDI: Generating Behaviour Options")
         desires = []
         for goal in self.goals:
-            args_list = goal.find_instances(self.world_state)
-            for args in args_list:
-                if len(args) > 0:
-                    try:
-                        desires.append(goal(self.world_state, self.robco, args))
-                    except WrongParameterException as err:
-                        rospy.logwarn("BDI: {}".format(err))
-                        # pass
+            if not goal in self.intentions:
+                args_list = goal.find_instances(self.world_state)
+                for args in args_list:
+                    if len(args) > 0:
+                        try:
+                            desires.append(goal(self.world_state, self.robco, args))
+                        except WrongParameterException as err:
+                            rospy.logwarn("BDI: {}".format(err))
+                            # pass
         for intention in self.intentions:
             if intention in desires and intention.is_achieved(self.world_state):
                 desires.remove(intention)
@@ -135,7 +137,9 @@ class BDISystem:
                     chosen_intention = intention
                     min_cost  = cost
         if not chosen_intention is None:
-            rospy.loginfo("BDI: Following {:}".format(chosen_intention))
+            if chosen_intention != self.last_intention:
+                rospy.loginfo("BDI: Following {:}".format(chosen_intention))
+                self.last_intention = chosen_intention
             chosen_intention.perform_action()
 
 
@@ -241,7 +245,10 @@ class BDISystem:
                         self.latest_directions[picker] = direction
                     distance = get_distance(self.latest_robot_msg, self.latest_people_msgs[picker].pose) - 0.5 * (ROBOT_LENGTH + PICKER_LENGTH)
                     # stop if we're to close to a picker
-                    if distance < MINIMUM_DISTANCE:
+                    minimum_distance = MINIMUM_DISTANCE
+                    # if self.world_state.moving:
+                    #     minimum_distance += 0.3
+                    if distance < minimum_distance:
                         if not self.too_close:
                             self.too_close = True
                             rospy.loginfo("BDI: Robot has met picker. Distance: {}".format(distance))

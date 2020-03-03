@@ -1,6 +1,7 @@
 import rospy
 import sys
 import time
+import inspect
 from copy import copy
 
 # from opencog.bindlink import execute_atom, evaluate_atom
@@ -42,6 +43,8 @@ class Goal(object):
 
     def __eq__(self, other):
         """Override the default Equals behavior"""
+        if inspect.isclass(other):
+            return other.__name__ == self.__class__.__name__
         if isinstance(other, self.__class__):
             # for subgoal in self.subgoal_templates:
             #     if not subgoal in other.subgoal_templates:
@@ -410,15 +413,9 @@ class Goal(object):
     def perform_action(self):
         action_queue = self.get_action_queue()
         action = action_queue.pop(0)
-        tries = 5
-        succeeded = False
-        while tries > 0 and not succeeded:
-            succeeded = action.perform()
-            tries -= 1
-            if not succeeded:
-                rospy.logwarn("GOL: Tried to peform action; result: {}, {:d} tries remaining".format(succeeded, tries))
-                # rospy.sleep(2)
+        succeeded = action.perform()
         if not succeeded:
+            # rospy.logwarn("GOL: Peforming action {:}; result: {}".format(action, succeeded))
             action_queue.insert(0,action)
         else:
             rospy.loginfo("GOL: Performed action {}; Action queue is: {} ".format(action, action_queue))

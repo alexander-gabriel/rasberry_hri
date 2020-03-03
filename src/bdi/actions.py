@@ -20,6 +20,7 @@ class Action(object):
         self.conditions = []
         self.consequences = []
         self.cost = 0
+        self.first_try = True
         # rospy.loginfo("--")
         # rospy.loginfo(self.__class__.__name__)
         # rospy.loginfo(self.placeholders)
@@ -106,7 +107,9 @@ class Action(object):
 
 
     def perform(self):
-        rospy.loginfo("ACT: Performing {:}".format(self))
+        if self.first_try:
+            rospy.loginfo("ACT: Performing {:}".format(self))
+            self.first_try = False
         # for condition in self.conditions:
         #     if not condition in self.consequences:
         #         self.ws.abandon_belief(condition)
@@ -137,6 +140,7 @@ class MoveAction(Action):
         self.robco = robco
         self.destination = args[2]
         self.gain = MOVE_GAIN
+        self.sent_movement_request = False
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?origin", origin).replace(ME, me))
     #     for consequence in self.consequence_templates:
@@ -145,9 +149,17 @@ class MoveAction(Action):
 
     def perform(self):
         super(MoveAction, self).perform()
-        self.robco.move_to(self.destination)
-        # return self.robco.get_result().success
-        return True
+        if not self.sent_movement_request:
+            self.robco.move_to(self.destination)
+            self.sent_movement_request = True
+            self.ws.moving = True
+        try:
+            success = self.robco.get_result().success
+            self.ws.moving = False
+            rospy.logwarn("ACT: Reached final destination: {}".format(success))
+            return True
+        except AttributeError:
+            return False
 
 
     def get_cost(self):
@@ -178,6 +190,7 @@ class MoveToAction(Action):
         self.robco = robco
         self.destination = args[3]
         self.gain = MOVETO_GAIN
+        self.sent_movement_request = False
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?origin", origin).replace(ME, me))
     #     for consequence in self.consequence_templates:
@@ -186,9 +199,18 @@ class MoveToAction(Action):
 
     def perform(self):
         super(MoveToAction, self).perform()
-        self.robco.move_to(self.destination)
-        # return self.robco.get_result().success
-        return True
+        if not self.sent_movement_request:
+            self.robco.move_to(self.destination)
+            self.sent_movement_request = True
+            self.ws.moving = True
+        try:
+            success = self.robco.get_result().success
+            self.ws.moving = False
+            rospy.logwarn("ACT: Reached final destination: {}".format(success))
+            return True
+        except Exception as err:
+            rospy.logwarn(err)
+            return False
 
 
     def get_cost(self):
@@ -228,12 +250,22 @@ class EvadeAction(Action):
         self.picker = args[1]
         self.destination = args[3]
         self.gain = EVADE_GAIN
+        self.sent_movement_request = False
 
     def perform(self):
         super(EvadeAction, self).perform()
-        self.robco.move_to(self.destination)
-        # self.robco.get_result().success <-- needs a check for None
-        return True
+        if not self.sent_movement_request:
+            self.robco.move_to(self.destination)
+            self.sent_movement_request = True
+            self.ws.moving = True
+        try:
+            success = self.robco.get_result().success
+            self.ws.moving = False
+            rospy.logwarn("movement success is: {}".format(success))
+            return True
+        except:
+            return False
+
 
     def get_cost(self):
         return MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
@@ -267,7 +299,6 @@ class GiveCrateAction(Action):
         self.picker = args[1]
         self.gain = GIVE_GAIN
         self.cost = GIVE_COST
-        self.world_state = world_state
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?picker", picker).replace(ME, me))
     #     for consequence in self.consequence_templates:
@@ -279,14 +310,12 @@ class GiveCrateAction(Action):
 
 
     def perform(self):
-        if not self.robco.get_result():
-            return False
         super(GiveCrateAction, self).perform()
         for fun, args in self.consequences:
             new_args = []
             for arg in args:
-                new_args.append(self.world_state.kb.concept(arg))
-            consequence = fun(self.world_state, *new_args)
+                new_args.append(self.ws.kb.concept(arg))
+            consequence = fun(self.ws, *new_args)
             rospy.loginfo("Entering consequence: {}".format(consequence))
             consequence.truth_value(1,1)
         sleep(5)
@@ -321,7 +350,6 @@ class ExchangeCrateAction(Action):
         self.picker = args[1]
         self.gain = EXCHANGE_GAIN
         self.cost = EXCHANGE_COST
-        self.world_state = world_state
 
     #     for condition in self.condition_templates:
     #         self.conditions.append(condition.replace("?picker", picker).replace(ME, me))
@@ -334,14 +362,12 @@ class ExchangeCrateAction(Action):
 
 
     def perform(self):
-        if not self.robco.get_result():
-            return False
         super(ExchangeCrateAction, self).perform()
         for fun,args in self.consequences:
             new_args = []
             for arg in args:
-                new_args.append(self.world_state.kb.concept(arg))
-            consequence = fun(self.world_state, *new_args)
+                new_args.append(self.ws.kb.concept(arg))
+            consequence = fun(self.ws, *new_args)
             consequence.truth_value(1,1)
         sleep(5)
         return True

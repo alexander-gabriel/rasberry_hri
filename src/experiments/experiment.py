@@ -6,6 +6,7 @@ from threading import Thread
 import rospy
 import rosbag
 import roslaunch
+import dynamic_reconfigure.client
 
 from std_srvs.srv import Empty
 from std_msgs.msg import String
@@ -137,32 +138,29 @@ class Experiment():
         self.bags = self.config.get_bag_paths()
         self.running_bags = []
 
+        # reconfigure robot speed
+        client = dynamic_reconfigure.client.Client("/{:}/move_base/DWAPlannerROS".format(self.config.robot_id), timeout=4)
+        client.update_configuration(
+        {"max_vel_x":1.5})
+                        # {
+                        # "int_param":x,
+                        # "double_param":(1/(x+1)),
+                        # "str_param":str(rospy.get_rostime()),
+                        # "bool_param":b, "size":1})
+
         # self.picker_pose.x_m = 19.997
         # self.picker_pose.y_m = 4.568
 
-
-        # self.robot_pose.pose.pose.position.z = 0.0
-        # self.robot_pose.pose.pose.orientation.x = 0.0
-        # self.robot_pose.pose.pose.orientation.y = 0.0
-        # self.robot_pose.pose.pose.orientation.z = 0.0
-        # self.robot_pose.pose.pose.orientation.w = 0.0
-
-        # self.robot_pose.pose.pose.position.x = 11.649
-        # self.robot_pose.pose.pose.position.y = 4.64
-        # self.robot_pose.pose.pose.orientation.w = 1.0
-        # self.robot_pose.header.frame_id = 'map'
-        # self.robot_pose.header.stamp = rospy.get_rostime()
-        # self.robot_pose.header.stamp.secs += 15
-        # self.robot_pose_publisher.publish(self.robot_pose)
-        rospy.wait_for_service('/{:}/request_nomotion_update'.format(self.config.robot_id))
-        rospy.wait_for_service('/gazebo/get_model_state')
-        resp = self.get_model_state(self.config.robot_id, "")
         #102: 8.675 4.65
         #103: 11.649 4.64
         #104: 14.12 4.612
         #105: 17.061 4.609
         #106: 19.997 4.568
+
         # rospy.wait_for_service('/gazebo/set_model_state')
+        # rospy.wait_for_service('/{:}/request_nomotion_update'.format(self.config.robot_id))
+        # rospy.wait_for_service('/gazebo/get_model_state')
+        # resp = self.get_model_state(self.config.robot_id, "")
         # state_msg = ModelState()
         # state_msg.model_name = self.config.robot_id
         # state_msg.pose = resp.pose
@@ -174,6 +172,7 @@ class Experiment():
         # resp = self.set_model_state( state_msg )
         # self.initial_pose_publisher.publish(robot_pose)
         # self.request_nomotion_update()
+
         # rospy.logwarn(resp)
 
 

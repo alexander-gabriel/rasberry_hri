@@ -20,6 +20,7 @@ class WorldState(object):
     def __init__(self, me, kb):
         self.me = me
         self.kb = kb
+        self.moving = False
 
 
     def is_at(self, thing, place, atsp=None):

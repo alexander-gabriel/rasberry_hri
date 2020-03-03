@@ -21,7 +21,7 @@ from utils import get_angle_prototype, get_position_prototype, suppress
 class ActionRecognition:
 
 
-    def __init__(self, normal_mode=True):
+    def __init__(self, normal_mode=False):
         self.normal_mode = normal_mode
         rospy.loginfo("ACR: ActionRecognition Node starting")
         if self.normal_mode:

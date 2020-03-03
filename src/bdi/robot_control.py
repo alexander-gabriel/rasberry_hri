@@ -29,7 +29,7 @@ class RobotControl:
 
     # Waits for the server to finish performing the action.
     def get_result(self):
-        self.robot_control.wait_for_result()
+        # self.robot_control.wait_for_result()
         return self.robot_control.get_result()  # A FibonacciResult
 
 

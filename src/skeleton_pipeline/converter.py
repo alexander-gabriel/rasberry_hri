@@ -58,7 +58,8 @@ class Converter:
         self.index_map = {}
         self.recognitions = recognitions
         for index, entry in enumerate(self.recognitions):
-            self.index_map[entry.categorical_distribution.probabilities[0].label] = index
+            if entry.group_id == 0:
+                self.index_map[entry.categorical_distribution.probabilities[0].label] = index
         centerX = self.X("Neck")
         centerY = self.Y("Neck")
         self.positions = {}

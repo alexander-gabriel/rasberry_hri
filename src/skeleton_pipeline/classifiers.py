@@ -38,6 +38,8 @@ class MinimumDifferenceClassifier:
                         except:
                             limit = angles[limit]
                         value = angles[label]
+                        if limit > 90 and value <=0:
+                            value += 180
                         probability = positions[joint]["P"]
                     else:
                         # if positions[label] is None:

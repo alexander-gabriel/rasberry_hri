@@ -14,7 +14,7 @@ from opencog.bindlink import execute_atom, evaluate_atom
 import rospy
 
 from parameters import *
-# set_type_ctor_atomspace(self.atomspace)
+# set_type_ctor_atomspace(self.atsp)
 
 # def lock():
 #     rospy.loginfo("{} wants lock".format(sys._getframe().f_back.f_code.co_name))
@@ -30,16 +30,11 @@ from parameters import *
 
 
 
-
-
-
 class KnowledgeBase(object):
 
     def __init__(self):
         rospy.loginfo("KNB: Initializing Knowledge Base")
-        self.queryspace = AtomSpace()
-        self.atomspace = self.queryspace
-        # self.atomspace = AtomSpace()
+        self.atsp = AtomSpace()
         self.lock = RLock()
         self.TRUE = TruthValue(1,1)
         self.FALSE = TruthValue(0,1)
@@ -50,18 +45,19 @@ class KnowledgeBase(object):
         rospy.loginfo("KNB: Initialization finished")
 
 
-    def reason(self, query, variables, atsp=None):
+    def reason(self, query, variables):
         max_prob = 0
         formula = None
-        # rospy.loginfo("WST: Query:\n{:}\nVariables:\n{}".format(str(query), variables))
+        rospy.logdebug("WST: Query:\n{:}\nVariables:\n{}".format(str(query), variables))
         start_time = time.time()
         with self.lock:
-            chainer = BackwardChainer(self.atomspace,
+            chainer = BackwardChainer(self.atsp,
                           self.concept("deduction-rule-base"),
                           query, vardecl = variables)
             chainer.do_chain()
-        results = chainer.get_results()
         rospy.logdebug("WST: do_chain -- {:.4f}".format(time.time() - start_time))
+        results = chainer.get_results()
+
         got_one = False
         # if query.type_name == "GetLink":
         #     for result in results.get_out()[0].get_out():
@@ -86,7 +82,7 @@ class KnowledgeBase(object):
         #         with self.lock:
         #             # rospy.loginfo("WST: -----------")
         #             # rospy.loginfo("WST: Condition: {:}".format(query))
-        #             chainer = BackwardChainer(self.atomspace,
+        #             chainer = BackwardChainer(self.atsp,
         #                           self.concept("deduction-rule-base"),
         #                           query)
         #             chainer.do_chain()
@@ -107,7 +103,7 @@ class KnowledgeBase(object):
         #             with self.lock:
         #                 # rospy.loginfo("WST: -----------")
         #                 # rospy.loginfo("WST: Condition: {:}".format(condition))
-        #                 chainer = BackwardChainer(self.atomspace,
+        #                 chainer = BackwardChainer(self.atsp,
         #                               self.concept("deduction-rule-base"),
         #                               condition)
         #                 chainer.do_chain()
@@ -131,7 +127,7 @@ class KnowledgeBase(object):
         with self.lock:
             rospy.loginfo("check variables: {}".format(variables))
             rospy.loginfo("check query: {}".format(query))
-            results = execute_atom(self.atomspace, self.get(variables, query))
+            results = execute_atom(self.atsp, self.get(variables, query))
             rospy.loginfo("check results: {}".format(results))
         for result in results.get_out():
             if result.tv == self.TRUE:
@@ -143,7 +139,7 @@ class KnowledgeBase(object):
 
     def check2(self, query):
         with self.lock:
-            results = evaluate_atom(self.atomspace, query)
+            results = evaluate_atom(self.atsp, query)
         for result in results.get_out():
             if result.tv == self.TRUE:
                 rospy.loginfo("WST: Evalutation Result Truth: {:}".format(result.tv))
@@ -200,215 +196,180 @@ class KnowledgeBase(object):
         return target
 
 
-    def add_link(self, link, truth_value=None, atsp=None):
+    def add_link(self, link, truth_value=None):
         truth_value = self.TRUE if truth_value is None else truth_value
-        atsp = self.queryspace if atsp is None else atsp
         with lock:
-            atsp.add_link(link, tv=truth_value)
+            self.atsp.add_link(link, tv=truth_value)
 
 
-    def add_node(self, atsp=None, node=None):
-        atsp = self.queryspace if atsp is None else atsp
+    def add_node(self, node=None):
         with lock:
-            atsp.add_node(node)
+            self.atsp.add_node(node)
 
 
-    def number(self, name, atsp=None):
-        atsp = self.queryspace if atsp is None else atsp
+    def number(self, name):
         with self.lock:
-            return atsp.add_node(types.NumberNode, name)
+            return self.atsp.add_node(types.NumberNode, name)
 
 
-    def concept(self, name, atsp=None):
-        atsp = self.queryspace if atsp is None else atsp
+    def concept(self, name):
         with self.lock:
-            return atsp.add_node(types.ConceptNode, name)
+            return self.atsp.add_node(types.ConceptNode, name)
 
 
-    def predicate(self, name, atsp=None):
-        atsp = self.queryspace if atsp is None else atsp
+    def predicate(self, name):
         with self.lock:
-            return atsp.add_node(types.PredicateNode, name)
+            return self.atsp.add_node(types.PredicateNode, name)
 
 
-    def type(self, name, atsp=None):
-        atsp = self.queryspace if atsp is None else atsp
+    def type(self, name):
         with self.lock:
-            return atsp.add_node(types.TypeNode, name)
+            return self.atsp.add_node(types.TypeNode, name)
 
 
-    def variable(self, name, atsp=None):
-        atsp = self.queryspace if atsp is None else atsp
+    def variable(self, name):
         with self.lock:
-            return atsp.add_node(types.VariableNode, name)
+            return self.atsp.add_node(types.VariableNode, name)
 
 
-    def schema(self, name, atsp=None):
-        atsp = self.queryspace if atsp is None else atsp
+    def schema(self, name):
         with self.lock:
-            return atsp.add_node(types.SchemaNode, name)
+            return self.atsp.add_node(types.SchemaNode, name)
 
 
-    def defined_schema(self, name, atsp=None):
-        atsp = self.queryspace if atsp is None else atsp
+    def defined_schema(self, name):
         with self.lock:
-            return atsp.add_node(types.DefinedSchemaNode, name)
+            return self.atsp.add_node(types.DefinedSchemaNode, name)
 
 
-    def grounded_schema(self, name, atsp=None):
-        atsp = self.queryspace if atsp is None else atsp
+    def grounded_schema(self, name):
         with self.lock:
-            return atsp.add_node(types.GroundedSchemaNode, name)
+            return self.atsp.add_node(types.GroundedSchemaNode, name)
 
 
     def variable_link(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.VariableLink, list(subnodes))
+            return self.atsp.add_link(types.VariableLink, list(subnodes))
 
 
     def typed_variable(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.TypedVariableLink, list(subnodes))
+            return self.atsp.add_link(types.TypedVariableLink, list(subnodes))
 
 
     def variable_list(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.VariableList, list(subnodes))
+            return self.atsp.add_link(types.VariableList, list(subnodes))
 
 
     def list(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.ListLink, list(subnodes))
+            return self.atsp.add_link(types.ListLink, list(subnodes))
 
 
     def inheritance(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            # is_a = atsp.add_node(types.PredicateNode, "is a")
-            # list_link = atsp.add_link(types.ListLink, list(subnodes))
-            # return atsp.add_link(types.EvaluationLink, [is_a, list_link])
-            return atsp.add_link(types.InheritanceLink, list(subnodes))
+            # is_a = self.atsp.add_node(types.PredicateNode, "is a")
+            # list_link = self.atsp.add_link(types.ListLink, list(subnodes))
+            # return self.atsp.add_link(types.EvaluationLink, [is_a, list_link])
+            return self.atsp.add_link(types.InheritanceLink, list(subnodes))
 
 
     def evaluation(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.EvaluationLink, list(subnodes))
+            return self.atsp.add_link(types.EvaluationLink, list(subnodes))
 
 
     def execution(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.ExecutionLink, list(subnodes))
+            return self.atsp.add_link(types.ExecutionLink, list(subnodes))
 
 
     def execution_output(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.ExecutionOutputLink, list(subnodes))
+            return self.atsp.add_link(types.ExecutionOutputLink, list(subnodes))
 
 
     def state(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.StateLink, list(subnodes))
+            return self.atsp.add_link(types.StateLink, list(subnodes))
 
     def absent(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.AbsentLink, list(subnodes))
+            return self.atsp.add_link(types.AbsentLink, list(subnodes))
 
 
     def present(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.PresentLink, list(subnodes))
+            return self.atsp.add_link(types.PresentLink, list(subnodes))
 
 
     def exists(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.ExistsLink, list(subnodes))
+            return self.atsp.add_link(types.ExistsLink, list(subnodes))
 
 
     def for_all(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.ForAllLink, list(subnodes))
+            return self.atsp.add_link(types.ForAllLink, list(subnodes))
 
 
     def get(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.GetLink, list(subnodes))
+            return self.atsp.add_link(types.GetLink, list(subnodes))
 
 
     def And(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.AndLink, list(subnodes))
+            return self.atsp.add_link(types.AndLink, list(subnodes))
 
 
     def Or(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.OrLink, list(subnodes))
+            return self.atsp.add_link(types.OrLink, list(subnodes))
 
 
     def Not(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.NotLink, list(subnodes))
+            return self.atsp.add_link(types.NotLink, list(subnodes))
 
 
     def equal(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.NotLink, list(subnodes))
+            return self.atsp.add_link(types.NotLink, list(subnodes))
 
 
     def member(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.MemberLink, list(subnodes))
+            return self.atsp.add_link(types.MemberLink, list(subnodes))
 
 
     def set(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.SetLink, list(subnodes))
+            return self.atsp.add_link(types.SetLink, list(subnodes))
 
 
     def identical(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.IdenticalLink, list(subnodes))
+            return self.atsp.add_link(types.IdenticalLink, list(subnodes))
 
 
     def define(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.DefineLink, list(subnodes))
+            return self.atsp.add_link(types.DefineLink, list(subnodes))
 
 
     def bind(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.BindLink, list(subnodes))
+            return self.atsp.add_link(types.BindLink, list(subnodes))
 
 
     def define(self, *subnodes, **kwargs):
-        atsp = kwargs["atsp"] if "atsp" in kwargs and kwargs["atsp"] is not None else self.queryspace
         with self.lock:
-            return atsp.add_link(types.DefineLink, list(subnodes))
+            return self.atsp.add_link(types.DefineLink, list(subnodes))
 
 
-    def build_deduction_rulebase(self, atsp=None):
-        atsp = self.queryspace if atsp is None else atsp
+    def build_deduction_rulebase(self):
         with self.lock:
             rbs = self.concept("deduction-rule-base")
             execute_code = \
@@ -433,14 +394,13 @@ class KnowledgeBase(object):
             (load-from-path "/home/rasberry/git/pln/opencog/pln/rules/wip/not-elimination.scm")
             (load-from-path "/home/rasberry/git/pln/opencog/pln/rules/wip/implication-instantiation.scm")
             (load-from-path "/home/rasberry/git/pln/opencog/pln/rules/predicate/conditional-direct-evaluation.scm")
-
             (load-from-path "/home/rasberry/git/pln/opencog/pln/meta-rules/predicate/conditional-full-instantiation.scm")
             (load-from-path "/home/rasberry/git/pln/opencog/pln/meta-rules/predicate/conditional-partial-instantiation.scm")
             (load-from-path "/home/rasberry/git/pln/opencog/pln/meta-rules/predicate/universal-full-instantiation.scm")
             (define rbs (Concept "deduction-rule-base"))
             (ure-set-complexity-penalty rbs {:f})
             '''.format(COMPLEXITY_PENALTY)
-            scheme_eval(atsp, execute_code)
+            scheme_eval(self.atsp, execute_code)
             # self.member(self.defined_schema("inheritance-to-member-rule"), rbs)
             # self.member(self.defined_schema("member-to-evaluation-0-rule"), rbs)
             # self.member(self.defined_schema("member-to-evaluation-1-rule"), rbs)
@@ -499,7 +459,6 @@ class KnowledgeBase(object):
         return rbs
 
 
-
     def build_inheritance_deduction(self,deduction_rbs):
         deduction_rule = self.bind(
             self.variable_list(
@@ -542,7 +501,6 @@ class KnowledgeBase(object):
         self.member(deduction_rule_name, deduction_rbs)
 
 
-
     def build_implication_deduction(self, deduction_rbs):
         deduction_rule = self.bind(
             self.variable_list(
@@ -583,7 +541,6 @@ class KnowledgeBase(object):
             deduction_rule_name,
             deduction_rule)
         self.member(deduction_rule_name, deduction_rbs)
-
 
 
     def build_linked_deduction(self, deduction_rbs):
@@ -638,9 +595,8 @@ class KnowledgeBase(object):
         self.member(deduction_rule_name, deduction_rbs)
 
 
+    def build_ontology(self):
 
-    def build_ontology(self, atsp=None):
-        atsp = self.queryspace if atsp is None else atsp
         thing = self.concept("thing").truth_value(1.0, 1.0)
 
         concept = self.concept("concept").truth_value(1.0, 1.0)

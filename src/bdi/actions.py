@@ -176,7 +176,7 @@ class MoveToAction(Action):
     condition_templates = [
     [ws.is_at, [ME, "origin"]],
     [ws.is_at, ["picker", "destination"]],
-    # [ws.linked, ["origin", "destination"]]
+    [ws.linked, ["origin", "destination"]]
     ]
 
     consequence_templates = [[ws.is_at, [ME, "destination"]]]

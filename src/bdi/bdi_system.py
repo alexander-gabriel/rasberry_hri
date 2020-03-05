@@ -26,6 +26,7 @@ class BDISystem:
         self.durations = []
         self.kb = kb
         self.last_intention = None
+        self.last_distance = 0
         with self.kb.lock:
             self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
             self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
@@ -247,18 +248,21 @@ class BDISystem:
                     # stop if we're to close to a picker
                     minimum_distance = MINIMUM_DISTANCE
                     # if self.world_state.moving:
-                    #     minimum_distance += 0.3
+                    #     minimum_distance +=
                     if distance < minimum_distance:
                         if not self.too_close:
+                            rospy.logwarn("BDI: Robot has met picker. Distance: {}".format(distance))
                             self.too_close = True
-                            rospy.loginfo("BDI: Robot has met picker. Distance: {}".format(distance))
                             self.picker_pose_publisher.publish("at robot")
                             self.robco.cancel_movement()
                         elif distance < 0.2:
                             rospy.logwarn("BDI: Picker is too close. Distance: {}".format(distance))
+                        # elif abs(distance - self.last_distance) < 0.04:
+
                     elif self.too_close:
                         rospy.loginfo("BDI: Robot has left picker. Distance: {}".format(distance))
                         self.too_close = False
+                    self.last_distance = distance
             except (KeyError, AttributeError) as err:
                 rospy.logwarn("BDI: {}".format(err))
             except (ValueError, IndexError) as err:

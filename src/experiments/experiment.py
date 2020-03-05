@@ -2,13 +2,17 @@
 import os
 import sys
 from threading import Thread
+import base64
+
+import paramiko
 
 import rospy
 import rosbag
 import roslaunch
 import dynamic_reconfigure.client
 
-from std_srvs.srv import Empty
+from std_srvs.srv import Empty, Trigger
+from robot_localization. srv import ToggleFilterProcessing
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Pose, PoseWithCovarianceStamped, Point, Quaternion, Twist
@@ -23,6 +27,9 @@ from gazebo_msgs.msg import ModelState
 from gazebo_msgs.srv import SetModelState, GetModelState
 
 
+key = paramiko.RSAKey(data=base64.b64decode(b'AAAAB3NzaC1yc2EAAAADAQABAAABAQC9/fxTMxUkCY0+27UqYXJM+RZfJjDBeCgqYb28P5iq0Kqry98Ke0Af703yyJPfaVlRG8PUkn95k+1dh1xQL8nzWeIs9oxTOwjpOliqAn2ajQ/v2J73E2wQyHhGfRWLQ+GVzO6ZU8u48mybWxOKPsk6ETG/0eQdes+zNvI7Q0K2ZryTv/BzfWzGite2I3YTDHMGjg94BdWsQJ3t+leV29nsn6eH4vYliFJcDJRexck/FvA2j3n3eqh/ahP2UTFChna3BS3EGfGTaFUaqxJyxijXtXAkZd6OGweD1D6VREX50/JwjtCbIeYQTz+pz7dw67dBQHU9yKX40x+iR813KCgt'))
+
+command = """tmux send-keys -t "robot_local.0" C-c C-m 'roslaunch rasberry_navigation rasberry_localisation_multisim.launch use_imu:="$USE_IMU" publish_tf:="$EKF_PUBLISH_TF" robot_name:=$ROBOT_NAME_1 initial_pose_x:=$ROBOT_POS_X_1 initial_pose_y:=$ROBOT_POS_Y_1 initial_pose_a:=$ROBOT_POS_A_1' C-m"""
 
 SLEEP = 0.01
 LOG_PATH = "."
@@ -111,23 +118,39 @@ def convert_bags(config):
 class Experiment():
 
     def __init__(self, parameters, config):
-        # super(Config, self).__init__()
-        rospy.loginfo("EXP: Starting Experiment")
-        self.is_finished = False
         self.parameters = parameters
         self.config = config
+        # super(Config, self).__init__()
+        rospy.loginfo("EXP: Starting Experiment")
+        self.set_model_state = self.create_service_proxy('/gazebo/set_model_state', SetModelState, local=False)
+        state_msg = ModelState()
+        state_msg.model_name = self.config.robot_id
+        state_msg.pose.position.x = 11.41 #14.12 #11.649
+        state_msg.pose.position.y = 4.6285 #4.63 #4.64
+        state_msg.pose.orientation.w = 1
+        state_msg.reference_frame = "map"
+        resp = self.set_model_state(state_msg)
+        self.ssh_client = paramiko.SSHClient()
+        self.ssh_client.get_host_keys().add('10.10.10.15', 'ssh-rsa', key)
+        self.ssh_client.connect('10.10.10.15', username='rasberry')
+        stdin, stdout, stderr = self.ssh_client.exec_command(command)
+        self.ssh_client.close()
+        rospy.sleep(3)
+        self.is_finished = False
+
+
         self.robco = RobotControl(self.config.robot_id)
         self.last_clock = rospy.get_time()
         self.start_clock = int(self.last_clock+3)
-        self.request_nomotion_update = rospy.ServiceProxy('/{:}/request_nomotion_update'.format(self.config.robot_id), Empty)
-        self.reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
-        self.reset_world = rospy.ServiceProxy('/gazebo/reset_world', Empty)
-        self.get_model_state = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
-        self.set_model_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
-        rospy.loginfo("EXP: Waiting for gazebo services")
-        rospy.wait_for_service('/gazebo/reset_simulation')
-        rospy.wait_for_service('/gazebo/reset_world')
-        rospy.loginfo("EXP: Found gazebo services")
+        # self.request_nomotion_update = self.create_service_proxy('request_nomotion_update')
+        # self.clear_costmap = self.create_service_proxy('move_base/clear_costmaps')
+        # self.reset_odometry = self.create_service_proxy('base_driver/reset_base_odom', Trigger)
+        # self.ekf_localization = self.create_service_proxy('ekf_localization_local/toggle', ToggleFilterProcessing)
+        # self.reset_simulation = self.create_service_proxy('/gazebo/reset_simulation', local=True)
+        # self.reset_world = self.create_service_proxy('/gazebo/reset_world', local=True)
+        # self.get_model_state = self.create_service_proxy('/gazebo/get_model_state', GetModelState, local=False)
+
+
         self.initial_pose_publisher = rospy.Publisher('/{:}/initialpose'.format(self.config.robot_id), PoseWithCovarianceStamped, queue_size=10)
         self.picker_pose_publisher = rospy.Publisher('/picker_mover', String, queue_size=10)
         self.human_action_publisher = rospy.Publisher('/human_actions', Action, queue_size=10)
@@ -139,9 +162,9 @@ class Experiment():
         self.running_bags = []
 
         # reconfigure robot speed
-        client = dynamic_reconfigure.client.Client("/{:}/move_base/DWAPlannerROS".format(self.config.robot_id), timeout=4)
-        client.update_configuration(
-        {"max_vel_x":1.5})
+        # client = dynamic_reconfigure.client.Client("/{:}/move_base/DWAPlannerROS".format(self.config.robot_id), timeout=4)
+        # client.update_configuration(
+        # {"max_vel_x":1.5})
                         # {
                         # "int_param":x,
                         # "double_param":(1/(x+1)),
@@ -157,24 +180,38 @@ class Experiment():
         #105: 17.061 4.609
         #106: 19.997 4.568
 
-        # rospy.wait_for_service('/gazebo/set_model_state')
-        # rospy.wait_for_service('/{:}/request_nomotion_update'.format(self.config.robot_id))
-        # rospy.wait_for_service('/gazebo/get_model_state')
+
+
+
+
         # resp = self.get_model_state(self.config.robot_id, "")
-        # state_msg = ModelState()
-        # state_msg.model_name = self.config.robot_id
-        # state_msg.pose = resp.pose
-        # state_msg.pose.position.x = 11.649 #11.649
-        # state_msg.pose.position.y = 4.62 #4.64
+        # rospy.loginfo(self.ekf_localization(False))
+
+        # # state_msg.pose = resp.pose
+        # # state_msg.pose0
+
         # robot_pose = PoseWithCovarianceStamped()
-        # robot_pose.pose.pose.position.x = 11.649
-        # robot_pose.pose.pose.position.y = 4.64
-        # resp = self.set_model_state( state_msg )
+        # robot_pose.header.stamp = rospy.get_rostime()
+        # robot_pose.pose.pose.position.x = 14.12
+        # robot_pose.pose.pose.position.y = 4.63
+        # robot_pose.pose.pose.orientation.w = 1
+
+        # self.reset_odometry()
         # self.initial_pose_publisher.publish(robot_pose)
         # self.request_nomotion_update()
-
+        # self.clear_costmap()
+        # rospy.loginfo(self.ekf_localization(True))
         # rospy.logwarn(resp)
 
+
+    def create_service_proxy(self, topic, type=Empty, local=True):
+        if local:
+            topic = '/{:}/{:}'.format(self.config.robot_id, topic)
+        rospy.loginfo('EXP: Waiting for service {}'.format(topic))
+        service = rospy.ServiceProxy('{:}'.format(topic), type)
+        rospy.wait_for_service(topic)
+        rospy.loginfo('EXP: Found service {}'.format(topic))
+        return service
 
 
     def initial_pose_callback(self, msg):

@@ -12,8 +12,8 @@ TRUTH_THRESHOLD = 0.5
 TARGET = "target"
 ME = "me"
 INF = float('inf')
-ROBOT_SPEED = 0.55
-PICKER_SPEED = rospy.get_param("/thorvald_001/hri/picker_speed", 1.3)
+ROBOT_SPEED = rospy.get_param("{}/robot_speed".format(NS), 0.8)
+PICKER_SPEED = rospy.get_param("{}/picker_speed".format(NS), 0.8)
 MINIMUM_DISTANCE = rospy.get_param("{}/minimum_distance".format(NS), 0.5) # m
 ROBOT_LENGTH = 1.5
 ROBOT_WIDTH = 1.35584
@@ -40,7 +40,6 @@ GIVE_COST = rospy.get_param("{}/give_cost".format(NS), 2.5)
 EXCHANGE_GAIN = rospy.get_param("{}/exchange_gain".format(NS), 240)
 EXCHANGE_COST = rospy.get_param("{}/exchange_cost".format(NS), 5)
 
-SPEED = rospy.get_param("{}/robot_speed".format(NS), 0.5) # m/s
 MEAN_WAYPOINT_DISTANCE = rospy.get_param("{}/mean_waypoint_distance".format(NS), 2.95) # m
 
 

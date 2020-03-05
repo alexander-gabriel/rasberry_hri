@@ -332,63 +332,54 @@ class Goal(object):
 
 
     def is_achieved(self, world_state):
+        return self.get_next_action() is None
+        # TODO: this check requires a new set of condition primitives and an updated get_consequences function so it can query for the truth of statements without making statements
 
-        start_time = time.time()
-        success = False
-        if not self.get_action_queue():
-            consequences = []
-            for fun, args in self.get_consequences():
-                rospy.logdebug("{}: {}".format(fun, args))
-                new_args = []
-                for arg in args:
-                    if arg == ME:
-                        new_args.append(world_state.kb.concept(world_state.me.capitalize()))
-                    else:
-                        new_args.append(world_state.kb.concept(arg))
-                candidate = fun(world_state, *new_args)
-                consequences.append(candidate)
-            # rospy.logwarn("Consequences from is_achieved:\n{}".format(consequences))
-            # query = world_state.kb.And(*consequences)
-            query = consequences[0]
-            consequence_count = len(consequences)
-            if consequence_count > 1:
-                query = world_state.kb.And(*consequences)
-            elif consequence_count == 1:
-                query = consequences[0]
-            else:
-                return True
-            rospy.logdebug("GOL: Check:\n{:}".format(query))
-            results = world_state.kb.reason(query, world_state.kb.variable_list())
-            rospy.logdebug("------ is achieved? ------")
-            rospy.logdebug(results)
-            for listlink in results.get_out():
-                if listlink.tv == world_state.kb.TRUE:
-                    rospy.logwarn("pleasure achieved")
-                    success = True
-                else:
-                    rospy.logdebug("no bueno")
-                    success = False
-            # if (results.tv == world_state.kb.TRUE):
-            #     rospy.logdebug("pleasure achieved")
-            #     success = True
-            # else:
-            #     rospy.logdebug("no bueno")
-            #     success = False
-        rospy.logdebug("GOL: Checked if goal {:} was achieved -- {:.4f}".format(self, time.time() - start_time))
+        # start_time = time.time()
+        # success = False
+        # if not self.get_action_queue():
+        #     consequences = []
+        #     for fun, args in self.get_consequences():
+        #         rospy.loginfo("{}: {}".format(fun, args))
+        #         new_args = []
+        #         for arg in args:
+        #             if arg == ME:
+        #                 new_args.append(world_state.kb.concept(world_state.me.capitalize()))
+        #             else:
+        #                 new_args.append(world_state.kb.concept(arg))
+        #         candidate = fun(world_state, *new_args)
+        #         consequences.append(candidate)
+        #     rospy.logdebug("Consequences from is_achieved:\n{}".format(consequences))
+        #     # query = world_state.kb.And(*consequences)
+        #     query = consequences[0]
+        #     consequence_count = len(consequences)
+        #     if consequence_count > 1:
+        #         query = world_state.kb.And(*consequences)
+        #     elif consequence_count == 1:
+        #         query = consequences[0]
+        #     else:
+        #         return True
+        #     rospy.logdebug("GOL: Check:\n{:}".format(query))
+        #     results = world_state.kb.reason(query, None)
+        #     rospy.logdebug("------ is achieved? ------")
+        #     rospy.logdebug(results)
+        #     for listlink in results.get_out():
+        #         if listlink.tv == world_state.kb.TRUE:
+        #             rospy.logwarn("pleasure achieved")
+        #             success = True
+        #         else:
+        #             rospy.logdebug("no bueno")
+        #             success = False
+        #     # if (results.tv == world_state.kb.TRUE):
+        #     #     rospy.logdebug("pleasure achieved")
+        #     #     success = True
+        #     # else:
+        #     #     rospy.logdebug("no bueno")
+        #     #     success = False
+        # rospy.logdebug("GOL: Checked if goal {:} was achieved -- {:.4f}".format(self, time.time() - start_time))
+        #
+        # return success
 
-        return success
-        # rospy.logdebug("--------------------------")
-        # return True
-
-            #TODO: fix achievement checking
-            # truth = self.world_state.truth(consequence.replace(TARGET, target))
-            # if consequence.startswith("!"):
-            #     if truth is None or truth > TRUTH_THRESHOLD:
-            #         return False
-            # else:
-            #     if truth is None or truth <= TRUTH_THRESHOLD:
-            #         return False
-        # return False #TODO cache result
 
 
     def get_action_queue(self):
@@ -405,9 +396,10 @@ class Goal(object):
 
 
     def get_next_action(self):
-        with suppress(IndexError):
+        try:
             return self.get_action_queue()[0]
-        return None
+        except IndexError:
+            return None
 
 
     def perform_action(self):

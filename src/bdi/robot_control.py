@@ -34,4 +34,5 @@ class RobotControl:
 
 
     def cancel_movement(self):
+        self.robot_control.cancel_goal()
         self.robot_control.cancel_all_goals()

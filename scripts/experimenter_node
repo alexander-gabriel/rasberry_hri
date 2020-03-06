@@ -144,7 +144,7 @@ if __name__ == '__main__':
     e = Experimenter()
     # do 5, 7, and 9 later
     print("EXPE: Generating Configurations")
-    for subject_id in [1]: #[1,2,3,4,6,8,10]: #[5,7,9]:
+    for subject_id in [1,2,3,4,5,6,7,8,9,10]:
         for mode in ["standing", "moving"]:
             try: # delivery
                 c = Config("thorvald_001", "Delivery - Subject {} - Mode {}".format(subject_id, mode))

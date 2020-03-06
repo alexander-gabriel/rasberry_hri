@@ -73,7 +73,7 @@ data = {
         },
         9: {
             "standing": ("/data/subject-9-out/picking_berries-22-joints.bag",3,3),
-            "moving": ("/data/subject-9-moving-out/gesture_call-132-joints.bag",1,3)
+            "moving": ("/data/subject-9-moving-out/picking_berries-32-joints.bag ",9,3)
         },
         10: {
             "standing": ("/data/subject-10-out/picking_berries-18-joints.bag",2,3),

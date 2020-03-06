@@ -35,7 +35,7 @@ class Scheduler:
         self.bdi = BDISystem(self.robot_id, self.kb)
         self.robot_pose_sub = rospy.Subscriber('/{:}/robot_pose'.format(self.robot_id), Pose, self.robot_position_coordinate_callback)
         self.robot_sub = rospy.Subscriber('/{:}/closest_node'.format(self.robot_id), String, self.robot_position_node_callback)
-        self.human_action_sub = rospy.Subscriber('/human_actions_fast', Action, self.human_intention_callback)
+        self.human_action_sub = rospy.Subscriber('/human_actions', Action, self.human_intention_callback)
         self.picker01_sub = rospy.Subscriber("/picker01/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker01") )
         self.picker02_sub = rospy.Subscriber("/picker02/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker02") )
         #TODO: move to multiple pickers
@@ -100,9 +100,10 @@ class Scheduler:
 
 
     def human_intention_callback(self, msg):
-        rospy.loginfo("SCH: Perceived human action {}, {}".format(msg.person.capitalize(), msg.action))
-        person = msg.person.capitalize()
-        self.bdi.world_state.update_action(person, msg.action)
+        if msg.action != "":
+            rospy.loginfo("SCH: Perceived human action {}, {}".format(msg.person.capitalize(), msg.action))
+            person = msg.person.capitalize()
+            self.bdi.world_state.update_action(person, msg.action)
 
 
     def picker_tracker_callback(self, msg, id):

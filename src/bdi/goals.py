@@ -332,7 +332,18 @@ class Goal(object):
 
 
     def is_achieved(self, world_state):
-        return self.get_next_action() is None
+        if not self.get_action_queue():
+            for fun, args in self.get_consequences():
+                new_args = []
+                for arg in args:
+                    if arg == ME:
+                        new_args.append(world_state.kb.concept(world_state.me.capitalize()))
+                    else:
+                        new_args.append(world_state.kb.concept(arg))
+                fun(world_state, *new_args)
+            return True
+        else:
+            return False
         # TODO: this check requires a new set of condition primitives and an updated get_consequences function so it can query for the truth of statements without making statements
 
         # start_time = time.time()

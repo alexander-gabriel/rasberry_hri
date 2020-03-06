@@ -37,14 +37,165 @@ from experiments.experimenter import Experimenter
         #                     "type": "movement"},
         #                     }
 
-
+data = {
+    "picking": {
+        1: {
+            "standing": ("/data/subject-1-out/picking_berries-34-joints.bag",1,3),
+            "moving": ("/data/subject-1-moving-out/picking_berries-39-joints.bag",5,3)
+        },
+        2: {
+            "standing": ("/data/subject-2-out/picking_berries-14-joints.bag",1,3),
+            "moving": ("/data/subject-2-moving-out/picking_berries-10-joints.bag",1,3)
+        },
+        3: {
+            "standing": ("/data/subject-3-out/picking_berries-16-joints.bag",5,3),
+            "moving": ("/data/subject-3-moving-out/picking_berries-24-joints.bag",1,3)
+        },
+        4: {
+            "standing": ("/data/subject-4-out/picking_berries-20-joints.bag",1,3),
+            "moving": ("/data/subject-4-moving-out/picking_berries-25-joints.bag",1,3)
+        },
+        5: {
+            "standing": ("/data/subject-5-out/picking_berries-15-joints.bag",1,3),
+            "moving": ("/data/subject-5-moving-out/picking_berries-23-joints.bag",1,3)
+        },
+        6: {
+            "standing": ("/data/subject-6-out/picking_berries-17-joints.bag",1,3),
+            "moving": ("/data/subject-6-moving-out/picking_berries-17-joints.bag",3,3)
+        },
+        7: {
+            "standing": ("/data/subject-7-out/picking_berries-17-joints.bag",1,3),
+            "moving": ("/data/subject-7-moving-out/picking_berries-49-joints.bag",1,3)
+        },
+        8: {
+            "standing": ("/data/subject-8-out/picking_berries-16-joints.bag",1,3),
+            "moving": ("/data/subject-8-moving-out/picking_berries-24-joints.bag",3,3)
+        },
+        9: {
+            "standing": ("/data/subject-9-out/picking_berries-22-joints.bag",3,3),
+            "moving": ("/data/subject-9-moving-out/gesture_call-132-joints.bag",1,3)
+        },
+        10: {
+            "standing": ("/data/subject-10-out/picking_berries-18-joints.bag",2,3),
+            "moving": ("/data/subject-10-moving-out/picking_berries-23-joints.bag",1,3)
+        }
+    },
+    "calling": {
+        1: {
+            "standing": ("/data/subject-1-out/gesture_call-75-joints.bag",1,3),
+            "moving": ("/data/subject-1-moving-out/gesture_call-116-joints.bag",2,3)
+        },
+        2: {
+            "standing": ("/data/subject-1-out/gesture_call-92-joints.bag",1,3),
+            "moving": ("/data/subject-2-moving-out/gesture_call-123-joints.bag",1,3)
+        },
+        3: {
+            "standing": ("/data/subject-3-out/gesture_call-50-joints.bag",1,3),
+            "moving": ("/data/subject-1-moving-out/gesture_call-116-joints.bag",1,3)
+        },
+        4: {
+            "standing": ("/data/subject-4-out/gesture_call-57-joints.bag",1,3),
+            "moving": ("/data/subject-4-moving-out/gesture_call-116-joints.bag",1,3)
+        },
+        5: {
+            "standing": ("/data/subject-5-out/gesture_call-50-joints.bag",1,3),
+            "moving": ("/data/subject-5-moving-out/gesture_call-190-joints.bag",6,3)
+        },
+        6: {
+            "standing": ("/data/subject-6-out/gesture_call-56-joints.bag",1,3),
+            "moving": ("/data/subject-6-moving-out/gesture_call-110-joints.bag",1,3)
+        },
+        7: {
+            "standing": ("/data/subject-7-out/gesture_call-48-joints.bag",1,3),
+            "moving": ("/data/subject-7-moving-out/gesture_call-123-joints.bag",5,3)
+        },
+        8: {
+            "standing": ("/data/subject-8-out/gesture_call-53-joints.bag",1,3),
+            "moving": ("/data/subject-8-moving-out/gesture_call-92-joints.bag",1,3)
+        },
+        9: {
+            "standing": ("/data/subject-9-out/gesture_call-99-joints.bag",1,3),
+            "moving": ("/data/subject-9-moving-out/gesture_call-156-joints.bag",1,3)
+        },
+        10: {
+            "standing": ("/data/subject-10-out/gesture_call-52-joints.bag",1,3),
+            "moving": ("/data/subject-10-moving-out/gesture_call-126-joints.bag",1,3)
+        }
+    }
+}
 
 
 if __name__ == '__main__':
+    picks = {}
+    calls = {}
+    for subject_id in range(1,10+1):
+        picks[subject_id] = {}
+        calls[subject_id] = {}
+        for mode in ["standing", "moving"]:
+            filename, start, duration = data["picking"][subject_id][mode]
+            picks[subject_id][mode] = {"type": "rosbag", "label": "picking_berries", "start": start, "duration": duration, "filename": filename, "topics": ["/human_actions"]}
+            filename, start, duration = data["calling"][subject_id][mode]
+            calls[subject_id][mode] = {"type": "rosbag", "label": "calling", "start": start, "duration": duration, "filename": filename, "topics": ["/human_actions"]}
+
+
     rospy.init_node("experiment_node")
     rospy.myargv(argv=sys.argv)
-    rospy.loginfo("Experiment started")
+
     e = Experimenter()
-    c = Config("thorvald_001")
-    e.add_config(c)
+    # do 5, 7, and 9 later
+    print("EXPE: Generating Configurations")
+    for subject_id in [1]: #[1,2,3,4,6,8,10]: #[5,7,9]:
+        for mode in ["standing", "moving"]:
+            try: # delivery
+                c = Config("thorvald_001", "Delivery - Subject {} - Mode {}".format(subject_id, mode))
+                c.behaviours = {}
+                c.behaviours[2] = calls[subject_id][mode]
+                c.behaviours[4] = {"type": "message",
+                                           "target": "picker_movement",
+                                           "message": "deliver"}
+                c.parameters = {"called_robot": [False],
+                                "seen_picking": [False],
+                                "picker_speed": [0.7],
+                                "target_picker": ["Picker02"],
+                                "iterations": ["30"]}
+                c.termination_time = 30
+                c.update_behaviour_times()
+                e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+            try: # evasion
+                c = Config("thorvald_001", "Evasion - Subject {} - Mode {}".format(subject_id, mode))
+                c.behaviours = {}
+                c.behaviours[2] = {"type": "message",
+                                           "target": "picker_movement",
+                                           "message": "evade"}
+                c.parameters = {"called_robot": [False],
+                                "seen_picking": [False],
+                                "picker_speed": [0.7],
+                                "target_picker": ["Picker02"],
+                                "iterations": ["30"]}
+                c.termination_time = 20
+                c.update_behaviour_times()
+                e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+            try: # exchange
+                c = Config("thorvald_001", "Exchange - Subject {} - Mode {}".format(subject_id, mode))
+                c.behaviours = {}
+                c.behaviours[1] = picks[subject_id][mode]
+                c.behaviours[4] = calls[subject_id][mode]
+                c.behaviours[6] = {"type": "message",
+                                           "target": "picker_movement",
+                                           "message": "exchange"}
+                c.parameters = {"called_robot": [False],
+                                "seen_picking": [False],
+                                "picker_speed": [0.7],
+                                "target_picker": ["Picker02"],
+                                "iterations": ["30"]}
+                c.termination_time = 30
+                c.update_behaviour_times()
+                e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+    print("EXPE: Starting Experimenter")
     e.run()

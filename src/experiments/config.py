@@ -67,35 +67,38 @@ call_filenames = [
 
 class Config():
 
-    def __init__(self, robot_id):
+    def __init__(self, robot_id, experiment_id):
         self.robot_id = robot_id
-        self.parameters = {"called_robot": [True],
-                            "seen_picking": [False],
-                            "picker_speed": [0.8],
-                            "target_picker": ["Picker02"],
-                            "iterations": ["90"]}
-        self.behaviours = {
-                            # 1: {"type": "rosbag",
-                            #     "label": "picking_berries",
-                            #     "start": 0,
-                            #     "duration": 3,
-                            #     "filename": "/data/subject-1-out/picking_berries-34-joints.bag",
-                            #     "topics": ["/human_actions"]
-                            #     },
-                            # 0: {"type": "rosbag",
-                            #     "label": "call",
-                            #     "start": 0,
-                            #     "duration": 2,
-                            #     "filename": "/data/subject-1-out/gesture_call-75-joints.bag",
-                            #     "topics": ["/human_actions"]
-                            #     },
-                            0: {"type": "message",
-                                "target": "picker_movement",
-                                "message": "deliver"
-                                }
-                            }
+        self.parameters = {}
+        self.behaviours = {}
+        self.experiment_id = experiment_id
+        # self.parameters = {"called_robot": [True],
+        #                     "seen_picking": [False],
+        #                     "picker_speed": [0.8],
+        #                     "target_picker": ["Picker02"],
+        #                     "iterations": ["90"]}
+        # self.behaviours = {
+        #                     1: {"type": "rosbag",
+        #                         "label": "picking_berries",
+        #                         "start": 0,
+        #                         "duration": 3,
+        #                         "filename": "/data/subject-1-out/picking_berries-34-joints.bag",
+        #                         "topics": ["/human_actions"]
+        #                         },
+        #                     0: {"type": "rosbag",
+        #                         "label": "call",
+        #                         "start": 0,
+        #                         "duration": 2,
+        #                         "filename": "/data/subject-1-out/gesture_call-75-joints.bag",
+        #                         "topics": ["/human_actions"]
+        #                         },
+        #                     0: {"type": "message",
+        #                         "target": "picker_movement",
+        #                         "message": "deliver"
+        #                         }
+        #                     }
         self.behaviour_times = sorted(self.behaviours.keys())
-        self.termination_time = 20
+        # self.termination_time = 20
         self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch", "/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
         # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
         # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch"]
@@ -111,6 +114,10 @@ class Config():
                 bag_path = behaviour["filename"]
                 bags[bag_path] = rosbag.Bag(bag_path)
         return bags
+
+
+    def update_behaviour_times(self):
+        self.behaviour_times = sorted(self.behaviours.keys())
 
     def add_parameter(self, label, values):
         if not isinstance(values, list):

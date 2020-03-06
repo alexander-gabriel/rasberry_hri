@@ -60,6 +60,7 @@ class Player(Thread):
 
     def run(self):
         for topic, msg, timestamp in self.msgs:
+
             # topic = "/human_actions_old"
             secs = timestamp.to_sec()
             #     if secs >= start_time and secs <= end_time:
@@ -121,7 +122,7 @@ class Experiment():
         self.parameters = parameters
         self.config = config
         # super(Config, self).__init__()
-        rospy.loginfo("EXP: Starting Experiment")
+        rospy.loginfo("EXP: Initializing Experiment: {}".format(config.experiment_id))
         self.set_model_state = self.create_service_proxy('/gazebo/set_model_state', SetModelState, local=False)
         state_msg = ModelState()
         state_msg.model_name = self.config.robot_id
@@ -137,6 +138,7 @@ class Experiment():
         self.ssh_client.close()
         rospy.sleep(3)
         self.is_finished = False
+
 
 
         self.robco = RobotControl(self.config.robot_id)
@@ -155,12 +157,13 @@ class Experiment():
         self.picker_pose_publisher = rospy.Publisher('/picker_mover', String, queue_size=10)
         self.human_action_publisher = rospy.Publisher('/human_actions', Action, queue_size=10)
         self.robot_pose_publisher = rospy.Publisher('/{:}/set_pose'.format(self.config.robot_id), PoseWithCovarianceStamped, queue_size=10)
-        self.camera_publisher = rospy.Publisher("/camera/color/image_raw", Image, queue_size=10)
+        # self.camera_publisher = rospy.Publisher("/camera/color/image_raw", Image, queue_size=10)
 
         # self.bag_paths = convert_bags(self.config)
         self.bags = self.config.get_bag_paths()
         self.running_bags = []
-
+        rospy.loginfo("EXP: Initialization finished")
+        rospy.loginfo("EXP: Experiment starting at: {}".format(self.start_clock))
         # reconfigure robot speed
         # client = dynamic_reconfigure.client.Client("/{:}/move_base/DWAPlannerROS".format(self.config.robot_id), timeout=4)
         # client.update_configuration(
@@ -253,7 +256,7 @@ class Experiment():
             rospy.core.signal_shutdown('keyboard interrupt')
         else:
             self.shutdown()
-            rospy.core.signal_shutdown('timeout')
+            # rospy.core.signal_shutdown('timeout')
 
 
     def set_parameters(self, parameters):
@@ -273,6 +276,7 @@ class Experiment():
         self.set_parameters(self.parameters)
         self.launch_services()
         self.clock_sub = rospy.Subscriber('/clock', Clock, self.clock_callback)
+        rospy.loginfo("EXP: Experiment setup finished")
         # self.reset_simulation()
 
         # self.robot_pose_publisher.publish(self.robot_pose)
@@ -295,7 +299,8 @@ class Experiment():
         if msg.clock.nsecs == 0:
             clock = msg.clock.to_sec()
             if clock >= self.config.termination_time + self.start_clock:
-                rospy.loginfo("EXP: Timeout condition reached")
+                if not self.is_finished:
+                    rospy.loginfo("EXP: Timeout condition reached")
                 self.is_finished = True
                 return
             difference = clock - self.last_clock
@@ -310,7 +315,7 @@ class Experiment():
                 while clock == self.config.get_next_behaviour_time() + self.start_clock:
                     behaviour = self.config.get_next_behaviour()
                     if behaviour["type"] == "rosbag":
-                        rospy.loginfo("EXP: Playing rosbag action '{}'".format(behaviour["label"]))
+                        rospy.loginfo("EXP: Playing rosbag '{}'".format(behaviour["filename"]))
                         player = Player(behaviour["filename"], topics=behaviour["topics"], start_time=behaviour["start"], duration=behaviour["duration"])
                         player.start()
                         # for topic, outmsg, t in bag.read_messages(topics=behaviour["topics"]):

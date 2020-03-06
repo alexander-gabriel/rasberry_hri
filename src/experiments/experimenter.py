@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import rospy
 import roslaunch
 from config import Config
 from experiment import Experiment
@@ -37,21 +37,20 @@ from experiment import Experiment
 class Experimenter:
 
     def __init__(self):
-        print("EXP: Initializing Experimenter")
+        rospy.loginfo("EXP: Initializing Experimenter")
         self.last_clock = 0
         self.configs = []
         self.current_config = None
-        print("EXP: Initialization finished")
 
 
     def run(self):
         for config in self.configs:
             self.current_config = config
             for parameters in config.get_parameter_set():
-                # this is one experiment run
                 experiment = Experiment(parameters, config)
                 experiment.setup()
                 experiment.spin()
+        rospy.core.signal_shutdown('timeout')
 
 
     def add_config(self, config):

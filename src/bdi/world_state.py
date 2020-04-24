@@ -1,5 +1,6 @@
 from threading import Lock
 from os.path import join
+from math import sqrt
 import time
 
 import rospy
@@ -8,6 +9,7 @@ import rospkg
 from parameters import *
 from utils import suppress
 
+from topological_navigation.tmap_utils import get_distance
 
 rospack = rospkg.RosPack()
 path = join(rospack.get_path('rasberry_hri'), 'src', 'bdi')
@@ -17,10 +19,84 @@ path = join(rospack.get_path('rasberry_hri'), 'src', 'bdi')
 
 class WorldState(object):
 
-    def __init__(self, me, kb):
-        self.me = me
+    def __init__(self, kb, me):
         self.kb = kb
+        self.me = me
         self.moving = False
+        self._size = self.kb.predicate("size")
+        self._position = self.kb.predicate("position")
+        self._berry_count = self.kb.predicate("berry count")
+        # DefineLink(DefinedSchemaNode("NewName"), )
+
+
+    def set_size(self, thing, width, length):
+        thing.set_value(self._size, self.kb.FloatValue([width, length]))
+
+
+    def get_size(self, thing):
+        return thing.get_value(self._size).to_list()
+
+
+    def set_position(self, place, x, y, date):
+        try:
+            positions = self.get_position(place)
+            positions.append(self.kb.FloatValue([x, y, date]))
+        except:
+            positions = [self.kb.FloatValue([x, y, date])]
+        try:
+            position = self.kb.LinkValue(positions[-10:])
+        except:
+            position = self.kb.LinkValue(positions)
+        place.set_value(self._position, position)
+
+
+    def update_position(self, person, place):
+        self.is_at(person, place).tv = self.kb.TRUE
+        rospy.loginfo("WST: {:} is at {:}".format(person.name, place.name))
+
+
+    def get_position(self, place):
+        return place.get_value(self._position).to_list()
+
+
+    def get_distance(self, thing1, thing2):
+        w1,l1 = self.get_size(thing1)
+        w2,l2 = self.get_size(thing1)
+        p1x, p1y, _ = self.get_position(thing1)[-1].to_list()
+        p2x, p2y, _ = self.get_position(thing2)[-1].to_list()
+        dx = p1x - p2x
+        dy = p1y - p2y
+        dxs = dx * dx
+        dys = dy * dy
+        if dxs > dys:
+            return sqrt(dxs + dys) - 0.5 * (w1 + w2)
+        else:
+            return sqrt(dxs + dys) - 0.5 * (l1 + l2)
+
+
+    def set_berry_state(self, place, ripe, unripe=0):
+        place.set_value(self._berry_count, self.kb.FloatValue([ripe,unripe]))
+
+
+    def get_berry_state(self, place):
+        return place.get_value(self._berry_count).to_list()
+
+
+    def update_berry_state(self, place, ripe, unripe=0):
+        old_ripe, old_unripe = self.get_berry_state(place)
+        self.set_berry_state(place, old_ripe+ripe, old_unripe+unripe)
+
+
+    def has_berries(self, place):
+        # link = self.kb.evaluation(self.kb.predicate("has_berries"), place)
+        link = self.kb.state(self.kb.list(place, self.kb.predicate("has_berries")), self.kb.concept("TRUE"))
+        return link
+
+
+    def not_has_berries(self, place):
+        # link = self.kb.Not(self.kb.evaluation(self.kb.predicate("has_berries"), place))
+        link = self.kb.state(self.kb.list(place, self.kb.predicate("has_berries")), self.kb.concept("FALSE"))
+        return link
 
 
     def is_at(self, thing, place):
@@ -32,6 +108,7 @@ class WorldState(object):
         # link = self.kb.equal(thing, self.kb.get(self.kb.state(self.kb.variable("x"), place)))
         link = self.kb.state(thing, place)
         return link
+
 
     def query_not_at(self, thing, place):
         link = self.kb.absent(self.kb.state(thing, place))
@@ -141,14 +218,15 @@ class WorldState(object):
         return link
 
 
-
     # add a place ConceptNode to the KB
-    def add_place(self, name, truth_value=None):
+    def add_place(self, name, x, y, truth_value=None):
         truth_value = self.kb.TRUE if truth_value is None else truth_value
         node1 = self.kb.concept(name)
+        self.set_position(node1, x, y, 0)
         node1.tv = truth_value
         link = self.is_a(node1, self.kb.place)
         link.tv = truth_value
+        return node1
 
 
     # add two 'linked' places
@@ -183,6 +261,7 @@ class WorldState(object):
         node2.tv = truth_value
         link = self.is_a(node1, node2)
         link.tv = truth_value
+        return node1
 
 
     def update_action(self, person, action):
@@ -211,13 +290,6 @@ class WorldState(object):
         else:
             rospy.logwarn("WST: Perceived unknown action {}".format(action))
         # results = self.kb.reason(self.seen_picking(self.kb.variable("picker")), self.kb.variable("picker"))
-
-
-    def update_position(self, person, place):
-        node1 = self.kb.concept(person)
-        node2 = self.kb.concept(place)
-        self.is_at(node1, node2).tv = self.kb.TRUE
-        rospy.loginfo("WST: {:} is at {:}".format(person, place))
 
 
     def get_picker_locations(self):

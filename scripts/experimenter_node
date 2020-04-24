@@ -73,7 +73,7 @@ data = {
         },
         9: {
             "standing": ("/data/subject-9-out/picking_berries-22-joints.bag",3,3),
-            "moving": ("/data/subject-9-moving-out/picking_berries-32-joints.bag ",9,3)
+            "moving": ("/data/subject-9-moving-out/picking_berries-32-joints.bag",9,3)
         },
         10: {
             "standing": ("/data/subject-10-out/picking_berries-18-joints.bag",2,3),
@@ -157,10 +157,11 @@ if __name__ == '__main__':
                                 "seen_picking": [False],
                                 "picker_speed": [0.7],
                                 "target_picker": ["Picker02"],
+                                # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
                                 "iterations": ["30"]}
                 c.termination_time = 30
                 c.update_behaviour_times()
-                e.add_config(c)
+                # e.add_config(c)
             except KeyError as err:
                 rospy.logwarn(err)
             try: # evasion
@@ -170,9 +171,28 @@ if __name__ == '__main__':
                                            "target": "picker_movement",
                                            "message": "evade"}
                 c.parameters = {"called_robot": [False],
-                                "seen_picking": [False],
+                                "seen_picking": [True],
                                 "picker_speed": [0.7],
                                 "target_picker": ["Picker02"],
+                                # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
+                                "iterations": ["30"]}
+                c.termination_time = 20
+                c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+            try: # evasion
+                c = Config("thorvald_001", "BerryEvasion - Subject {} - Mode {}".format(subject_id, mode))
+                c.behaviours = {}
+                c.behaviours[2] = {"type": "message",
+                                           "target": "picker_movement",
+                                           "message": "evade"}
+                c.parameters = {"called_robot": [False],
+                                "seen_picking": [True],
+                                "picker_speed": [0.7],
+                                "no_berry_places": [["Waypoint103", "WayPoint104"]],
+                                "target_picker": ["Picker02"],
+                                # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
                                 "iterations": ["30"]}
                 c.termination_time = 20
                 c.update_behaviour_times()
@@ -191,10 +211,11 @@ if __name__ == '__main__':
                                 "seen_picking": [False],
                                 "picker_speed": [0.7],
                                 "target_picker": ["Picker02"],
+                                # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
                                 "iterations": ["30"]}
                 c.termination_time = 30
                 c.update_behaviour_times()
-                e.add_config(c)
+                # e.add_config(c)
             except KeyError as err:
                 rospy.logwarn(err)
     print("EXPE: Starting Experimenter")

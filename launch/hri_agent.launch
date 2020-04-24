@@ -29,7 +29,7 @@
         <node pkg="rasberry_hri" name="scheduler" type="scheduler_node" ns="$(arg _ns)" output="screen">
           <!-- <param name="max_cost" type="double" value="240"/>
           <param name="min_gain" type="double" value="10"/>
-          <param name="target_picker" type="str" value="Picker02"/> -->
+          <param name="target_picker" type="str" value="PickerBLALBA02"/> -->
           <!-- <param name="called_robot" type="bool" value="False"/> -->
           <!-- <param name="seen_picking" type="bool" value="False"/> -->
           <!-- <param name="iterations" type="str" value="10"/>

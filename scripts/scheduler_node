@@ -4,8 +4,6 @@ import sys
 import rospy
 import actionlib
 
-from opencog.atomspace import TruthValue
-
 from topological_navigation.msg import GotoNodeAction
 
 
@@ -86,14 +84,7 @@ from bdi.scheduler import Scheduler
     # pretty_print_world_qsr_trace(which_qsr, qsrlib_response_message)
 
 
-def deduction_formula(AC, AB, BC):
-    tv1 = AB.tv
-    tv2 = BC.tv
-    if tv1.mean > 0.5 and tv2.mean > 0.5 and tv1.confidence > 0.5 and tv2.confidence > 0.5:
-        AC.tv = TruthValue(1, 1)
-    else:
-        AC.tv = TruthValue(0, 0)
-    return AC
+
 
 if __name__ == '__main__':
     rospy.init_node("scheduler")

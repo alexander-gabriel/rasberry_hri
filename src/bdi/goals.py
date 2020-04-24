@@ -8,7 +8,7 @@ from copy import copy
 
 from parameters import *
 from utils import OrderedConsistentSet, suppress
-from actions import MoveAction, MoveToAction, GiveCrateAction, ExchangeCrateAction, EvadeAction
+from actions import MoveAction, MoveToAction, GiveCrateAction, ExchangeCrateAction, EvadeAction, BerryEvadeAction
 from opencog.atomspace import types
 
 
@@ -321,7 +321,7 @@ class Goal(object):
                 this_target = copy(target)
                 # rospy.logwarn(listlink)
                 cls.get_targets(this_target, variables, listlink)
-                rospy.logwarn("GOL: Found a target for goal: {}".format(cls.__name__))
+                # rospy.logwarn("GOL: Found a target for goal: {}".format(cls.__name__))
                 # rospy.logwarn(this_target)
                 # world_state.kb.recursive_query_matcher(query, result, this_target)
                 targets.append(this_target)
@@ -523,6 +523,25 @@ class EvadeGoal(Goal):
 
     def __repr__(self):
         return "<Goal:Evade {:} by moving to {:} ({}, {})>".format(self.picker, self.destination, self.get_gain(), self.get_cost())
+
+
+
+class BerryEvadeGoal(Goal):
+
+    action_template = BerryEvadeAction
+
+    def __init__(self, world_state, robco, args):
+        me = world_state.me.capitalize()
+        origin = args["origin"]
+        self.picker = args["picker"]
+        self.destination = args["destination"]
+        if self.destination == args["place1"]:
+            raise WrongParameterException()
+        super(BerryEvadeGoal, self).__init__(world_state, robco, [me, self.picker, origin, self.destination])
+
+
+    def __repr__(self):
+        return "<Goal:BerryEvade {:} by moving to {:} ({}, {})>".format(self.picker, self.destination, self.get_gain(), self.get_cost())
 
 
 

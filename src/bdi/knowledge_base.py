@@ -3,7 +3,7 @@ from threading import RLock
 import time
 from copy import copy
 
-from opencog.atomspace import AtomSpace, TruthValue
+from opencog.atomspace import AtomSpace, TruthValue, createFloatValue, createLinkValue
 from opencog.atomspace import types
 # from opencog.type_constructors import *
 from opencog.ure import BackwardChainer, ForwardChainer
@@ -200,6 +200,22 @@ class KnowledgeBase(object):
         truth_value = self.TRUE if truth_value is None else truth_value
         with lock:
             self.atsp.add_link(link, tv=truth_value)
+
+
+    def set_value(self, node, key, value):
+        node.set_value(self.predicate(key), value)
+
+
+    def get_value(self, node, key):
+        return node.get_value(self.predicate(key))
+
+
+    def FloatValue(self, value):
+        return createFloatValue(value)
+
+
+    def LinkValue(self, value):
+        return createLinkValue(value)
 
 
     def add_node(self, node=None):
@@ -421,6 +437,9 @@ class KnowledgeBase(object):
             self.member(self.defined_schema("fuzzy-conjunction-introduction-7ary-rule"), rbs)
             self.member(self.defined_schema("fuzzy-conjunction-introduction-8ary-rule"), rbs)
             self.member(self.defined_schema("fuzzy-conjunction-introduction-9ary-rule"), rbs)
+            self.member(self.defined_schema("fuzzy-conjunction-introduction-10ary-rule"), rbs)
+            self.member(self.defined_schema("fuzzy-conjunction-introduction-11ary-rule"), rbs)
+            self.member(self.defined_schema("fuzzy-conjunction-introduction-12ary-rule"), rbs)
             # self.member(self.defined_schema("fuzzy-disjunction-introduction-1ary-rule"), rbs)
             # self.member(self.defined_schema("fuzzy-disjunction-introduction-2ary-rule"), rbs)
             # self.member(self.defined_schema("fuzzy-disjunction-introduction-3ary-rule"), rbs)

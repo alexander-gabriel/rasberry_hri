@@ -7,7 +7,6 @@ from qsrlib_io.world_trace import Object_State, World_Trace
 
 from std_msgs.msg import String
 from std_srvs.srv import Empty
-from topological_navigation.tmap_utils import get_distance
 from topological_navigation.route_search import TopologicalRouteSearch
 
 from rasberry_people_perception.topological_localiser import TopologicalNavLoc
@@ -16,7 +15,7 @@ from parameters import *
 from utils import OrderedConsistentSet, suppress
 from robot_control import RobotControl
 from world_state import WorldState
-from goals import ExchangeGoal, DeliverGoal, EvadeGoal, WrongParameterException
+from goals import ExchangeGoal, DeliverGoal, EvadeGoal, BerryEvadeGoal, WrongParameterException
 
 class BDISystem:
 
@@ -32,62 +31,64 @@ class BDISystem:
             self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
             self.picker_pose_publisher = rospy.Publisher('/picker_mover', String, queue_size=10)
             # self.unpause()
-            self.me = me
-            self.robco = RobotControl(self.me)
-            self.world_state = WorldState(self.me, self.kb)
+            self.robco = RobotControl(me)
+            self.world_state = WorldState(self.kb, me)
             rospy.loginfo("BDI: Initialized World State")
             self.last_behaviours = {}
             self.robot_track = []
             self.people_tracks = {}
             self.directions = {}
             self.latest_directions = {}
-            self.goals = [DeliverGoal, ExchangeGoal, EvadeGoal]
-            # self.goals = [DeliverGoal, ExchangeGoal]
-            # self.goals = [DeliverGoal]
-            # self.goals = [ExchangeGoal]
-            # self.goals = [EvadeGoal]
-            # self.goals = []
+            self.goals = []
+            self.goals.append(DeliverGoal)
+            self.goals.append(ExchangeGoal)
+            # self.goals.append(EvadeGoal)
+            self.goals.append(BerryEvadeGoal)
             self.intentions = []
             self.latest_robot_msg = None
             self.latest_people_msgs = {}
             self.latest_people_nodes = {}
             self.qsrlib = QSRlib()
             self.locator = TopologicalNavLoc()
-            self.links = {}
-            self.node_positions = {}
+            # self.links = {}
+            # self.node_positions = {}
             self.route_search = TopologicalRouteSearch(self.locator.tmap)
             rospy.loginfo("BDI: Adding Waypoints")
             for node in self.locator.tmap.nodes:
                 # if node in ["WayPoint103", "WayPoint104", "WayPoint105", "WayPoint106", "WayPoint107", "WayPoint108", "WayPoint109"]:
-                self.world_state.add_thing(node.name, "place")
-                self.node_positions[node.name] = node.pose
+                place = self.world_state.add_place(node.name, node.pose.position.x, node.pose.position.y)
+                self.world_state.has_berries(place).tv = self.kb.TRUE
+                # self.node_positions[node.name] = node.pose
                 for edge in node.edges:
                     if node.name != edge.node:
-                        self.links["_".join([node.name, edge.node])] = 0
+                        # self.links["_".join([node.name, edge.node])] = 0
                         self.world_state.add_place_link(node.name, edge.node)
-            for link in self.links.keys():
-                nodes = link.split("_")
-                self.links[link] = get_distance(self.node_positions[nodes[0]], self.node_positions[nodes[1]])
-            self.setup_experiment()
+            # for link in self.links.keys():
+            #     nodes = link.split("_")
+            #     self.links[link] = self.world_state.get_distance(nodes[0], nodes[1])
+            self.setup_experiment(me)
         rospy.loginfo("BDI: Initialized BDI System")
 
 
-    def setup_experiment(self):
+    def setup_experiment(self, me):
         rospy.loginfo("BDI: Adding Me")
-        self.world_state.add_thing(self.me.capitalize(), "robot")
+        self.me = self.world_state.add_thing(me.capitalize(), "robot")
+        self.world_state.set_size(self.me, ROBOT_WIDTH, ROBOT_LENGTH)
+        for place in NO_BERRY_PLACES:
+            self.world_state.not_has_berries(self.kb.concept(place)).tv = self.kb.TRUE
+            rospy.loginfo("BDI: No Berries at {}".format(place))
         rospy.loginfo("BDI: Adding Pickers")
-        for picker in ["Picker01", "Picker02"]:
-            self.world_state.add_thing(picker, "human")
+        picker = self.world_state.add_thing(TARGET_PICKER, "human")
+        self.world_state.set_size(picker, PICKER_WIDTH, PICKER_LENGTH)
         rospy.loginfo("BDI: Setting Target Picker State")
-        picker = TARGET_PICKER
         if CALLED_ROBOT:
-            self.world_state.called_robot(self.kb.concept(picker)).tv = self.kb.TRUE
+            self.world_state.called_robot(picker).tv = self.kb.TRUE
         else:
-            self.world_state.not_called_robot(self.kb.concept(picker)).tv = self.kb.TRUE
+            self.world_state.not_called_robot(picker).tv = self.kb.TRUE
         if SEEN_PICKING:
-            self.world_state.seen_picking(self.kb.concept(picker)).tv = self.kb.TRUE
+            self.world_state.seen_picking(picker).tv = self.kb.TRUE
         else:
-            self.world_state.not_seen_picking(self.kb.concept(picker)).tv = self.kb.TRUE
+            self.world_state.not_seen_picking(picker).tv = self.kb.TRUE
         # self.robco.move_to(INITIAL_WAYPOINT)
 
 
@@ -120,6 +121,8 @@ class BDISystem:
             cost = desire.get_cost()
             if gain > MIN_GAIN and cost < MAX_COST:
                 intentions.append(desire)
+            else:
+                rospy.logwarn("Desire {} is outside bounds of gain >{} and cost <{}".format(desire, MIN_GAIN, MAX_COST))
         if len(self.intentions) > 0:
             rospy.logdebug("BDI: Intentions: {}".format(self.intentions))
         return intentions
@@ -179,95 +182,119 @@ class BDISystem:
             else:
                 index += 1
 
+    def calculate_directions(self, world, pairs):
+        dynamic_args = {"qtcbs": {"quantisation_factor": 0.1,
+                              "validate": True,
+                              "no_collapse": True,
+                              "qsrs_for": pairs}}
+        qsrlib_request_message = QSRlib_Request_Message(which_qsr="qtcbs", input_data=world, dynamic_args=dynamic_args)
+        try:
+            qsrlib_response_message = self.qsrlib.request_qsrs(qsrlib_request_message)
+            t = qsrlib_response_message.qsrs.get_sorted_timestamps()[-1]
+            for k, v in qsrlib_response_message.qsrs.trace[t].qsrs.items():
+                picker = self.kb.concept(k.split(",")[1])
+                direction = v.qsr.get("qtcbs").split(",")[1]
+                self.directions[picker.name] = direction
+                update_direction = False
+                try:
+                    update_direction = self.latest_directions[picker.name] != direction
+                except:
+                    update_direction = True
+                    self.latest_directions[picker.name] = direction
+                if update_direction:
+                    if direction == "+":
+                        self.world_state.leaving(picker).tv = self.kb.TRUE
+                        rospy.logwarn("BDI: {} is leaving".format(picker.name))
+                    elif direction == "-":
+                        self.world_state.approaching(picker).tv = self.kb.TRUE
+                        rospy.logwarn("BDI: {} is approaching".format(picker.name))
+                    else:
+                        self.world_state.standing(picker).tv = self.kb.TRUE
+                        rospy.logwarn("BDI: {} is standing".format(picker.name))
+                    self.latest_directions[picker.name] = direction
+        except (KeyError, AttributeError) as err:
+            rospy.logwarn("BDI: {}".format(err))
+        except (ValueError, IndexError) as err:
+            rospy.logwarn("BDI: {}".format(err))
 
+    ## TODO: re-integrate direction indicator
     def update_beliefs(self):
         rospy.logdebug("BDI: Updating Beliefs")
         timestamp = rospy.get_time()
         world = World_Trace()
         pairs = []
-        added_picker = False
+        if not self.latest_robot_msg is None:
+            self.world_state.set_position(self.me, self.latest_robot_msg.position.x, self.latest_robot_msg.position.y, timestamp)
         for person, msg in self.latest_people_msgs.items():
-            pairs.append((self.me.capitalize(), person))
-            position = Object_State(name=person, timestamp=timestamp, x=msg.pose.position.x, y=msg.pose.position.y, xsize=PICKER_WIDTH, ysize=PICKER_LENGTH, object_type="Person")
-            (current_node, closest_node) = self.locator.localise_pose(msg)
-            latest_node = None
-            with suppress(KeyError):
-                latest_node = self.latest_people_nodes[person][1]
-                if current_node != "none":
-                    pass # maybe delete the latest picker position from the kb as it's no longer correct
-            if current_node != "none":
-                self.latest_people_nodes[person] = ("is_at", current_node)
-                if current_node != latest_node:
-                    self.world_state.update_position(person, current_node)
-            elif closest_node is None:
-                rospy.logwarn("BDI: We have no idea where {} is currently".format(person))
-            #     self.latest_people_nodes[person] = ("is_near", closest_node)
-            #     self.world_state.add_belief("is_near({:},{:})".format(person, closest_node))
-            #     rospy.logdebug("added is_near({:},{:})".format(person, closest_node))
+            person = self.kb.concept(person)
+            self.world_state.set_position(person, msg.pose.position.x, msg.pose.position.y, timestamp)
+            distance = self.world_state.get_distance(self.me, person)
+            minimum_distance = MINIMUM_DISTANCE
+            # if self.world_state.moving:
+            #     minimum_distance +=
+            if distance < minimum_distance:
+                if not self.too_close:
+                    rospy.logwarn("BDI: Robot has met picker. Distance: {}".format(distance))
+                    self.too_close = True
+                    self.picker_pose_publisher.publish("at robot")
+                    self.robco.cancel_movement()
+                elif distance < 0.2:
+                    rospy.logwarn("BDI: Picker is too close. Distance: {}".format(distance))
+                # elif abs(distance - self.last_distance) < 0.04:
+
+            elif self.too_close:
+                rospy.loginfo("BDI: Robot has left picker. Distance: {}".format(distance))
+                self.too_close = False
+            # self.last_distance = distance
+
+            pairs.append((self.me.name, person.name))
+            position = Object_State(name=person.name, timestamp=timestamp, x=msg.pose.position.x, y=msg.pose.position.y, xsize=PICKER_WIDTH, ysize=PICKER_LENGTH, object_type="Person")
             try:
-                self.people_tracks[person].append(position)
+                self.people_tracks[person.name].append(position)
             except:
-                self.people_tracks[person] = [position]
+                self.people_tracks[person.name] = [position]
+            world.add_object_state_series(self.people_tracks[person.name])
 
-            world.add_object_state_series(self.people_tracks[person])
-            added_picker = True
-        if added_picker and not self.latest_robot_msg is None:
-            self.robot_track.append(Object_State(name=self.me.capitalize(), timestamp=timestamp, x=self.latest_robot_msg.position.x, y=self.latest_robot_msg.position.y, xsize=ROBOT_WIDTH, ysize=ROBOT_LENGTH))
+            (current_node, closest_node) = self.locator.localise_pose(msg)
+            if current_node != "none":
+                latest_node = None
+                with suppress(KeyError):
+                    latest_node = self.latest_people_nodes[person.name][1]
+                    # maybe delete the latest picker position from the kb as it's no longer correct
+                self.latest_people_nodes[person.name] = ("is_at", current_node)
+                if current_node != latest_node:
+                    self.world_state.update_position(person, self.kb.concept(current_node))
+            elif closest_node is None:
+                rospy.logwarn("BDI: We have no idea where {} is currently".format(person.name))
+                # self.latest_people_nodes[person] = ("is_near", closest_node)
+                # self.world_state.add_belief("is_near({:},{:})".format(person, closest_node))
+                # rospy.logdebug("added is_near({:},{:})".format(person, closest_node))
+        if pairs and not self.latest_robot_msg is None:
+            self.robot_track.append(Object_State(name=self.me.name, timestamp=timestamp, x=self.latest_robot_msg.position.x, y=self.latest_robot_msg.position.y, xsize=ROBOT_WIDTH, ysize=ROBOT_LENGTH))
             world.add_object_state_series(self.robot_track)
+            self.calculate_directions(world, pairs)
 
-            dynamic_args = {"qtcbs": {"quantisation_factor": 0.1,
-    							  "validate": True,
-    							  "no_collapse": True,
-    							  "qsrs_for": pairs}}
-            qsrlib_request_message = QSRlib_Request_Message(which_qsr="qtcbs", input_data=world, dynamic_args=dynamic_args)
-            try:
-                qsrlib_response_message = self.qsrlib.request_qsrs(qsrlib_request_message)
-                t = qsrlib_response_message.qsrs.get_sorted_timestamps()[-1]
-                for k, v in qsrlib_response_message.qsrs.trace[t].qsrs.items():
-                    picker = k.split(",")[1]
-                    direction = v.qsr.get("qtcbs").split(",")[1]
-                    self.directions[picker] = direction
-                    update_direction = False
-                    try:
-                        update_direction = self.latest_directions[picker] != direction
-                    except:
-                        update_direction = True
-                        self.latest_directions[picker] = direction
-                    if update_direction:
-                        if direction == "+":
-                            self.world_state.leaving(self.kb.concept(picker)).tv = self.kb.TRUE
-                            rospy.logwarn("BDI: {} is leaving".format(picker))
-                        elif direction == "-":
-                            self.world_state.approaching(self.kb.concept(picker)).tv = self.kb.TRUE
-                            rospy.logwarn("BDI: {} is approaching".format(picker))
-                        else:
-                            self.world_state.standing(self.kb.concept(picker)).tv = self.kb.TRUE
-                            rospy.logwarn("BDI: {} is standing".format(picker))
-                        self.latest_directions[picker] = direction
-                    distance = get_distance(self.latest_robot_msg, self.latest_people_msgs[picker].pose) - 0.5 * (ROBOT_LENGTH + PICKER_LENGTH)
-                    # stop if we're to close to a picker
-                    minimum_distance = MINIMUM_DISTANCE
-                    # if self.world_state.moving:
-                    #     minimum_distance +=
-                    if distance < minimum_distance:
-                        if not self.too_close:
-                            rospy.logwarn("BDI: Robot has met picker. Distance: {}".format(distance))
-                            self.too_close = True
-                            self.picker_pose_publisher.publish("at robot")
-                            self.robco.cancel_movement()
-                        elif distance < 0.2:
-                            rospy.logwarn("BDI: Picker is too close. Distance: {}".format(distance))
-                        # elif abs(distance - self.last_distance) < 0.04:
 
-                    elif self.too_close:
-                        rospy.loginfo("BDI: Robot has left picker. Distance: {}".format(distance))
-                        self.too_close = False
-                    self.last_distance = distance
-            except (KeyError, AttributeError) as err:
-                rospy.logwarn("BDI: {}".format(err))
-            except (ValueError, IndexError) as err:
-                # pass
-                rospy.logwarn("BDI: {}".format(err))
+        #             distance = self.ws.get_distance(self.latest_robot_msg, self.latest_people_msgs[picker].pose) - 0.5 * (ROBOT_LENGTH + PICKER_LENGTH)
+        #             # stop if we're to close to a picker
+        #             minimum_distance = MINIMUM_DISTANCE
+        #             # if self.world_state.moving:
+        #             #     minimum_distance +=
+        #             if distance < minimum_distance:
+        #                 if not self.too_close:
+        #                     rospy.logwarn("BDI: Robot has met picker. Distance: {}".format(distance))
+        #                     self.too_close = True
+        #                     self.picker_pose_publisher.publish("at robot")
+        #                     self.robco.cancel_movement()
+        #                 elif distance < 0.2:
+        #                     rospy.logwarn("BDI: Picker is too close. Distance: {}".format(distance))
+        #                 # elif abs(distance - self.last_distance) < 0.04:
+        #
+        #             elif self.too_close:
+        #                 rospy.loginfo("BDI: Robot has left picker. Distance: {}".format(distance))
+        #                 self.too_close = False
+        #             self.last_distance = distance
+
 
 
     def write(self):

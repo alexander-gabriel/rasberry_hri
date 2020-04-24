@@ -222,6 +222,63 @@ class MoveToAction(Action):
 
 
 
+class BerryEvadeAction(Action):
+    # works
+    # condition_templates = [[ws.is_a, ["picker", "human"]],[ws.is_at, [ME, "origin"]], [ws.is_at, ["picker", "place1"]], [ws.leads_to, ["origin", "place1"]], [ws.leads_to, ["origin", "destination"]]]
+
+    condition_templates = [
+    [ws.is_a, ["picker", "human"]],
+    [ws.approaching, ["picker"]],
+    [ws.seen_picking, ["picker"]],
+    [ws.not_called_robot, ["picker"]],
+    [ws.is_at, ["picker", "place1"]],
+    [ws.not_has_berries, ["place1"]],
+    [ws.has_berries, ["origin"]],
+    [ws.query_not_at, ["anyhing", "destination"]],
+    [ws.is_at, [ME, "origin"]],
+    [ws.leads_to, ["origin", "destination"]],
+    [ws.leads_to, ["place1", "origin"]],
+    ]
+
+    consequence_templates = [[ws.is_at, [ME, "destination"]]]
+
+    placeholders = [ME, "picker", "origin", "destination"] # in same order as constructor arguments
+
+
+    def __init__(self, world_state, robco, args):
+        # [me, picker, origin, destination]
+        super(BerryEvadeAction, self).__init__(world_state, args)
+        self.robco = robco
+        self.picker = args[1]
+        self.destination = args[3]
+        self.gain = EVADE_GAIN
+        self.sent_movement_request = False
+
+
+    def perform(self):
+        super(BerryEvadeAction, self).perform()
+        if not self.sent_movement_request:
+            self.robco.move_to(self.destination)
+            self.sent_movement_request = True
+            self.ws.moving = True
+        try:
+            success = self.robco.get_result().success
+            self.ws.moving = False
+            rospy.logwarn("movement success is: {}".format(success))
+            return True
+        except:
+            return False
+
+
+    def get_cost(self):
+        return MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
+
+
+    def __repr__(self):
+        return "<Action:BerryEvade {:} by moving to {:}>".format(self.picker, self.destination)
+
+
+
 class EvadeAction(Action):
     # works
     # condition_templates = [[ws.is_a, ["picker", "human"]],[ws.is_at, [ME, "origin"]], [ws.is_at, ["picker", "place1"]], [ws.leads_to, ["origin", "place1"]], [ws.leads_to, ["origin", "destination"]]]
@@ -229,7 +286,7 @@ class EvadeAction(Action):
     condition_templates = [
     [ws.is_a, ["picker", "human"]],
     [ws.approaching, ["picker"]],
-    [ws.not_seen_picking, ["picker"]],
+    [ws.seen_picking, ["picker"]],
     [ws.not_called_robot, ["picker"]],
     [ws.is_at, ["picker", "place1"]],
     [ws.query_not_at, ["anyhing", "destination"]],

@@ -36,8 +36,8 @@ class Scheduler:
         self.robot_pose_sub = rospy.Subscriber('/{:}/robot_pose'.format(self.robot_id), Pose, self.robot_position_coordinate_callback)
         self.robot_sub = rospy.Subscriber('/{:}/closest_node'.format(self.robot_id), String, self.robot_position_node_callback)
         self.human_action_sub = rospy.Subscriber('/human_actions', Action, self.human_intention_callback)
-        self.picker01_sub = rospy.Subscriber("/picker01/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker01") )
-        self.picker02_sub = rospy.Subscriber("/picker02/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker02") )
+        # self.picker01_sub = rospy.Subscriber("/picker01/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker01") )
+        self.picker02_sub = rospy.Subscriber("/picker02/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, TARGET_PICKER) )
         #TODO: move to multiple pickers
         #
         # self.people_sub = rospy.Subscriber("/people_tracker/positions", PeopleTracker, lambda msg: self.people_tracker_callback(msg, "Picker02") )
@@ -91,7 +91,7 @@ class Scheduler:
         start_time = time.time()
         if msg.data != "none":
             self.latest_robot_node = wp2sym(msg.data)
-            self.bdi.world_state.update_position(self.robot_id.capitalize(), self.latest_robot_node)
+            self.bdi.world_state.update_position(self.kb.concept(self.robot_id.capitalize()), self.kb.concept(self.latest_robot_node))
         else:
             self.latest_robot_node = None
         duration = time.time() - start_time
@@ -101,6 +101,8 @@ class Scheduler:
 
     def human_intention_callback(self, msg):
         if msg.action != "":
+            ## TODO: remove the next line for runs where action recognition is run in-line
+            msg.person = TARGET_PICKER
             rospy.loginfo("SCH: Perceived human action {}, {}".format(msg.person.capitalize(), msg.action))
             person = msg.person.capitalize()
             self.bdi.world_state.update_action(person, msg.action)

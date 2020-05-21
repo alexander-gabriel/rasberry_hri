@@ -5,7 +5,10 @@ import threading
 
 from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
 from qsrlib_io.world_trace import Object_State,World_Trace
+
 from opencog.type_constructors import *
+from opencog.utilities import initialize_opencog
+from opencog.atomspace import AtomSpace
 
 import rospy
 import actionlib
@@ -22,6 +25,9 @@ from utils import suppress, wp2sym, sym2wp
 from bdi_system import BDISystem
 from knowledge_base import KnowledgeBase
 
+from opencog.logger import log
+# log.use_stdout()
+log.set_level("DEBUG")
 
 
 class Scheduler:
@@ -29,7 +35,10 @@ class Scheduler:
 
     def __init__(self, robot_id):
         rospy.loginfo("SCH: Initializing Scheduler")
-        self.kb = KnowledgeBase()
+        self.atomspace = AtomSpace()
+        initialize_opencog(self.atomspace)
+        set_type_ctor_atomspace(self.atomspace)
+        self.kb = KnowledgeBase(self.atomspace)
         self.robot_id = robot_id
         self.latest_robot_node = None
         self.bdi = BDISystem(self.robot_id, self.kb)
@@ -90,8 +99,10 @@ class Scheduler:
         # rospy.loginfo("SCH: Robot position node callback")
         start_time = time.time()
         if msg.data != "none":
+            initialize_opencog(self.atomspace)
+            set_type_ctor_atomspace(self.atomspace)
             self.latest_robot_node = wp2sym(msg.data)
-            self.bdi.world_state.update_position(self.kb.concept(self.robot_id.capitalize()), self.kb.concept(self.latest_robot_node))
+            self.bdi.world_state.update_position(ConceptNode(self.robot_id.capitalize()), ConceptNode(self.latest_robot_node))
         else:
             self.latest_robot_node = None
         duration = time.time() - start_time
@@ -101,6 +112,8 @@ class Scheduler:
 
     def human_intention_callback(self, msg):
         if msg.action != "":
+            initialize_opencog(self.atomspace)
+            set_type_ctor_atomspace(self.atomspace)
             ## TODO: remove the next line for runs where action recognition is run in-line
             msg.person = TARGET_PICKER
             rospy.loginfo("SCH: Perceived human action {}, {}".format(msg.person.capitalize(), msg.action))

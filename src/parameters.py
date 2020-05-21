@@ -24,6 +24,8 @@ PICKERS = rospy.get_param("{}/pickers".format(NS), "Picker01,Picker02")
 TARGET_PICKER = rospy.get_param("{}/target_picker".format(NS), "TARGET_PICKER-IS-NOT-SET")
 CALLED_ROBOT = rospy.get_param("{}/called_robot".format(NS), False)
 SEEN_PICKING = rospy.get_param("{}/seen_picking".format(NS), False)
+HAS_CRATE = rospy.get_param("{}/has_crate".format(NS), False)
+CRATE_FULL = rospy.get_param("{}/crate_full".format(NS), False)
 INITIAL_WAYPOINT = rospy.get_param("{}/initial_robot_waypoint".format(NS), "WayPoint104")
 
 DETECTION_COUNT = rospy.get_param("{}/detection_count".format(NS), 10)

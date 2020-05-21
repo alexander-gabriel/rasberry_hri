@@ -5,6 +5,9 @@ import pickle
 from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
 from qsrlib_io.world_trace import Object_State, World_Trace
 
+from opencog.utilities import initialize_opencog
+from opencog.type_constructors import *
+
 from std_msgs.msg import String
 from std_srvs.srv import Empty
 from topological_navigation.route_search import TopologicalRouteSearch
@@ -13,9 +16,13 @@ from rasberry_people_perception.topological_localiser import TopologicalNavLoc
 
 from parameters import *
 from utils import OrderedConsistentSet, suppress
-from robot_control import RobotControl
-from world_state import WorldState
-from goals import ExchangeGoal, DeliverGoal, EvadeGoal, BerryEvadeGoal, WrongParameterException
+from bdi.goals import ExchangeGoal, DeliverGoal, EvadeGoal, BerryEvadeGoal, WrongParameterException
+from bdi.robot_control import RobotControl
+from bdi.world_state import WorldState
+from bdi.intention_recognition import IntentionRecognition
+from bdi.knowledge_base import KnowledgeBase
+
+
 
 class BDISystem:
 
@@ -24,6 +31,8 @@ class BDISystem:
         self.too_close = False
         self.durations = []
         self.kb = kb
+        initialize_opencog(self.kb.atomspace)
+        set_type_ctor_atomspace(self.kb.atomspace)
         self.last_intention = None
         self.last_distance = 0
         with self.kb.lock:
@@ -33,17 +42,18 @@ class BDISystem:
             # self.unpause()
             self.robco = RobotControl(me)
             self.world_state = WorldState(self.kb, me)
+            self.intention_recognition = IntentionRecognition(self.world_state)
             rospy.loginfo("BDI: Initialized World State")
             self.last_behaviours = {}
             self.robot_track = []
             self.people_tracks = {}
             self.directions = {}
             self.latest_directions = {}
-            self.goals = []
-            self.goals.append(DeliverGoal)
-            self.goals.append(ExchangeGoal)
-            # self.goals.append(EvadeGoal)
-            self.goals.append(BerryEvadeGoal)
+            self.desires = []
+            self.desires.append(DeliverGoal)
+            self.desires.append(ExchangeGoal)
+            # self.desires.append(EvadeGoal)
+            self.desires.append(BerryEvadeGoal)
             self.intentions = []
             self.latest_robot_msg = None
             self.latest_people_msgs = {}
@@ -75,7 +85,7 @@ class BDISystem:
         self.me = self.world_state.add_thing(me.capitalize(), "robot")
         self.world_state.set_size(self.me, ROBOT_WIDTH, ROBOT_LENGTH)
         for place in NO_BERRY_PLACES:
-            self.world_state.not_has_berries(self.kb.concept(place)).tv = self.kb.TRUE
+            self.world_state.not_has_berries(ConceptNode(place)).tv = self.kb.TRUE
             rospy.loginfo("BDI: No Berries at {}".format(place))
         rospy.loginfo("BDI: Adding Pickers")
         picker = self.world_state.add_thing(TARGET_PICKER, "human")
@@ -89,34 +99,42 @@ class BDISystem:
             self.world_state.seen_picking(picker).tv = self.kb.TRUE
         else:
             self.world_state.not_seen_picking(picker).tv = self.kb.TRUE
+        if HAS_CRATE:
+            self.world_state.has_crate(picker).tv = self.kb.TRUE
+        else:
+            self.world_state.not_has_crate(picker).tv = self.kb.TRUE
+        if CRATE_FULL:
+            self.world_state.crate_full(picker).tv = self.kb.TRUE
+        else:
+            self.world_state.not_crate_full(picker).tv = self.kb.TRUE
         # self.robco.move_to(INITIAL_WAYPOINT)
 
 
-    def generate_options(self):
+    def generate_intention_candidates(self):
         rospy.logdebug("BDI: Generating Behaviour Options")
-        desires = []
-        for goal in self.goals:
+        intention_candidates = []
+        for goal in self.desires:
             if not goal in self.intentions:
                 args_list = goal.find_instances(self.world_state)
                 for args in args_list:
                     if len(args) > 0:
                         try:
-                            desires.append(goal(self.world_state, self.robco, args))
+                            intention_candidates.append(goal(self.world_state, self.robco, args))
                         except WrongParameterException as err:
                             rospy.logwarn("BDI: {}".format(err))
                             # pass
         for intention in self.intentions:
-            if intention in desires and intention.is_achieved(self.world_state):
-                desires.remove(intention)
-        if len(desires) > 0:
-            rospy.logdebug("BDI: Desires: {}".format(desires))
-        return desires
+            if intention in intention_candidates and intention.is_achieved(self.world_state):
+                intention_candidates.remove(intention)
+        if len(intention_candidates) > 0:
+            rospy.logdebug("BDI: Desires: {}".format(intention_candidates))
+        return intention_candidates
 
 
-    def filter(self, desires):
+    def filter_intention_candidates(self, intention_candidates):
         rospy.logdebug("BDI: Filtering Desires")
         intentions = self.intentions or OrderedConsistentSet()
-        for desire in desires:
+        for desire in intention_candidates:
             gain = desire.get_gain()
             cost = desire.get_cost()
             if gain > MIN_GAIN and cost < MAX_COST:
@@ -155,10 +173,10 @@ class BDISystem:
         self.update_beliefs()
         rospy.logdebug("BDI: --  updated beliefs   -- {:.4f}".format(time.time() - start_time))
         start_time = time.time()
-        desires = self.generate_options()
+        intention_candidates = self.generate_intention_candidates()
         rospy.logdebug("BDI: -- generated desires  -- {:.4f}".format(time.time() - start_time))
         start_time = time.time()
-        self.intentions = self.filter(desires)
+        self.intentions = self.filter_intention_candidates(intention_candidates)
         rospy.logdebug("BDI: -- filtered desires   -- {:.4f}".format(time.time() - start_time))
         start_time = time.time()
         self.perform_action()
@@ -192,7 +210,7 @@ class BDISystem:
             qsrlib_response_message = self.qsrlib.request_qsrs(qsrlib_request_message)
             t = qsrlib_response_message.qsrs.get_sorted_timestamps()[-1]
             for k, v in qsrlib_response_message.qsrs.trace[t].qsrs.items():
-                picker = self.kb.concept(k.split(",")[1])
+                picker = ConceptNode(k.split(",")[1])
                 direction = v.qsr.get("qtcbs").split(",")[1]
                 self.directions[picker.name] = direction
                 update_direction = False
@@ -226,7 +244,7 @@ class BDISystem:
         if not self.latest_robot_msg is None:
             self.world_state.set_position(self.me, self.latest_robot_msg.position.x, self.latest_robot_msg.position.y, timestamp)
         for person, msg in self.latest_people_msgs.items():
-            person = self.kb.concept(person)
+            person = ConceptNode(person)
             self.world_state.set_position(person, msg.pose.position.x, msg.pose.position.y, timestamp)
             distance = self.world_state.get_distance(self.me, person)
             minimum_distance = MINIMUM_DISTANCE
@@ -263,7 +281,7 @@ class BDISystem:
                     # maybe delete the latest picker position from the kb as it's no longer correct
                 self.latest_people_nodes[person.name] = ("is_at", current_node)
                 if current_node != latest_node:
-                    self.world_state.update_position(person, self.kb.concept(current_node))
+                    self.world_state.update_position(person, ConceptNode(current_node))
             elif closest_node is None:
                 rospy.logwarn("BDI: We have no idea where {} is currently".format(person.name))
                 # self.latest_people_nodes[person] = ("is_near", closest_node)
@@ -273,6 +291,8 @@ class BDISystem:
             self.robot_track.append(Object_State(name=self.me.name, timestamp=timestamp, x=self.latest_robot_msg.position.x, y=self.latest_robot_msg.position.y, xsize=ROBOT_WIDTH, ysize=ROBOT_LENGTH))
             world.add_object_state_series(self.robot_track)
             self.calculate_directions(world, pairs)
+
+        self.intention_recognition.run_untargeted()
 
 
         #             distance = self.ws.get_distance(self.latest_robot_msg, self.latest_people_msgs[picker].pose) - 0.5 * (ROBOT_LENGTH + PICKER_LENGTH)
@@ -306,4 +326,4 @@ class BDISystem:
 
 
     def add_goal(self, goal):
-        self.goals.append(goal)
+        self.desires.append(goal)

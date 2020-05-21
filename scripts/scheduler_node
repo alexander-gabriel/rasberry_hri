@@ -7,7 +7,7 @@ import actionlib
 from topological_navigation.msg import GotoNodeAction
 
 
-
+from bdi.knowledge_base import *
 from bdi.scheduler import Scheduler
 # from geometry_msgs.msg import Pose, PoseStamped
 

@@ -144,8 +144,8 @@ if __name__ == '__main__':
     e = Experimenter()
     # do 5, 7, and 9 later
     print("EXPE: Generating Configurations")
-    for subject_id in [1,2,3,4,5,6,7,8,9,10]:
-        for mode in ["standing", "moving"]:
+    for subject_id in [1]: #,2,3,4,5,6,7,8,9,10]:
+        for mode in ["standing"]:#, "moving"]:
             try: # delivery
                 c = Config("thorvald_001", "Delivery - Subject {} - Mode {}".format(subject_id, mode))
                 c.behaviours = {}
@@ -154,7 +154,7 @@ if __name__ == '__main__':
                                            "target": "picker_movement",
                                            "message": "deliver"}
                 c.parameters = {"called_robot": [False],
-                                "seen_picking": [False],
+                                "has_crate": [False],
                                 "picker_speed": [0.7],
                                 "target_picker": ["Picker02"],
                                 # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
@@ -171,7 +171,8 @@ if __name__ == '__main__':
                                            "target": "picker_movement",
                                            "message": "evade"}
                 c.parameters = {"called_robot": [False],
-                                "seen_picking": [True],
+                                "has_crate": [True],
+                                "crate_full": [False],
                                 "picker_speed": [0.7],
                                 "target_picker": ["Picker02"],
                                 # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
@@ -188,7 +189,8 @@ if __name__ == '__main__':
                                            "target": "picker_movement",
                                            "message": "evade"}
                 c.parameters = {"called_robot": [False],
-                                "seen_picking": [True],
+                                "has_crate": [True],
+                                "crate_full": [False],
                                 "picker_speed": [0.7],
                                 "no_berry_places": [["Waypoint103", "WayPoint104"]],
                                 "target_picker": ["Picker02"],
@@ -208,7 +210,8 @@ if __name__ == '__main__':
                                            "target": "picker_movement",
                                            "message": "exchange"}
                 c.parameters = {"called_robot": [False],
-                                "seen_picking": [False],
+                                "has_crate": [True],
+                                "crate_full": [True],
                                 "picker_speed": [0.7],
                                 "target_picker": ["Picker02"],
                                 # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],

@@ -16,6 +16,7 @@ import rospy
 # atomspace = AtomSpace()
 # initialize_opencog(atomspace)
 # set_type_ctor_atomspace(atomspace)
+from utils import atomspace
 from parameters import *
 # set_type_ctor_atomspace(self.atomspace)
 
@@ -35,7 +36,7 @@ from parameters import *
 
 class KnowledgeBase(object):
 
-    def __init__(self, atomspace):
+    def __init__(self):
         rospy.loginfo("KNB: Initializing Knowledge Base")
         self.atomspace = atomspace
         # initialize_opencog(self.atomspace)
@@ -56,7 +57,7 @@ class KnowledgeBase(object):
         start_time = time.time()
         with self.lock:
             chainer = BackwardChainer(self.atomspace,
-                          self.concept("deduction-rule-base"),
+                          ConceptNode("deduction-rule-base"),
                           query, vardecl = variables)
             chainer.do_chain()
         rospy.logdebug("WST: do_chain -- {:.4f}".format(time.time() - start_time))
@@ -87,7 +88,7 @@ class KnowledgeBase(object):
         #             # rospy.loginfo("WST: -----------")
         #             # rospy.loginfo("WST: Condition: {:}".format(query))
         #             chainer = BackwardChainer(self.atomspace,
-        #                           self.concept("deduction-rule-base"),
+        #                           ConceptNode("deduction-rule-base"),
         #                           query)
         #             chainer.do_chain()
         #             res = chainer.get_results()
@@ -108,7 +109,7 @@ class KnowledgeBase(object):
         #                 # rospy.loginfo("WST: -----------")
         #                 # rospy.loginfo("WST: Condition: {:}".format(condition))
         #                 chainer = BackwardChainer(self.atomspace,
-        #                               self.concept("deduction-rule-base"),
+        #                               ConceptNode("deduction-rule-base"),
         #                               condition)
         #                 chainer.do_chain()
         #                 res = chainer.get_results()
@@ -391,7 +392,7 @@ class KnowledgeBase(object):
 
     def build_deduction_rulebase(self):
         with self.lock:
-            rbs = self.concept("deduction-rule-base")
+            rbs = ConceptNode("deduction-rule-base")
             execute_code = \
             '''
             (use-modules (opencog))
@@ -477,7 +478,7 @@ class KnowledgeBase(object):
             self.member(self.defined_schema("negation-introduction-rule"), rbs)
             # self.member(self.defined_schema("not-simplification-rule"), rbs)
             # self.member(self.defined_schema("not-elimination-rule"), rbs)
-            self.evaluation(self.predicate("URE:attention-allocation"), rbs).truth_value(0.1, 1)
+            self.evaluation(self.predicate("URE:attention-allocation"), rbs).tv = TruthValue(0.1, 1)
             self.execution(self.schema("URE:maximum-iterations"), rbs, self.number(ITERATIONS))
         return rbs
 
@@ -620,39 +621,51 @@ class KnowledgeBase(object):
 
     def build_ontology(self):
 
-        thing = self.concept("thing").truth_value(1.0, 1.0)
+        thing = ConceptNode("thing")
+        thing.tv = self.TRUE
 
-        concept = self.concept("concept").truth_value(1.0, 1.0)
-        self.inheritance(concept, thing).truth_value(1.0, 1.0)
+        concept = ConceptNode("concept")
+        concept.tv = self.TRUE
+        InheritanceLink(concept, thing).tv = self.TRUE
 
-        self.place = self.concept("place").truth_value(1.0, 1.0)
-        self.inheritance(self.place, concept).truth_value(1.0, 1.0)
-
-
-        entity = self.concept("entity").truth_value(1.0, 1.0)
-        self.inheritance(entity, thing).truth_value(1.0, 1.0)
+        self.place = ConceptNode("place")
+        self.place.tv = self.TRUE
+        InheritanceLink(self.place, concept).tv = self.TRUE
 
 
-        obj = self.concept("object").truth_value(1.0, 1.0)
-        organism = self.concept("organism").truth_value(1.0, 1.0)
-        self.inheritance(organism, entity).truth_value(1.0, 1.0)
-        self.inheritance(obj, entity).truth_value(1.0, 1.0)
+        entity = ConceptNode("entity")
+        entity.tv = self.TRUE
+        InheritanceLink(entity, thing).tv = self.TRUE
 
-        plant = self.concept("plant").truth_value(1.0, 1.0)
-        self.inheritance(plant, organism).truth_value(1.0, 1.0)
 
-        strawberryplant = self.concept("strawberryplant").truth_value(1.0, 1.0)
-        self.inheritance(strawberryplant, plant).truth_value(1.0, 1.0)
+        obj = ConceptNode("object")
+        obj.tv = self.TRUE
+        organism = ConceptNode("organism")
+        organism.tv = self.TRUE
+        InheritanceLink(organism, entity).tv = self.TRUE
+        InheritanceLink(obj, entity).tv = self.TRUE
 
-        creature = self.concept("creature").truth_value(1.0, 1.0)
-        self.robot = self.concept("robot").truth_value(1.0, 1.0)
-        self.human = self.concept("human").truth_value(1.0, 1.0)
-        self.inheritance(creature, organism).truth_value(1.0, 1.0)
-        self.inheritance(self.robot, creature).truth_value(1.0, 1.0)
-        self.inheritance(self.human, creature).truth_value(1.0, 1.0)
+        plant = ConceptNode("plant")
+        plant.tv = self.TRUE
+        InheritanceLink(plant, organism).tv = self.TRUE
 
-        self.crate = self.concept("crate").truth_value(1.0, 1.0)
-        self.inheritance(self.crate, obj).truth_value(1.0, 1.0)
+        strawberryplant = ConceptNode("strawberryplant")
+        strawberryplant.tv = self.TRUE
+        InheritanceLink(strawberryplant, plant).tv = self.TRUE
+
+        creature = ConceptNode("creature")
+        creature.tv = self.TRUE
+        self.robot = ConceptNode("robot")
+        self.robot.tv = self.TRUE
+        self.human = ConceptNode("human")
+        self.human.tv = self.TRUE
+        InheritanceLink(creature, organism).tv = self.TRUE
+        InheritanceLink(self.robot, creature).tv = self.TRUE
+        InheritanceLink(self.human, creature).tv = self.TRUE
+
+        self.crate = ConceptNode("crate")
+        self.crate.tv = self.TRUE
+        InheritanceLink(self.crate, obj).tv = self.TRUE
 
 
         # p1 = self.variable("place1")
@@ -669,7 +682,7 @@ class KnowledgeBase(object):
         #     p1,
         #     self.evaluation(
         #         self.predicate("leads_to"),
-        #         self.list(p1, p1)).truth_value(0.0, 1.0))
+        #         self.list(p1, p1)).tv = self.FALSE)
         #
         # self.for_all(
         #     self.variable_list(p1, p2),
@@ -679,7 +692,7 @@ class KnowledgeBase(object):
         #             self.list(p1, p2)),
         #             self.evaluation(
         #                 self.predicate("linked"),
-        #                 self.list(p1, p2)).truth_value(1.0, 1.0)))
+        #                 self.list(p1, p2)).tv = self.TRUE))
         #
         # self.for_all(
         #     self.variable_list(p1, p2, p3),
@@ -695,7 +708,7 @@ class KnowledgeBase(object):
         #                 self.list(p2, p3))),
         #         self.evaluation(
         #             self.predicate("linked"),
-        #             self.list(p1, p3)).truth_value(1.0, 1.0)))
+        #             self.list(p1, p3)).tv = self.TRUE))
         #
         # self.for_all(
         #     self.variable_list(p1, p2),
@@ -713,7 +726,7 @@ class KnowledgeBase(object):
         #                 self.identical(p1, p3))),
         #         self.evaluation(
         #             self.predicate("free_path"),
-        #             self.list(p1, p3)).truth_value(1.0, 1.0)))
+        #             self.list(p1, p3)).tv = self.TRUE))
         #
         # self.for_all(
         #     self.variable_list(p1, p2, obj1, cre1),
@@ -723,7 +736,7 @@ class KnowledgeBase(object):
         #             self.inheritance(obj1, plant)),
         #         self.evaluation(
         #             self.predicate("can_reach"),
-        #             self.list(p1, p2)).truth_value(0.0, 1.0)))
+        #             self.list(p1, p2)).tv = self.FALSE))
         # self.for_all(
         #     self.variable_list(p1, p2, obj1, cre1),
         #     self.implication(
@@ -743,7 +756,7 @@ class KnowledgeBase(object):
         #                     self.list(p1, p2)))),
         #         self.evaluation(
         #             self.predicate("can_reach"),
-        #             self.list(p1, p2)).truth_value(1.0, 1.0)))
+        #             self.list(p1, p2)).tv = self.TRUE))
         #
         # self.for_all(
         #     self.variable_list(t1, t2, p1),
@@ -754,7 +767,7 @@ class KnowledgeBase(object):
         #             self.state(t2, p1)),
         #         self.evaluation(
         #             self.predicate("colocated"),
-        #             self.list(t1, t2)).truth_value(1.0, 1.0)))
+        #             self.list(t1, t2)).tv = self.TRUE))
         # self.for_all(
         #     self.variable_list(t1, t2, p1, p2),
         #     self.implication(
@@ -765,8 +778,8 @@ class KnowledgeBase(object):
         #             self.state(t2, p2)),
         #         self.evaluation(
         #             self.predicate("colocated"),
-        #             self.list(t1, t2)).truth_value(0.0, 1.0)))
+        #             self.list(t1, t2)).tv = self.FALSE))
         # self.evaluation(
         #     self.identical(
-        #         self.set(self.concept("has_crate")),
+        #         self.set(ConceptNode("has_crate")),
         #         self.get(self.state(hum1, s1))))

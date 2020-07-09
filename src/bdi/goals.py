@@ -5,10 +5,11 @@ import inspect
 from copy import copy
 
 # from opencog.bindlink import execute_atom, evaluate_atom
+from opencog.type_constructors import *
 
 from parameters import *
 from utils import OrderedConsistentSet, suppress
-from actions import MoveAction, MoveToAction, GiveCrateAction, ExchangeCrateAction, EvadeAction, BerryEvadeAction
+from actions import MoveAction, MoveToAction, GiveCrateAction, ExchangeCrateAction, DepositCrateAction, EvadeAction, BerryEvadeAction
 from opencog.atomspace import types
 
 
@@ -214,19 +215,19 @@ class Goal(object):
                         new_args.append(my_location)
                         target[my_location_var] = my_location.name
                 elif fun.__name__ == "is_a" and args.index(arg) == 1:
-                    full_args.append(world_state.kb.concept(arg))
+                    full_args.append(ConceptNode(arg))
                     if not skip:
-                        new_args.append(world_state.kb.concept(arg))
+                        new_args.append(ConceptNode(arg))
                 else:
-                    variable = world_state.kb.variable(arg)
+                    variable = VariableNode(arg)
                     full_args.append(variable)
                     if not skip:
                         new_args.append(variable)
-                        variables.append(world_state.kb.typed_variable(variable, world_state.kb.type("ConceptNode")))
+                        variables.append(TypedVariableLink(variable, TypeNode("ConceptNode")))
             if not skip:
                 conditions.append(fun(world_state, *new_args))
             full_conditions.append(fun(world_state, *full_args))
-        query = world_state.kb.And(*conditions)
+        query = AndLink(*conditions)
         # rospy.logwarn("Built query:\n{:}".format(query))
         # rospy.logwarn("Built variables:\n{:}".format(variables))
         return query, variables, target
@@ -238,7 +239,7 @@ class Goal(object):
         start_time = time.time()
         templates = cls.get_condition_templates()
         picker_locations = world_state.get_picker_locations()
-        me = world_state.kb.concept(world_state.me.capitalize())
+        me = ConceptNode(world_state.me.capitalize())
         my_location = world_state.get_location(me)
         if my_location is None:
             return targets
@@ -246,7 +247,7 @@ class Goal(object):
             query, variables, target = cls.build_query(world_state, templates, picker, picker_location, me, my_location)
             if len(variables) > 0:
                 # rospy.loginfo("GOL: Reason (has args):\n{:}".format(query))
-                vars = world_state.kb.variable_list(*variables.items)
+                vars = VariableListLink(*variables.items)
                 # rospy.loginfo("GOL: Reason Variables:\n{:}".format(vars))
                 results = world_state.kb.reason(query, vars)
                 # rospy.logwarn("GOL: incl. variable results:\n{}".format(results))
@@ -260,7 +261,7 @@ class Goal(object):
                         targets.append(this_target)
             else:
                 # rospy.loginfo("GOL: Reason (no args):\n{:}".format(query))
-                results = world_state.kb.reason(query, world_state.kb.variable_list())
+                results = world_state.kb.reason(query, VariableListLink())
                 # rospy.logwarn("GOL: excl. variable results:\n{}".format(results))
                 for result in results.get_out():
                     if result.tv == world_state.kb.TRUE:
@@ -285,17 +286,17 @@ class Goal(object):
         for fun, args in templates:
             full_args = []
             skip = False
-            if fun.__name__ == "is_at" and args[0] == ME:
+            if fun.__name__ == "is_at" and args[0].label == ME:
                 target[ME] = me.name
             for arg in args:
-                if arg == ME:
+                if arg.label == ME:
                     full_args.append(me)
                 else:
-                    variable = world_state.kb.variable(arg)
+                    variable = arg.typ(arg.label)
                     full_args.append(variable)
-                    variables.append(world_state.kb.typed_variable(variable, world_state.kb.type("ConceptNode")))
+                    variables.append(TypedVariableLink(variable, TypeNode("ConceptNode")))
             full_conditions.append(fun(world_state, *full_args))
-        query = world_state.kb.And(*full_conditions)
+        query = AndLink(*full_conditions)
         # rospy.logwarn("Built query:\n{:}".format(query))
         # rospy.logwarn("Built variables:\n{:}".format(variables))
         return query, variables, target
@@ -307,12 +308,12 @@ class Goal(object):
         targets = []
         start_time = time.time()
         templates = cls.get_condition_templates()
-        me = world_state.kb.concept(world_state.me.capitalize())
+        me = ConceptNode(world_state.me.capitalize())
         query, variables, target = cls.build_query(world_state, templates, me)
         # rospy.loginfo("GOL: Reason (has args):\n{:}".format(query))
-        vars = world_state.kb.variable_list(*variables.items)
+        vars = VariableList(*variables.items)
         # rospy.loginfo("GOL: Reason Variables:\n{:}".format(vars))
-        results = world_state.kb.reason(world_state.kb.get(vars,query), vars)
+        results = world_state.kb.reason(GetLink(vars,query), vars)
         # rospy.logwarn("GOL: classic reasoning results:\n{}".format(results))
         for setlink in results.get_out():
             for listlink in setlink.get_out():
@@ -337,9 +338,9 @@ class Goal(object):
                 new_args = []
                 for arg in args:
                     if arg == ME:
-                        new_args.append(world_state.kb.concept(world_state.me.capitalize()))
+                        new_args.append(ConceptNode(world_state.me.capitalize()))
                     else:
-                        new_args.append(world_state.kb.concept(arg))
+                        new_args.append(ConceptNode(arg))
                 fun(world_state, *new_args)
             return True
         else:
@@ -355,17 +356,17 @@ class Goal(object):
         #         new_args = []
         #         for arg in args:
         #             if arg == ME:
-        #                 new_args.append(world_state.kb.concept(world_state.me.capitalize()))
+        #                 new_args.append(ConceptNode(world_state.me.capitalize()))
         #             else:
-        #                 new_args.append(world_state.kb.concept(arg))
+        #                 new_args.append(ConceptNode(arg))
         #         candidate = fun(world_state, *new_args)
         #         consequences.append(candidate)
         #     rospy.logdebug("Consequences from is_achieved:\n{}".format(consequences))
-        #     # query = world_state.kb.And(*consequences)
+        #     # query = AndLink(*consequences)
         #     query = consequences[0]
         #     consequence_count = len(consequences)
         #     if consequence_count > 1:
-        #         query = world_state.kb.And(*consequences)
+        #         query = AndLink(*consequences)
         #     elif consequence_count == 1:
         #         query = consequences[0]
         #     else:
@@ -507,6 +508,20 @@ class ExchangeCrateGoal(Goal):
 
 
 
+class DepositCrateGoal(Goal):
+
+    action_template = DepositCrateAction
+
+    def __init__(self, world_state, robco, args):
+        # me, depot, destination, crate_count
+        super(DepositCrateGoal, self).__init__(world_state, robco, args)
+
+
+    def __repr__(self):
+        return "<Goal:Deposit crate>"
+
+
+
 class EvadeGoal(Goal):
 
     action_template = EvadeAction
@@ -545,7 +560,6 @@ class BerryEvadeGoal(Goal):
 
 
 
-
 class DeliverGoal(Goal):
 
     action_template = None
@@ -566,6 +580,7 @@ class DeliverGoal(Goal):
         return "<Goal:Deliver crate to {:} at {:} ({}, {})>".format(self.picker, self.destination, self.get_gain(), self.get_cost())
 
 
+
 class ExchangeGoal(Goal):
 
     action_template = None
@@ -581,5 +596,28 @@ class ExchangeGoal(Goal):
         self.subgoals.append(ExchangeCrateGoal(world_state, robco, [me, self.picker, self.destination]))
         self.subgoals.append(MoveGoal(world_state, robco, [me, self.destination, origin]))
 
+
     def __repr__(self):
         return "<Goal:Exchange crate with {:} at {:} ({}, {})>".format(self.picker, self.destination, self.get_gain(), self.get_cost())
+
+
+
+class DepositGoal(Goal):
+
+    action_template = None
+    subgoal_templates = [MoveGoal, DepositCrateGoal, MoveGoal]
+
+    def __init__(self, world_state, robco, args):
+        me = world_state.me.capitalize()
+        origin = args["origin"]
+        self.depot = args["depot"]
+        self.destination = args["destination"]
+        self.crate_count = args["crate_count"]
+        super(DepositGoal, self).__init__(world_state, robco, [])
+        self.subgoals.append(MoveGoal(world_state, robco, [me, origin, self.destination]))
+        self.subgoals.append(DepositCrateGoal(world_state, robco, [me, self.depot, self.destination, self.crate_count]))
+        self.subgoals.append(MoveGoal(world_state, robco, [me, self.destination, origin]))
+
+
+    def __repr__(self):
+        return "<Goal:Deposit crate at {:} at {:} ({}, {})>".format(self.depot, self.destination, self.get_gain(), self.get_cost())

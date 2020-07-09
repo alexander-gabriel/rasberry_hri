@@ -16,7 +16,7 @@ from rasberry_people_perception.topological_localiser import TopologicalNavLoc
 
 from parameters import *
 from utils import OrderedConsistentSet, suppress
-from bdi.goals import ExchangeGoal, DeliverGoal, EvadeGoal, BerryEvadeGoal, WrongParameterException
+from bdi.goals import ExchangeGoal, DeliverGoal, EvadeGoal, BerryEvadeGoal, DepositGoal, WrongParameterException
 from bdi.robot_control import RobotControl
 from bdi.world_state import WorldState
 from bdi.intention_recognition import IntentionRecognition
@@ -54,6 +54,7 @@ class BDISystem:
             self.desires.append(ExchangeGoal)
             # self.desires.append(EvadeGoal)
             self.desires.append(BerryEvadeGoal)
+            self.desires.append(DepositGoal)
             self.intentions = []
             self.latest_robot_msg = None
             self.latest_people_msgs = {}
@@ -67,7 +68,11 @@ class BDISystem:
             for node in self.locator.tmap.nodes:
                 # if node in ["WayPoint103", "WayPoint104", "WayPoint105", "WayPoint106", "WayPoint107", "WayPoint108", "WayPoint109"]:
                 place = self.world_state.add_place(node.name, node.pose.position.x, node.pose.position.y)
-                self.world_state.has_berries(place).tv = self.kb.TRUE
+                if place.name in NO_BERRY_PLACES:
+                    self.world_state.set_berry_state(place, 0)
+                    rospy.loginfo("BDI: No Berries at {}".format(place.name))
+                else:
+                    self.world_state.set_berry_state(place, 1)
                 # self.node_positions[node.name] = node.pose
                 for edge in node.edges:
                     if node.name != edge.node:
@@ -84,9 +89,6 @@ class BDISystem:
         rospy.loginfo("BDI: Adding Me")
         self.me = self.world_state.add_thing(me.capitalize(), "robot")
         self.world_state.set_size(self.me, ROBOT_WIDTH, ROBOT_LENGTH)
-        for place in NO_BERRY_PLACES:
-            self.world_state.not_has_berries(ConceptNode(place)).tv = self.kb.TRUE
-            rospy.loginfo("BDI: No Berries at {}".format(place))
         rospy.loginfo("BDI: Adding Pickers")
         picker = self.world_state.add_thing(TARGET_PICKER, "human")
         self.world_state.set_size(picker, PICKER_WIDTH, PICKER_LENGTH)
@@ -107,6 +109,9 @@ class BDISystem:
             self.world_state.crate_full(picker).tv = self.kb.TRUE
         else:
             self.world_state.not_crate_full(picker).tv = self.kb.TRUE
+
+        self.world_state.robot_set_crate_count(self.me, self.world_state._empty_crate_count, NumberNode(str(EMPTY_CRATE_COUNT)))
+        self.world_state.robot_set_crate_count(self.me, self.world_state._full_crate_count, NumberNode(str(FULL_CRATE_COUNT)))
         # self.robco.move_to(INITIAL_WAYPOINT)
 
 

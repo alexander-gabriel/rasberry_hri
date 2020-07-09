@@ -35,6 +35,14 @@ CAMERA_TOPIC = rospy.get_param("{}/camera".format(NS), "/camera/color/image_raw"
 CLASSIFICATION_TOLERANCE = rospy.get_param("{}/classification_tolerance".format(NS), 20)
 ANGLE_WEIGHT = rospy.get_param("{}/angle_weight".format(NS), 1.0)
 
+GIVE_GAIN = rospy.get_param("{}/give_gain".format(NS), 240)
+
+CRATE_CAPACITY = rospy.get_param("{}/crate_capacity".format(NS), 2)
+FULL_CRATE_COUNT = rospy.get_param("{}/full_crate_count".format(NS), 0)
+EMPTY_CRATE_COUNT = rospy.get_param("{}/empty_crate_count".format(NS), 2)
+
+DEPOSIT_GAIN = rospy.get_param("{}/deposit_gain".format(NS), 240)
+DEPOSIT_COST = rospy.get_param("{}/deposit_cost".format(NS), 2.5)
 
 EVADE_GAIN = rospy.get_param("{}/evade_gain".format(NS), 200)
 

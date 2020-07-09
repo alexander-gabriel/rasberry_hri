@@ -20,14 +20,14 @@ from std_msgs.msg import String
 from geometry_msgs.msg import Pose, PoseStamped
 
 from parameters import *
-from utils import suppress, wp2sym, sym2wp
+from utils import suppress, wp2sym, sym2wp, atomspace
 
 from bdi_system import BDISystem
 from knowledge_base import KnowledgeBase
 
 from opencog.logger import log
 # log.use_stdout()
-log.set_level("DEBUG")
+# log.set_level("DEBUG")
 
 
 class Scheduler:
@@ -35,10 +35,11 @@ class Scheduler:
 
     def __init__(self, robot_id):
         rospy.loginfo("SCH: Initializing Scheduler")
-        self.atomspace = AtomSpace()
-        initialize_opencog(self.atomspace)
-        set_type_ctor_atomspace(self.atomspace)
-        self.kb = KnowledgeBase(self.atomspace)
+        self.atomspace = atomspace #AtomSpace()
+        # initialize_opencog(self.atomspace)
+        # set_type_ctor_atomspace(self.atomspace)
+        # self.kb = KnowledgeBase(self.atomspace)
+        self.kb = KnowledgeBase()
         self.robot_id = robot_id
         self.latest_robot_node = None
         self.bdi = BDISystem(self.robot_id, self.kb)

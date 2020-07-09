@@ -149,14 +149,93 @@ if __name__ == '__main__':
             try: # delivery
                 c = Config("thorvald_001", "Delivery - Subject {} - Mode {}".format(subject_id, mode))
                 c.behaviours = {}
-                c.behaviours[2] = calls[subject_id][mode]
+                # c.behaviours[2] = calls[subject_id][mode]
                 c.behaviours[4] = {"type": "message",
                                            "target": "picker_movement",
                                            "message": "deliver"}
-                c.parameters = {"called_robot": [False],
-                                "has_crate": [False],
+                c.parameters = {"has_crate": [False],
+                                "crate_full": [True, False],
+                                "called_robot": [True, False],
+                                "no_berry_places": [["Waypoint103", "WayPoint104"], []],
                                 "picker_speed": [0.7],
                                 "target_picker": ["Picker02"],
+                                "iterations": ["30"]}
+                c.termination_time = 30
+                c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+            try: # delivery
+                c = Config("thorvald_001", "Exchange 1 - Subject {} - Mode {}".format(subject_id, mode))
+                c.behaviours = {}
+                # c.behaviours[2] = calls[subject_id][mode]
+                c.behaviours[4] = {"type": "message",
+                                           "target": "picker_movement",
+                                           "message": "deliver"}
+                c.parameters = {"has_crate": [True],
+                                "called_robot": [True],
+                                "crate_full": [True, False],
+                                "no_berry_places": [["Waypoint103", "WayPoint104"], []],
+                                "picker_speed": [0.7],
+                                "target_picker": ["Picker02"],
+                                "iterations": ["30"]}
+                c.termination_time = 30
+                c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+            try: # delivery
+                c = Config("thorvald_001", "Exchange 2 - Subject {} - Mode {}".format(subject_id, mode))
+                c.behaviours = {}
+                # c.behaviours[2] = calls[subject_id][mode]
+                c.behaviours[4] = {"type": "message",
+                                           "target": "picker_movement",
+                                           "message": "deliver"}
+                c.parameters = {"has_crate": [True],
+                                "called_robot": [False],
+                                "crate_full": [True],
+                                "no_berry_places": [["Waypoint103", "WayPoint104"], []],
+                                "picker_speed": [0.7],
+                                "target_picker": ["Picker02"],
+                                "iterations": ["30"]}
+                c.termination_time = 30
+                c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+            try: # delivery
+                c = Config("thorvald_001", "Exchange 3 - Subject {} - Mode {}".format(subject_id, mode))
+                c.behaviours = {}
+                # c.behaviours[2] = calls[subject_id][mode]
+                c.behaviours[4] = {"type": "message",
+                                           "target": "picker_movement",
+                                           "message": "deliver"}
+                c.parameters = {"has_crate": [True],
+                                "called_robot": [False],
+                                "crate_full": [False],
+                                "no_berry_places": [[]],
+                                "picker_speed": [0.7],
+                                "target_picker": ["Picker02"],
+                                "iterations": ["30"]}
+                c.termination_time = 30
+                c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+
+            try: # delivery
+                c = Config("thorvald_001", "Delivery - Subject {} - Mode {}".format(subject_id, mode))
+                c.behaviours = {}
+                # c.behaviours[2] = calls[subject_id][mode]
+                c.behaviours[4] = {"type": "message",
+                                           "target": "picker_movement",
+                                           "message": "deliver"}
+                c.parameters = {"called_robot": [True, False],
+                                "has_crate": [False],
+                                "crate_full": [True, False],
+                                "picker_speed": [0.7],
+                                "target_picker": ["Picker02"],
+                                "no_berry_places": [["Waypoint103", "WayPoint104"], []],
                                 # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
                                 "iterations": ["30"]}
                 c.termination_time = 30
@@ -174,45 +253,25 @@ if __name__ == '__main__':
                                 "has_crate": [True],
                                 "crate_full": [False],
                                 "picker_speed": [0.7],
-                                "target_picker": ["Picker02"],
-                                # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
-                                "iterations": ["30"]}
-                c.termination_time = 20
-                c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-            try: # evasion
-                c = Config("thorvald_001", "BerryEvasion - Subject {} - Mode {}".format(subject_id, mode))
-                c.behaviours = {}
-                c.behaviours[2] = {"type": "message",
-                                           "target": "picker_movement",
-                                           "message": "evade"}
-                c.parameters = {"called_robot": [False],
-                                "has_crate": [True],
-                                "crate_full": [False],
-                                "picker_speed": [0.7],
                                 "no_berry_places": [["Waypoint103", "WayPoint104"]],
                                 "target_picker": ["Picker02"],
                                 # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
                                 "iterations": ["30"]}
-                c.termination_time = 20
+                c.termination_time = 10
                 c.update_behaviour_times()
                 e.add_config(c)
             except KeyError as err:
                 rospy.logwarn(err)
             try: # exchange
-                c = Config("thorvald_001", "Exchange - Subject {} - Mode {}".format(subject_id, mode))
+                c = Config("thorvald_001", "Wait 1 - Subject {} - Mode {}".format(subject_id, mode))
                 c.behaviours = {}
-                c.behaviours[1] = picks[subject_id][mode]
-                c.behaviours[4] = calls[subject_id][mode]
-                c.behaviours[6] = {"type": "message",
-                                           "target": "picker_movement",
-                                           "message": "exchange"}
-                c.parameters = {"called_robot": [False],
-                                "has_crate": [True],
-                                "crate_full": [True],
+                # c.behaviours[1] = picks[subject_id][mode]
+                # c.behaviours[4] = calls[subject_id][mode]
+                c.parameters = {"called_robot": [True],
+                                "has_crate": [True, False],
+                                "crate_full": [True, False],
                                 "picker_speed": [0.7],
+                                "no_berry_places": [["Waypoint103", "WayPoint104"], []],
                                 "target_picker": ["Picker02"],
                                 # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
                                 "iterations": ["30"]}
@@ -221,5 +280,77 @@ if __name__ == '__main__':
                 # e.add_config(c)
             except KeyError as err:
                 rospy.logwarn(err)
+            try: # exchange
+                c = Config("thorvald_001", "Wait 2 - Subject {} - Mode {}".format(subject_id, mode))
+                c.behaviours = {}
+                # c.behaviours[1] = picks[subject_id][mode]
+                # c.behaviours[4] = calls[subject_id][mode]
+                c.parameters = {"called_robot": [False],
+                                "has_crate": [True],
+                                "crate_full": [True],
+                                "picker_speed": [0.7],
+                                "no_berry_places": [["Waypoint103", "WayPoint104"], []],
+                                "target_picker": ["Picker02"],
+                                # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
+                                "iterations": ["30"]}
+                c.termination_time = 30
+                c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+            try: # exchange
+                c = Config("thorvald_001", "Wait 3 - Subject {} - Mode {}".format(subject_id, mode))
+                c.behaviours = {}
+                # c.behaviours[1] = picks[subject_id][mode]
+                # c.behaviours[4] = calls[subject_id][mode]
+                c.parameters = {"called_robot": [False],
+                                "has_crate": [False],
+                                "crate_full": [True, False],
+                                "picker_speed": [0.7],
+                                "no_berry_places": [["Waypoint103", "WayPoint104"], []],
+                                "target_picker": ["Picker02"],
+                                # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
+                                "iterations": ["30"]}
+                c.termination_time = 30
+                c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+            try: # exchange
+                c = Config("thorvald_001", "Leave - Subject {} - Mode {}".format(subject_id, mode))
+                c.behaviours = {}
+                c.parameters = {"called_robot": [False],
+                                "has_crate": [True, False],
+                                "crate_full": [False],
+                                "picker_speed": [0.7],
+                                "no_berry_places": [["Waypoint103", "WayPoint104"], []],
+                                "target_picker": ["Picker02"],
+                                # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
+                                "iterations": ["30"]}
+                c.termination_time = 30
+                c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+            # try: # exchange
+            #     c = Config("thorvald_001", "Exchange - Subject {} - Mode {}".format(subject_id, mode))
+            #     c.behaviours = {}
+            #     c.behaviours[1] = picks[subject_id][mode]
+            #     c.behaviours[4] = calls[subject_id][mode]
+            #     c.behaviours[6] = {"type": "message",
+            #                                "target": "picker_movement",
+            #                                "message": "exchange"}
+            #     c.parameters = {"called_robot": [False],
+            #                     "has_crate": [True],
+            #                     "crate_full": [True],
+            #                     "picker_speed": [0.7],
+            #                     "target_picker": ["Picker02"],
+            #                     # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
+            #                     "iterations": ["30"]}
+            #     c.termination_time = 30
+            #     c.update_behaviour_times()
+            #     # e.add_config(c)
+            # except KeyError as err:
+            #     rospy.logwarn(err)
     print("EXPE: Starting Experimenter")
     e.run()

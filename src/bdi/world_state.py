@@ -11,11 +11,11 @@ from opencog.type_constructors import *
 # from opencog.utilities import initialize_opencog
 
 from parameters import *
-from utils import suppress
+from utils import suppress, atomspace
 
 from topological_navigation.tmap_utils import get_distance
 
-# from bdi.knowledge_base import 
+# from bdi.knowledge_base import
 
 
 # initialize_opencog(atsp)
@@ -28,14 +28,18 @@ TRUE = TruthValue(1,1)
 
 class WorldState(object):
 
+    _size = PredicateNode("size")
+    _position = PredicateNode("position")
+    _berry_count = PredicateNode("berry count")
+    _full_crate_count = PredicateNode("full crate count")
+    _empty_crate_count = PredicateNode("empty crate count")
+
     def __init__(self, kb, me):
         self.CALLED_ROBOT = "CALLED_ROBOT"
         self.kb = kb
         self.me = me
         self.moving = False
-        self._size = PredicateNode("size")
-        self._position = PredicateNode("position")
-        self._berry_count = PredicateNode("berry count")
+
         # DefineLink(DefinedSchemaNode("NewName"), )
 
 
@@ -104,28 +108,35 @@ class WorldState(object):
             return sqrt(dxs + dys) - 0.5 * (l1 + l2)
 
 
-    def set_berry_state(self, place, ripe, unripe=0):
-        place.set_value(self._berry_count, FloatValue([ripe,unripe]))
+    def set_berry_state(self, place, ripe):
+        place.set_value(self._berry_count, NumberNode(str(ripe)))
 
 
     def get_berry_state(self, place):
-        return place.get_value(self._berry_count).to_list()
+        return place.get_value(self._berry_count)
 
 
-    def update_berry_state(self, place, ripe, unripe=0):
-        old_ripe, old_unripe = self.get_berry_state(place)
-        self.set_berry_state(place, old_ripe+ripe, old_unripe+unripe)
+    def update_berry_state(self, place, ripe):
+        old_ripe = self.get_berry_state(place)
+        self.set_berry_state(place, old_ripe+ripe)
 
 
     def has_berries(self, place):
-        return self.state(place, PredicateNode("has berries"), "TRUE")
-        # return EvaluationLink(PredicateNode("has_berries"), place)
+        has_berries = GreaterThanLink(
+                            ValueOfLink(
+                                place,
+                                self._berry_count),
+                            NumberNode("0"))
+        return has_berries
 
 
     def not_has_berries(self, place):
-        return self.state(place, PredicateNode("has berries"), "FALSE")
-        # return NotLink(EvaluationLink(PredicateNode("has_berries"), place))
-
+        not_has_berries = EqualLink(
+                            ValueOfLink(
+                                place,
+                                self._berry_count),
+                            NumberNode("0"))
+        return not_has_berries
 
 
     def has_crate(self, picker):
@@ -134,6 +145,71 @@ class WorldState(object):
 
     def not_has_crate(self, picker):
         return self.state(picker, PredicateNode("has crate"), "FALSE")
+
+
+    def robot_has_crate(self, robot, crate_type):
+        # return self.state(robot, PredicateNode("has full crate"), "TRUE")
+        has_crates = GreaterThanLink(
+                        ValueOfLink(
+                            robot,
+                            crate_type),
+                        NumberNode("0"))
+        return has_crates
+
+
+    def robot_has_crate_capacity(self, robot, crate_type):
+        # return self.state(robot, PredicateNode("has full crate"), "TRUE")
+        has_crate_capacity = GreaterThanLink(
+                        NumberNode(str(CRATE_CAPACITY)),
+                        ValueOfLink(
+                            robot,
+                            crate_type))
+        return has_crate_capacity
+
+
+    # def not_has_full_crate(self, robot):
+    #     return self.state(robot, PredicateNode("has full crate"), "FALSE")
+
+
+    def robot_add_crate(self, robot, crate_type):
+        add_crate = SetValueLink(
+                robot,
+                crate_type,
+                PlusLink(
+                    NumberNode("1"),
+                    ValueOfLink(
+                        robot,
+                        crate_type)))
+        return add_crate
+
+
+    def robot_remove_crate(self, robot, crate_type):
+        remove_crate = SetValueLink(
+                robot,
+                crate_type,
+                PlusLink(
+                    NumberNode("1"),
+                    GetLink(
+                        VariableNode("count"),
+                        ValueOfLink(
+                            robot,
+                            crate_type))))
+        return remove_crate
+
+
+    def robot_set_crate_count(self, robot, crate_type, count):
+        link = SetValueLink(
+                robot,
+                crate_type,
+                count)
+        return link
+
+
+    def robot_get_crate_count(self, robot, crate_type):
+        link = ValueOfLink(
+            robot,
+            crate_type)
+        return link
 
 
     def crate_full(self, picker):
@@ -162,6 +238,10 @@ class WorldState(object):
 
     def wants_help_soon(self, picker):
         return self.state2(picker, PredicateNode("unknown"))
+
+
+    def full_crate_count(self, robot, crate_count):
+        return StateLink(ListLink(robot, self._crate_count), crate_count)
 
 
     def is_at(self, thing, place):

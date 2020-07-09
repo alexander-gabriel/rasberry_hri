@@ -14,7 +14,9 @@ from opencog.type_constructors import *
 from opencog.utilities import initialize_opencog
 
 
-
+atomspace = AtomSpace()
+initialize_opencog(atomspace)
+set_type_ctor_atomspace(atomspace)
 
 
 @contextmanager
@@ -24,9 +26,15 @@ def suppress(*exceptions):
     except exceptions:
         pass
 
+class Variable(object):
+
+    def __init__(self, label, typ):
+        self.label = label
+        self.typ = typ
 
 
-class OrderedConsistentSet:
+
+class OrderedConsistentSet(object):
 
     def __init__(self):
         self.items = []

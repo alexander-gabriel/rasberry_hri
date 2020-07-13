@@ -33,6 +33,7 @@ class WorldState(object):
     _berry_count = PredicateNode("berry count")
     _full_crate_count = PredicateNode("full crate count")
     _empty_crate_count = PredicateNode("empty crate count")
+    _distance = PredicateNode("distance")
 
     def __init__(self, kb, me):
         self.CALLED_ROBOT = "CALLED_ROBOT"
@@ -82,6 +83,17 @@ class WorldState(object):
         except:
             position = LinkValue(positions)
         place.set_value(self._position, position)
+
+
+    def get_optimum_distance(self, person):
+        distances = person.get_value(self._distance).to_list() or [MINIMUM_DISTANCE]
+        return sum(distances) / len(distances)
+
+
+    def set_latest_distance(self, person, distance):
+        distances = person.get_value(self._distance).to_list() or []
+        distances.append(distance)
+        person.set_value(self._distance, FloatValue(distances))
 
 
     def update_position(self, person, place):

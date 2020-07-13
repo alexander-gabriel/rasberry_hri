@@ -373,7 +373,7 @@ class GiveCrateAction(Action):
     # ]
 
     condition_templates = [
-    [ws.approaching [V("picker", VariableNode)]],
+    [ws.approaching, [V("picker", VariableNode)]],
     [ws.robot_has_crate, [V(ME, ConceptNode), V("empty crate count", PredicateNode)]],
     [ws.is_a, [V("picker", VariableNode), V("human", ConceptNode)]],
     [ws.wants_to_get_crate, [V("picker", VariableNode)]],  # <- see the intention :)
@@ -433,7 +433,7 @@ class ExchangeCrateAction(Action):
     # ]
 
     condition_templates = [
-    [ws.approaching [V("picker", VariableNode)]],
+    [ws.approaching, [V("picker", VariableNode)]],
     [ws.robot_has_crate, [V(ME, ConceptNode), V("empty crate count", PredicateNode)]],
     [ws.robot_has_crate_capacity, [V(ME, ConceptNode), V("full crate count", PredicateNode)]],
     [ws.is_a, [V("picker", VariableNode), V("human", ConceptNode)]],

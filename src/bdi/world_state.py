@@ -105,6 +105,7 @@ class WorldState(object):
         return place.get_value(self._position).to_list()
 
 
+
     def get_distance(self, thing1, thing2):
         w1,l1 = self.get_size(thing1)
         w2,l2 = self.get_size(thing1)

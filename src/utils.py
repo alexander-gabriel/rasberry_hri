@@ -32,6 +32,9 @@ class Variable(object):
         self.label = label
         self.typ = typ
 
+    def get_variable(self):
+        return self.typ(VariableNode(self.label))
+
 
 
 class OrderedConsistentSet(object):

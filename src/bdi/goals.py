@@ -292,7 +292,7 @@ class Goal(object):
                 if arg.label == ME:
                     full_args.append(me)
                 else:
-                    variable = arg.typ(arg.label)
+                    variable = arg.get_variable()
                     full_args.append(variable)
                     variables.append(TypedVariableLink(variable, TypeNode("ConceptNode")))
             full_conditions.append(fun(world_state, *full_args))

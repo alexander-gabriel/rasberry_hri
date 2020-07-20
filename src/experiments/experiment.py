@@ -131,8 +131,9 @@ class Experiment():
         state_msg.reference_frame = "map"
         resp = self.set_model_state(state_msg)
         self.ssh_client = paramiko.SSHClient()
-        self.ssh_client.get_host_keys().add('10.10.10.15', 'ssh-rsa', key)
-        self.ssh_client.connect('10.10.10.15', username='rasberry')
+        self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        #self.ssh_client.get_host_keys().add('10.10.10.1', 'ssh-rsa', key)
+        self.ssh_client.connect('10.10.10.1', username='rasberry')
         stdin, stdout, stderr = self.ssh_client.exec_command(command)
         self.ssh_client.close()
         rospy.sleep(3)

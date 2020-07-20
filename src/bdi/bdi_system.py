@@ -246,23 +246,26 @@ class BDISystem:
     ## TODO: re-integrate direction indicator
 
     def react_to_distance_events(self, person):
-        distance = self.world_state.get_distance(self.me, person)
-        self.latest_distances[person.name] = distance
-        minimum_distance = max(self.world_state.get_optimum_distance(person), MINIMUM_DISTANCE)
+        try:
+            distance = self.world_state.get_distance(self.me, person)
+            self.latest_distances[person.name] = distance
+            minimum_distance = max(self.world_state.get_optimum_distance(person), MINIMUM_DISTANCE)
 
-        if distance < minimum_distance:
-            if not self.too_close:
-                rospy.logwarn("BDI: Robot has met picker. Distance: {}".format(distance))
-                self.too_close = True
-                self.picker_pose_publisher.publish("at robot")
-                self.robco.cancel_movement()
-            elif distance < 0.2:
-                rospy.logwarn("BDI: Picker is too close. Distance: {}".format(distance))
-            # elif abs(distance - self.last_distance) < 0.04:
-        elif self.too_close:
-            rospy.loginfo("BDI: Robot has left picker. Distance: {}".format(distance))
-            self.too_close = False
-        # self.last_distance = distance
+            if distance < minimum_distance:
+                if not self.too_close:
+                    rospy.logwarn("BDI: Robot has met picker. Distance: {}".format(distance))
+                    self.too_close = True
+                    self.picker_pose_publisher.publish("at robot")
+                    self.robco.cancel_movement()
+                elif distance < 0.2:
+                    rospy.logwarn("BDI: Picker is too close. Distance: {}".format(distance))
+                # elif abs(distance - self.last_distance) < 0.04:
+            elif self.too_close:
+                rospy.loginfo("BDI: Robot has left picker. Distance: {}".format(distance))
+                self.too_close = False
+            # self.last_distance = distance
+        except Exception as err:
+            rospy.logerr("Couldn't react to distance events".format(err))
 
 
     def update_picker_node(self, person, msg):
@@ -290,7 +293,7 @@ class BDISystem:
             self.world_state.set_position(self.me, self.latest_robot_msg.position.x, self.latest_robot_msg.position.y, timestamp)
         for person, msg in self.latest_people_msgs.items():
             person = ConceptNode(person)
-            self.react_to_distance_events(self, person)
+            self.react_to_distance_events(person)
             self.update_picker_node(person, msg)
 
             self.world_state.set_position(person, msg.pose.position.x, msg.pose.position.y, timestamp)

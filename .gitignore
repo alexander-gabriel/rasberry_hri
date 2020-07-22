@@ -2,3 +2,6 @@ src/unused/*
 *.pyc
 **/*.log
 *.scm
+src/example*.py
+src/test*.py
+

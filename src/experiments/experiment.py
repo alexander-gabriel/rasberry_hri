@@ -19,7 +19,6 @@ from geometry_msgs.msg import Pose, PoseWithCovarianceStamped, Point, Quaternion
 from rosgraph_msgs.msg import Clock
 from rasberry_hri.msg import Action
 
-from utils import start_process
 from config import Config
 from bdi.robot_control import RobotControl
 
@@ -29,7 +28,15 @@ from gazebo_msgs.srv import SetModelState, GetModelState
 
 key = paramiko.RSAKey(data=base64.b64decode(b'AAAAB3NzaC1yc2EAAAADAQABAAABAQC9/fxTMxUkCY0+27UqYXJM+RZfJjDBeCgqYb28P5iq0Kqry98Ke0Af703yyJPfaVlRG8PUkn95k+1dh1xQL8nzWeIs9oxTOwjpOliqAn2ajQ/v2J73E2wQyHhGfRWLQ+GVzO6ZU8u48mybWxOKPsk6ETG/0eQdes+zNvI7Q0K2ZryTv/BzfWzGite2I3YTDHMGjg94BdWsQJ3t+leV29nsn6eH4vYliFJcDJRexck/FvA2j3n3eqh/ahP2UTFChna3BS3EGfGTaFUaqxJyxijXtXAkZd6OGweD1D6VREX50/JwjtCbIeYQTz+pz7dw67dBQHU9yKX40x+iR813KCgt'))
 
-command = """tmux send-keys -t "robot_local.0" C-c C-m 'roslaunch rasberry_navigation rasberry_localisation_multisim.launch use_imu:="$USE_IMU" publish_tf:="$EKF_PUBLISH_TF" robot_name:=$ROBOT_NAME_1 initial_pose_x:=$ROBOT_POS_X_1 initial_pose_y:=$ROBOT_POS_Y_1 initial_pose_a:=$ROBOT_POS_A_1' C-m"""
+# command = """tmux send-keys -t "robot_local.0" C-c C-m 'roslaunch rasberry_navigation rasberry_localisation_multisim.launch use_imu:="$USE_IMU" publish_tf:="$EKF_PUBLISH_TF" robot_name:=$ROBOT_NAME_1 initial_pose_x:=$ROBOT_POS_X_1 initial_pose_y:=$ROBOT_POS_Y_1 initial_pose_a:=$ROBOT_POS_A_1' C-m"""
+
+#102: 8.675 4.65
+#103: 11.649 4.64
+#104: 14.12 4.612
+#105: 17.061 4.609
+#106: 19.997 4.568
+
+command = """tmux send-keys -t "robot_local.0" C-c C-m 'roslaunch rasberry_navigation rasberry_localisation_multisim.launch use_imu:="$USE_IMU" publish_tf:="$EKF_PUBLISH_TF" robot_name:=$ROBOT_NAME_1 initial_pose_x:=11.649 initial_pose_y:=4.64 initial_pose_a:=$ROBOT_POS_A_1' C-m"""
 
 SLEEP = 0.01
 LOG_PATH = "."

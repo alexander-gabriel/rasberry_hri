@@ -257,7 +257,7 @@ if __name__ == '__main__':
                                 "target_picker": ["Picker02"],
                                 # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
                                 "iterations": ["30"]}
-                c.termination_time = 10
+                c.termination_time = 15
                 c.update_behaviour_times()
                 e.add_config(c)
             except KeyError as err:

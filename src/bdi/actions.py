@@ -6,7 +6,8 @@ from opencog.type_constructors import *
 
 from parameters import *
 from utils import atomspace
-from utils import Variable as V
+from utils import VariableCondition as V
+from utils import ConceptCondition as C
 from world_state import WorldState as ws
 
 
@@ -29,27 +30,16 @@ class Action(object):
         # rospy.loginfo(self.__class__.__name__)
         # rospy.loginfo(self.placeholders)
         # rospy.loginfo(self.instances)
-        placeholder_instances = zip(self.placeholders, self.instances)
+        replacement_table = {key:value for key, value in zip(self.placeholders, self.instances)}
+
         # rospy.loginfo(placeholder_instances)
         # rospy.loginfo("--")
         for condition in self.condition_templates:
-            new_variables = []
-            for variable in condition[1]:
-                new_variable = variable
-                for placeholder, instance in placeholder_instances:
-                    new_variable = new_variable.replace(placeholder, instance)
-                new_variables.append(new_variable)
+            new_variables = list(map(lambda variable: variable.replace(replacement_table), condition[1]))
             self.conditions.append([condition[0], new_variables])
         for consequence in self.consequence_templates:
-            new_variables = []
-            for variable in consequence[1]:
-                new_variable = variable
-                for placeholder, instance in placeholder_instances:
-                    new_variable = new_variable.replace(placeholder, instance)
-                new_variables.append(new_variable)
+            new_variables = list(map(lambda variable: variable.replace(replacement_table), consequence[1]))
             self.consequences.append([consequence[0], new_variables])
-
-
 
         # for index in range(len(args)):
         #     for condition in self.condition_templates:
@@ -134,25 +124,25 @@ class Action(object):
 class MoveAction(Action):
 
     condition_templates = [
-    [ws.is_at, [V(ME, ConceptNode), V("origin", VariableNode)]],
-    # [ws.linked, [, V("destination", VariableNode)]]
+    [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
+    # [ws.linked, [, V("my_destination", ConceptNode)]]
     ]
 
-    consequence_templates = [[ws.is_at, [V(ME, ConceptNode), V("destination", VariableNode)]]]
-    placeholders = [V(ME, ConceptNode), V("origin", VariableNode), V("destination", VariableNode)] # in same order as constructor arguments
+    consequence_templates = [[ws.is_at, [C(ME), V("my_destination", ConceptNode)]]]
+    placeholders = [ME, "my_position", "my_destination"] # in same order as constructor arguments
 
 
     def __init__(self, world_state, robco, args):
-        # [me, origin, destination]
+        # [me, my_position, my_destination]
         super(MoveAction, self).__init__(world_state, args)
         self.robco = robco
         self.destination = args[2]
         self.gain = MOVE_GAIN
         self.sent_movement_request = False
     #     for condition in self.condition_templates:
-    #         self.conditions.append(condition.replace("?origin", origin).replace(V(ME, ConceptNode), me))
+    #         self.conditions.append(condition.replace("?my_position", my_position).replace(C(ME), me))
     #     for consequence in self.consequence_templates:
-    #         self.consequences.append(consequence.replace("?destination", destination).replace(V(ME, ConceptNode), me))
+    #         self.consequences.append(consequence.replace("?my_destination", my_destination).replace(C(ME), me))
 
 
     def perform(self):
@@ -164,7 +154,7 @@ class MoveAction(Action):
         try:
             success = self.robco.get_result().success
             self.ws.moving = False
-            rospy.logwarn("ACT: Reached final destination: {}".format(success))
+            rospy.logwarn("ACT: Reached final my_destination: {}".format(success))
             return True
         except AttributeError:
             return False
@@ -182,27 +172,27 @@ class MoveAction(Action):
 class MoveToAction(Action):
 
     condition_templates = [
-    [ws.is_at, [V(ME, ConceptNode), V("origin", VariableNode)]],
-    [ws.is_at, [V("picker", VariableNode), V("destination", VariableNode)]],
-    [ws.linked, [V("origin", VariableNode), V("destination", VariableNode)]]
+    [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
+    [ws.is_at, [V("picker", ConceptNode), V("my_destination", ConceptNode)]],
+    [ws.linked, [V("my_position", ConceptNode), V("my_destination", ConceptNode)]]
     ]
 
-    consequence_templates = [[ws.is_at, [V(ME, ConceptNode), V("destination", VariableNode)]]]
+    consequence_templates = [[ws.is_at, [C(ME), V("my_destination", ConceptNode)]]]
 
-    placeholders = [V(ME, ConceptNode), V("picker", VariableNode), V("origin", VariableNode), V("destination", VariableNode)] # in same order as constructor arguments
+    placeholders = [ME, "picker", "my_position", "my_destination"] # in same order as constructor arguments
 
 
     def __init__(self, world_state, robco, args):
-        # [me, picker, origin, destination]
+        # [me, picker, my_position, my_destination]
         super(MoveToAction, self).__init__(world_state, args)
         self.robco = robco
         self.destination = args[3]
         self.gain = MOVETO_GAIN
         self.sent_movement_request = False
     #     for condition in self.condition_templates:
-    #         self.conditions.append(condition.replace("?origin", origin).replace(V(ME, ConceptNode), me))
+    #         self.conditions.append(condition.replace("?my_position", my_position).replace(C(ME), me))
     #     for consequence in self.consequence_templates:
-    #         self.consequences.append(consequence.replace("?destination", destination).replace(V(ME, ConceptNode), me))
+    #         self.consequences.append(consequence.replace("?my_destination", my_destination).replace(C(ME), me))
 
 
     def perform(self):
@@ -214,7 +204,7 @@ class MoveToAction(Action):
         try:
             success = self.robco.get_result().success
             self.ws.moving = False
-            rospy.logwarn("ACT: Reached final destination: {}".format(success))
+            rospy.logwarn("ACT: Reached final my_destination: {}".format(success))
             return True
         except Exception as err:
             rospy.logwarn(err)
@@ -234,38 +224,38 @@ class BerryEvadeAction(Action):
 
     # NOTE: working version with implicit intention recognition
     # condition_templates = [
-    # [ws.is_a, [V("picker", VariableNode), V("human", ConceptNode)]],
-    # [ws.approaching, [V("picker", VariableNode)]],
-    # [ws.seen_picking, [V("picker", VariableNode)]],
-    # [ws.not_called_robot, [V("picker", VariableNode)]],
-    # [ws.is_at, [V("picker", VariableNode), V("place1", VariableNode)]],
-    # [ws.not_has_berries, [V("place1", VariableNode)]],
-    # [ws.has_berries, [V("origin", VariableNode)]],
-    # [ws.query_not_at, [V("anyhing", VariableNode), V("destination", VariableNode)]],
-    # [ws.is_at, [V(ME, ConceptNode), V("origin", VariableNode)]],
-    # [ws.leads_to, [V("origin", VariableNode), V("destination", VariableNode)]],
-    # [ws.leads_to, [V("place1", VariableNode), V("origin", VariableNode)]],
+    # [ws.is_a, [V("picker", ConceptNode), C("human")]],
+    # [ws.approaching, [V("picker", ConceptNode)]],
+    # [ws.seen_picking, [V("picker", ConceptNode)]],
+    # [ws.not_called_robot, [V("picker", ConceptNode)]],
+    # [ws.is_at, [V("picker", ConceptNode), V("picker_position", ConceptNode)]],
+    # [ws.not_has_berries, [V("picker_position", ConceptNode)]],
+    # [ws.has_berries, [V("my_position", ConceptNode)]],
+    # [ws.query_not_at, [V("anything", ConceptNode), V("my_destination", ConceptNode)]],
+    # [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
+    # [ws.leads_to, [V("my_position", ConceptNode), V("my_destination", ConceptNode)]],
+    # [ws.leads_to, [V("picker_position", ConceptNode), V("my_position", ConceptNode)]],
     # ]
 
     condition_templates = [
-    [ws.is_a, [V("picker", VariableNode), V("human", ConceptNode)]],
-    [ws.wants_to_pass, [V("picker", VariableNode)]],  # <- see the intention :)
-    [ws.is_at, [V("picker", VariableNode), V("place1", VariableNode)]],
-    # [ws.not_has_berries, [V("place1", VariableNode)]],
-    [ws.has_berries, [V("origin", VariableNode)]],
-    [ws.query_not_at, [V("anyhing", VariableNode), V("destination", VariableNode)]],
-    [ws.is_at, [V(ME, ConceptNode), V("origin", VariableNode)]],
-    [ws.leads_to, [V("origin", VariableNode), V("destination", VariableNode)]],
-    [ws.leads_to, [V("place1", VariableNode), V("origin", VariableNode)]],
+    [ws.is_a, [V("picker", ConceptNode), C("human")]],
+    [ws.wants_to_pass, [V("picker", ConceptNode)]],  # <- see the intention :)
+    [ws.is_at, [V("picker", ConceptNode), V("picker_position", ConceptNode)]],
+    # [ws.not_has_berries, [V("picker_position", ConceptNode)]],
+    [ws.has_berries, [V("my_position", ConceptNode)]],
+    [ws.query_not_at, [V("anything", ConceptNode), V("my_destination", ConceptNode)]],
+    [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
+    [ws.leads_to, [V("my_position", ConceptNode), V("my_destination", ConceptNode)]],
+    [ws.leads_to, [V("picker_position", ConceptNode), V("my_position", ConceptNode)]],
     ]
 
-    consequence_templates = [[ws.is_at, [V(ME, ConceptNode), V("destination", VariableNode)]], [ws.wants_nothing, [V("picker", VariableNode)]]]
+    consequence_templates = [[ws.is_at, [C(ME), V("my_destination", ConceptNode)]], [ws.wants_nothing, [V("picker", ConceptNode)]]]
 
-    placeholders = [V(ME, ConceptNode), V("picker", VariableNode), V("origin", VariableNode), V("destination", VariableNode)] # in same order as constructor arguments
+    placeholders = [ME, "picker", "my_position", "my_destination"] # in same order as constructor arguments
 
 
     def __init__(self, world_state, robco, args):
-        # [me, picker, origin, destination]
+        # [me, picker, my_position, my_destination]
         super(BerryEvadeAction, self).__init__(world_state, args)
         self.robco = robco
         self.picker = args[1]
@@ -302,34 +292,34 @@ class EvadeAction(Action):
 
     # NOTE: working version with implicit intention recognition
     # condition_templates = [
-    # [ws.is_a, [V("picker", VariableNode), V("human", ConceptNode)]],
-    # [ws.approaching, [V("picker", VariableNode)]],
-    # [ws.seen_picking, [V("picker", VariableNode)]],
-    # [ws.not_called_robot, [V("picker", VariableNode)]],
-    # [ws.is_at, [V("picker", VariableNode), V("place1", VariableNode)]],
-    # [ws.query_not_at, [V("anyhing", VariableNode), V("destination", VariableNode)]],
-    # [ws.is_at, [V(ME, ConceptNode), V("origin", VariableNode)]],
-    # [ws.leads_to, [V("origin", VariableNode), V("destination", VariableNode)]],
-    # [ws.leads_to, [V("place1", VariableNode), V("origin", VariableNode)]],
+    # [ws.is_a, [V("picker", ConceptNode), C("human")]],
+    # [ws.approaching, [V("picker", ConceptNode)]],
+    # [ws.seen_picking, [V("picker", ConceptNode)]],
+    # [ws.not_called_robot, [V("picker", ConceptNode)]],
+    # [ws.is_at, [V("picker", ConceptNode), V("picker_position", ConceptNode)]],
+    # [ws.query_not_at, [V("anything", ConceptNode), V("my_destination", ConceptNode)]],
+    # [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
+    # [ws.leads_to, [V("my_position", ConceptNode), V("my_destination", ConceptNode)]],
+    # [ws.leads_to, [V("picker_position", ConceptNode), V("my_position", ConceptNode)]],
     # ]
 
     condition_templates = [
-    [ws.is_a, [V("picker", VariableNode), V("human", ConceptNode)]],
-    [ws.wants_to_pass, [V("picker", VariableNode)]],  # <- see the intention :)
-    [ws.is_at, [V("picker", VariableNode), V("place1", VariableNode)]],
-    [ws.query_not_at, [V("anyhing", VariableNode), V("destination", VariableNode)]],
-    [ws.is_at, [V(ME, ConceptNode), V("origin", VariableNode)]],
-    [ws.leads_to, [V("origin", VariableNode), V("destination", VariableNode)]],
-    [ws.leads_to, [V("place1", VariableNode), V("origin", VariableNode)]],
+        [ws.is_a, [V("picker", ConceptNode), C("human")]],
+        [ws.wants_to_pass, [V("picker", ConceptNode)]],  # <- see the intention :)
+        [ws.is_at, [V("picker", ConceptNode), V("picker_position", ConceptNode)]],
+        [ws.query_not_at, [V("anything", ConceptNode), V("my_destination", ConceptNode)]],
+        [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
+        [ws.leads_to, [V("my_position", ConceptNode), V("my_destination", ConceptNode)]],
+        [ws.leads_to, [V("picker_position", ConceptNode), V("my_position", ConceptNode)]],
     ]
 
-    consequence_templates = [[ws.is_at, [V(ME, ConceptNode), V("destination", VariableNode)]], [ws.wants_nothing, [V("picker", VariableNode)]]]
+    consequence_templates = [[ws.is_at, [C(ME), V("my_destination", ConceptNode)]], [ws.wants_nothing, [V("picker", ConceptNode)]]]
 
-    placeholders = [V(ME, ConceptNode), V("picker", VariableNode), V("origin", VariableNode), V("destination", VariableNode)] # in same order as constructor arguments
+    placeholders = [ME, "picker", "my_destination", "my_position"] # in same order as constructor arguments
 
 
     def __init__(self, world_state, robco, args):
-        # [me, picker, origin, destination]
+        # [me, picker, my_position, my_destination]
         super(EvadeAction, self).__init__(world_state, args)
         self.robco = robco
         self.picker = args[1]
@@ -365,25 +355,25 @@ class GiveCrateAction(Action):
 
     # NOTE: working version with implicit intention recognition
     # condition_templates = [
-    # [ws.is_a, [V("picker", VariableNode), V("human", ConceptNode)]],
-    # [ws.is_at, [V("picker", VariableNode), V("destination", VariableNode)]],
-    # [ws.is_at, [V(ME, ConceptNode), V("origin", VariableNode)]],
-    # [ws.not_seen_picking, [V("picker", VariableNode)]],
-    # [ws.called_robot, [V("picker", VariableNode)]],
+    # [ws.is_a, [V("picker", ConceptNode), C("human")]],
+    # [ws.is_at, [V("picker", ConceptNode), V("my_destination", ConceptNode)]],
+    # [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
+    # [ws.not_seen_picking, [V("picker", ConceptNode)]],
+    # [ws.called_robot, [V("picker", ConceptNode)]],
     # ]
 
     condition_templates = [
-    [ws.approaching, [V("picker", VariableNode)]],
-    [ws.robot_has_crate, [V(ME, ConceptNode), V("empty crate count", PredicateNode)]],
-    [ws.is_a, [V("picker", VariableNode), V("human", ConceptNode)]],
-    [ws.wants_to_get_crate, [V("picker", VariableNode)]],  # <- see the intention :)
-    [ws.is_at, [V("picker", VariableNode), V("destination", VariableNode)]],
-    [ws.is_at, [V(ME, ConceptNode), V("origin", VariableNode)]]
+    [ws.approaching, [V("picker", ConceptNode)]],
+    [ws.robot_has_crate, [C(ME), V("empty crate count", PredicateNode)]],
+    [ws.is_a, [V("picker", ConceptNode), C("human")]],
+    [ws.wants_to_get_crate, [V("picker", ConceptNode)]],  # <- see the intention :)
+    [ws.is_at, [V("picker", ConceptNode), V("my_destination", ConceptNode)]],
+    [ws.is_at, [C(ME), V("my_position", ConceptNode)]]
     ]
 
-    consequence_templates = [[ws.not_called_robot, [V("picker", VariableNode)]], [ws.wants_nothing, [V("picker", VariableNode)]], [ws.robot_remove_crate, [V(ME, ConceptNode), V("empty crate count", PredicateNode)]]]
+    consequence_templates = [[ws.not_called_robot, [V("picker", ConceptNode)]], [ws.wants_nothing, [V("picker", ConceptNode)]], [ws.robot_remove_crate, [C(ME), V("empty crate count", PredicateNode)]]]
 
-    placeholders = [V(ME, ConceptNode), V("picker", VariableNode), V("destination", VariableNode)] # in same order as constructor arguments
+    placeholders = [ME, "picker", "my_destination"] # in same order as constructor arguments
 
 
     def __init__(self, world_state, robco, args):
@@ -394,9 +384,9 @@ class GiveCrateAction(Action):
         self.gain = GIVE_GAIN
         self.cost = GIVE_COST
     #     for condition in self.condition_templates:
-    #         self.conditions.append(condition.replace("?picker", picker).replace(V(ME, ConceptNode), me))
+    #         self.conditions.append(condition.replace("?picker", picker).replace(C(ME), me))
     #     for consequence in self.consequence_templates:
-    #         self.consequences.append(consequence.replace("?picker", picker).replace(V(ME, ConceptNode), me))
+    #         self.consequences.append(consequence.replace("?picker", picker).replace(C(ME), me))
 
 
     def get_cost(self):
@@ -425,30 +415,30 @@ class ExchangeCrateAction(Action):
 
     # NOTE: working version with implicit intention recognition
     # condition_templates = [
-    # [ws.is_a, [V("picker", VariableNode), V("human", ConceptNode)]],
-    # [ws.is_at, [V("picker", VariableNode), V("destination", VariableNode)]],
-    # [ws.is_at, [V(ME, ConceptNode), V("origin", VariableNode)]],
-    # [ws.seen_picking, [V("picker", VariableNode)]],
-    # [ws.called_robot, [V("picker", VariableNode)]],
+    # [ws.is_a, [V("picker", ConceptNode), C("human")]],
+    # [ws.is_at, [V("picker", ConceptNode), V("my_destination", ConceptNode)]],
+    # [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
+    # [ws.seen_picking, [V("picker", ConceptNode)]],
+    # [ws.called_robot, [V("picker", ConceptNode)]],
     # ]
 
     condition_templates = [
-    [ws.approaching, [V("picker", VariableNode)]],
-    [ws.robot_has_crate, [V(ME, ConceptNode), V("empty crate count", PredicateNode)]],
-    [ws.robot_has_crate_capacity, [V(ME, ConceptNode), V("full crate count", PredicateNode)]],
-    [ws.is_a, [V("picker", VariableNode), V("human", ConceptNode)]],
-    [ws.wants_to_exchange_their_crate, [V("picker", VariableNode)]],  # <- see the intention :)
-    [ws.is_at, [V("picker", VariableNode), V("destination", VariableNode)]],
-    [ws.is_at, [V(ME, ConceptNode), V("origin", VariableNode)]]
+    [ws.approaching, [V("picker", ConceptNode)]],
+    [ws.robot_has_crate, [C(ME), V("empty crate count", PredicateNode)]],
+    [ws.robot_has_crate_capacity, [C(ME), V("full crate count", PredicateNode)]],
+    [ws.is_a, [V("picker", ConceptNode), C("human")]],
+    [ws.wants_to_exchange_their_crate, [V("picker", ConceptNode)]],  # <- see the intention :)
+    [ws.is_at, [V("picker", ConceptNode), V("my_destination", ConceptNode)]],
+    [ws.is_at, [C(ME), V("my_position", ConceptNode)]]
     ]
 
-    consequence_templates = [[ws.not_seen_picking, [V("picker", VariableNode)]], [ws.not_called_robot, [V("picker", VariableNode)]], [ws.wants_nothing, [V("picker", VariableNode)]], [ws.robot_add_crate, [V(ME, ConceptNode), V("full crate count", PredicateNode)]], [ws.robot_remove_crate, [V(ME, ConceptNode), V("empty crate count", PredicateNode)]]]
+    consequence_templates = [[ws.not_seen_picking, [V("picker", ConceptNode)]], [ws.not_called_robot, [V("picker", ConceptNode)]], [ws.wants_nothing, [V("picker", ConceptNode)]], [ws.robot_add_crate, [C(ME), V("full crate count", PredicateNode)]], [ws.robot_remove_crate, [C(ME), V("empty crate count", PredicateNode)]]]
 
-    placeholders = [V(ME, ConceptNode), V("picker", VariableNode), V("destination", VariableNode)] # in same order as constructor arguments
+    placeholders = [ME, "picker", "my_destination"] # in same order as constructor arguments
 
 
     def __init__(self, world_state, robco, args):
-        # [me, picker, destination]
+        # [me, picker, my_destination]
         super(ExchangeCrateAction, self).__init__(world_state, args)
         self.robco = robco
         self.picker = args[1]
@@ -456,9 +446,9 @@ class ExchangeCrateAction(Action):
         self.cost = EXCHANGE_COST
 
     #     for condition in self.condition_templates:
-    #         self.conditions.append(condition.replace("?picker", picker).replace(V(ME, ConceptNode), me))
+    #         self.conditions.append(condition.replace("?picker", picker).replace(C(ME), me))
     #     for consequence in self.consequence_templates:
-    #         self.consequences.append(consequence.replace("?picker", picker).replace(V(ME, ConceptNode), me))
+    #         self.consequences.append(consequence.replace("?picker", picker).replace(C(ME), me))
 
 
     def get_cost(self):
@@ -485,15 +475,15 @@ class ExchangeCrateAction(Action):
 class DepositCrateAction(Action):
 
     condition_templates = [
-    [ws.robot_has_crate, [V(ME, ConceptNode), V("full crate count", PredicateNode)]],
-    [ws.robot_get_crate_count, [V(ME, ConceptNode), V("full crate count", PredicateNode)]],
-    [ws.is_at, [V("depot", VariableNode), V("destination", VariableNode)]],
-    [ws.is_at, [V(ME, ConceptNode), V("origin", VariableNode)]]
+    [ws.robot_has_crate, [C(ME), V("full crate count", PredicateNode)]],
+    [ws.robot_get_crate_count, [C(ME), V("full crate count", PredicateNode)]],
+    [ws.is_at, [V("depot", ConceptNode), V("my_destination", ConceptNode)]],
+    [ws.is_at, [C(ME), V("my_position", ConceptNode)]]
     ]
 
-    consequence_templates = [[ws.robot_set_crate_count, [V(ME, ConceptNode), V("full crate count", PredicateNode), V("0", NumberNode)]], [ws.robot_set_crate_count, [V(ME, ConceptNode), V("empty crate count", PredicateNode), V(str(CRATE_CAPACITY), NumberNode)]]]
+    consequence_templates = [[ws.robot_set_crate_count, [C(ME), V("full crate count", PredicateNode), V("0", NumberNode)]], [ws.robot_set_crate_count, [C(ME), V("empty crate count", PredicateNode), V(str(CRATE_CAPACITY), NumberNode)]]]
 
-    placeholders = [V(ME, ConceptNode), V("depot", VariableNode), V("destination", VariableNode), V("depot", PredicateNode)] # in same order as constructor arguments
+    placeholders = [ME, "depot", "my_destination", "my_position"] # in same order as constructor arguments
 
 
     def __init__(self, world_state, robco, args):
@@ -507,9 +497,9 @@ class DepositCrateAction(Action):
 
 
     def get_cost(self):
-        result = self.ws.kb.execute(self.ws.robot_get_crate_count(V(ME, ConceptNode), V("empty crate count", PredicateNode)))
+        result = self.ws.kb.execute(self.ws.robot_get_crate_count(C(ME), V("empty crate count", PredicateNode)))
         empties = result.get_out()[0].to_list()[0]
-        result = self.ws.kb.execute(self.ws.robot_get_crate_count(V(ME, ConceptNode), self.V("full crate count", PredicateNode)))
+        result = self.ws.kb.execute(self.ws.robot_get_crate_count(C(ME), self.V("full crate count", PredicateNode)))
         fulls = result.get_out()[0].to_list()[0]
         return (fulls + empties) * DEPOSIT_COST
         return self.cost
@@ -517,9 +507,9 @@ class DepositCrateAction(Action):
 
     @classmethod
     def get_gain(cls):
-        result = self.ws.kb.execute(self.ws.robot_get_crate_count(V(ME, ConceptNode), V("empty crate count", PredicateNode)))
+        result = self.ws.kb.execute(self.ws.robot_get_crate_count(C(ME), V("empty crate count", PredicateNode)))
         empties = result.get_out()[0].to_list()[0]
-        result = self.ws.kb.execute(self.ws.robot_get_crate_count(V(ME, ConceptNode), self.V("full crate count", PredicateNode)))
+        result = self.ws.kb.execute(self.ws.robot_get_crate_count(C(ME), self.V("full crate count", PredicateNode)))
         fulls = result.get_out()[0].to_list()[0]
         return (fulls + CRATE_CAPACITY - empties)/2 * DEPOSIT_GAIN
 

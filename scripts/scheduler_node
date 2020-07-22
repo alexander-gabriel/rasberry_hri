@@ -91,7 +91,7 @@ if __name__ == '__main__':
     from parameters import * # doesn't work before init_node
     robot_id = NS.strip("/hri")
     if robot_id == "":
-        robot_id = "thorvald_014"
+        robot_id = "thorvald_002"
     rospy.loginfo("SES: Robot name is: {:}".format(robot_id))
     scheduler = Scheduler(robot_id)
     scheduler.spin()

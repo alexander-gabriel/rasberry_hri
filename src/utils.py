@@ -1,22 +1,24 @@
-from threading import Lock
+# from threading import Lock
 from contextlib import contextmanager
-from math import sqrt, pi
+from math import pi
 import os
-import sys
+# import sys
 
 from subprocess import Popen
-from threading import Thread
+# from threading import Thread
 
 import rospy
 
-from opencog.atomspace import AtomSpace, types, TruthValue
-from opencog.type_constructors import *
+from opencog.atomspace import AtomSpace
+
+from opencog.type_constructors import VariableNode, ConceptNode, \
+                              TypedVariableLink, TypeNode, set_type_ctor_atomspace
 from opencog.utilities import initialize_opencog
 
 
 atomspace = AtomSpace()
 initialize_opencog(atomspace)
-set_type_ctor_atomspace(atomspace)
+# set_type_ctor_atomspace(atomspace)
 
 
 @contextmanager
@@ -26,15 +28,65 @@ def suppress(*exceptions):
     except exceptions:
         pass
 
-class Variable(object):
+
+class Condition(object):
 
     def __init__(self, label, typ):
         self.label = label
         self.typ = typ
 
-    def get_variable(self):
-        return self.typ(VariableNode(self.label))
+    def get_atom(self):
+        try:
+            return self.typ(self.label)
+        except (AttributeError, RuntimeError) as err:
+            rospy.logerr(("Couldn't create Node {:}({:})"
+                          "because of error: {:}").format(self.typ.__name__,
+                                                          self.label, err))
 
+    def is_variable(self):
+        return self.typ == VariableNode
+
+    def replace(self, instances):
+        return self.typ(self.label)
+
+
+class ConceptCondition(Condition):
+
+    def __init__(self, label):
+        super(ConceptCondition, self).__init__(label, ConceptNode)
+
+    def get_typed_variable(self):
+        try:
+            return TypedVariableLink(VariableNode(self.label),
+                                     TypeNode(self.typ.__name__))
+        except Exception as err:
+            rospy.logerr(
+                ("Couldn't create TypedVariableLink(VariableNode({:}), {:})"
+                 "because of error: {:}").format(self.label, self.typ.__name__,
+                                                 err))
+
+
+class VariableCondition(Condition):
+
+    def __init__(self, label, typ):
+        super(VariableCondition, self).__init__(label, VariableNode)
+        self.variable_typ = typ
+
+    def get_typed_variable(self):
+        try:
+            return TypedVariableLink(VariableNode(self.label),
+                                     TypeNode(self.variable_typ.__name__))
+        except Exception as err:
+            rospy.logerr(
+                ("Couldn't create TypedVariableLink(VariableNode({:}), {:})"
+                 "because of error: {:}").format(
+                                self.label, self.variable_typ.__name__, err))
+
+    def replace(self, instances):
+        try:
+            return self.variable_typ(instances[self.label])
+        except KeyError:
+            return self.typ(self.label)
 
 
 class OrderedConsistentSet(object):
@@ -42,44 +94,35 @@ class OrderedConsistentSet(object):
     def __init__(self):
         self.items = []
 
-
     def append(self, item):
-        if not item in self.items:
+        if item not in self.items:
             self.items.append(item)
             return True
         else:
             return False
-
 
     def __iadd__(self, other):
         for item in other:
             self.append(item)
         return self
 
-
     def __contains__(self, key):
         return key in self.items
-
 
     def __str__(self):
         return self.items.__str__()
 
-
     def __iter__(self):
         return self.items.__iter__()
-
 
     def __len__(self):
         return self.items.__len__()
 
-
     def __getitem__(self, key):
         return self.items.__getitem__(key)
 
-
     def __delitem__(self, key):
         return self.items.__delitem__(key)
-
 
 
 def run(cmd, stdout, stderr):
@@ -98,32 +141,33 @@ def run(cmd, stdout, stderr):
     -------
     A subprocess.Popen instance.
     """
-    return Popen(cmd, stdout=stdout, stderr=stderr, shell=False, preexec_fn=os.setsid)
+    return Popen(cmd, stdout=stdout, stderr=stderr,
+                 shell=False, preexec_fn=os.setsid)
 
 
-def start_process(cmd, typ, start_time, dpath_logs):
-    """Start a subprocess with the given command `cmd`.
-
-    Parameters
-    ----------
-    cmd : list of str
-      Command to run.
-    typ : str
-      Type of subprocess. This will be included in the logs' file names.
-    start_time : str
-      Datetime string, will be included in the logs' file names as well as
-      the resulting bag's name.
-    dpath_logs :
-      Path to log direcotry.
-
-    Returns
-    -------
-    A subprocess.Popen instance.
-    """
-    print('Starting', typ.upper())
-    stdout, stderr = get_stdout_stderr(typ, start_time, dpath_logs)
-    with open(stdout, 'wb') as out, open(stderr, 'wb') as err:
-        return run(cmd, stdout=out, stderr=err)
+# def start_process(cmd, typ, start_time, dpath_logs):
+#     """Start a subprocess with the given command `cmd`.
+#
+#     Parameters
+#     ----------
+#     cmd : list of str
+#       Command to run.
+#     typ : str
+#       Type of subprocess. This will be included in the logs' file names.
+#     start_time : str
+#       Datetime string, will be included in the logs' file names as well as
+#       the resulting bag's name.
+#     dpath_logs :
+#       Path to log direcotry.
+#
+#     Returns
+#     -------
+#     A subprocess.Popen instance.
+#     """
+#     print('Starting', typ.upper())
+#     stdout, stderr = get_stdout_stderr(typ, start_time, dpath_logs)
+#     with open(stdout, 'wb') as out, open(stderr, 'wb') as err:
+#         return run(cmd, stdout=out, stderr=err)
 
 
 def wp2sym(waypoint):
@@ -200,5 +244,5 @@ def get_position_prototype_3d():
         'Left:Ankle': {'X': pi, 'Y': pi, 'Z': pi, 'P': 0}}.copy()
 
 
-def mean(l):
-    return sum(l)/len(l)
+def mean(liste):
+    return sum(liste)/len(liste)

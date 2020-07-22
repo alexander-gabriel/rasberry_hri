@@ -8,7 +8,7 @@ from copy import copy
 from opencog.type_constructors import *
 
 from parameters import *
-from utils import OrderedConsistentSet, suppress
+from utils import OrderedConsistentSet, suppress, VariableCondition
 from actions import MoveAction, MoveToAction, GiveCrateAction, ExchangeCrateAction, DepositCrateAction, EvadeAction, BerryEvadeAction
 from opencog.atomspace import types
 
@@ -289,12 +289,9 @@ class Goal(object):
             if fun.__name__ == "is_at" and args[0].label == ME:
                 target[ME] = me.name
             for arg in args:
-                if arg.label == ME:
-                    full_args.append(me)
-                else:
-                    variable = arg.get_variable()
-                    full_args.append(variable)
-                    variables.append(TypedVariableLink(variable, TypeNode("ConceptNode")))
+                full_args.append(arg.get_atom())
+                if isinstance(arg, VariableCondition):
+                    variables.append(arg.get_typed_variable())
             full_conditions.append(fun(world_state, *full_args))
         query = AndLink(*full_conditions)
         # rospy.logwarn("Built query:\n{:}".format(query))
@@ -313,7 +310,7 @@ class Goal(object):
         # rospy.loginfo("GOL: Reason (has args):\n{:}".format(query))
         vars = VariableList(*variables.items)
         # rospy.loginfo("GOL: Reason Variables:\n{:}".format(vars))
-        results = world_state.kb.reason(GetLink(vars,query), vars)
+        results = world_state.kb.reason(GetLink(vars, query), vars)
         # rospy.logwarn("GOL: classic reasoning results:\n{}".format(results))
         for setlink in results.get_out():
             for listlink in setlink.get_out():
@@ -335,13 +332,7 @@ class Goal(object):
     def is_achieved(self, world_state):
         if not self.get_action_queue():
             for fun, args in self.get_consequences():
-                new_args = []
-                for arg in args:
-                    if arg == ME:
-                        new_args.append(ConceptNode(world_state.me.capitalize()))
-                    else:
-                        new_args.append(ConceptNode(arg))
-                fun(world_state, *new_args)
+                fun(world_state, *args)
             return True
         else:
             return False
@@ -528,10 +519,12 @@ class EvadeGoal(Goal):
 
     def __init__(self, world_state, robco, args):
         me = world_state.me.capitalize()
-        origin = args["origin"]
+        origin = args["my_position"]
         self.picker = args["picker"]
-        self.destination = args["destination"]
-        if self.destination == args["place1"]:
+        self.destination = args["my_destination"]
+        if self.destination == args["picker_position"]:
+            print(self.destination)
+            print(args)
             raise WrongParameterException()
         super(EvadeGoal, self).__init__(world_state, robco, [me, self.picker, origin, self.destination])
 
@@ -547,10 +540,10 @@ class BerryEvadeGoal(Goal):
 
     def __init__(self, world_state, robco, args):
         me = world_state.me.capitalize()
-        origin = args["origin"]
+        origin = args["my_position"]
         self.picker = args["picker"]
-        self.destination = args["destination"]
-        if self.destination == args["place1"]:
+        self.destination = args["my_destination"]
+        if self.destination == args["picker_position"]:
             raise WrongParameterException()
         super(BerryEvadeGoal, self).__init__(world_state, robco, [me, self.picker, origin, self.destination])
 
@@ -567,9 +560,9 @@ class DeliverGoal(Goal):
 
     def __init__(self, world_state, robco, args):
         me = world_state.me.capitalize()
-        origin = args["origin"]
+        origin = args["my_position"]
         self.picker = args["picker"]
-        self.destination = args["destination"]
+        self.destination = args["my_destination"]
         super(DeliverGoal, self).__init__(world_state, robco, args)
         self.subgoals.append(MoveGoal(world_state, robco, [me, origin, self.destination]))
         self.subgoals.append(GiveCrateGoal(world_state, robco, [me, self.picker, self.destination]))
@@ -588,9 +581,9 @@ class ExchangeGoal(Goal):
 
     def __init__(self, world_state, robco, args):
         me = world_state.me.capitalize()
-        origin = args["origin"]
+        origin = args["my_position"]
         self.picker = args["picker"]
-        self.destination = args["destination"]
+        self.destination = args["my_destination"]
         super(ExchangeGoal, self).__init__(world_state, robco, [])
         self.subgoals.append(MoveGoal(world_state, robco, [me, origin, self.destination]))
         self.subgoals.append(ExchangeCrateGoal(world_state, robco, [me, self.picker, self.destination]))
@@ -609,9 +602,9 @@ class DepositGoal(Goal):
 
     def __init__(self, world_state, robco, args):
         me = world_state.me.capitalize()
-        origin = args["origin"]
-        self.depot = args["depot"]
-        self.destination = args["destination"]
+        origin = args["my_position"]
+        self.depot = args["depot_position"]
+        self.destination = args["my_destination"]
         self.crate_count = args["crate_count"]
         super(DepositGoal, self).__init__(world_state, robco, [])
         self.subgoals.append(MoveGoal(world_state, robco, [me, origin, self.destination]))

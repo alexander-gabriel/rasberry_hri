@@ -3,10 +3,10 @@ from threading import RLock
 import time
 # from copy import copy
 
-from opencog.atomspace import TruthValue, createFloatValue, createLinkValue
+from opencog.atomspace import createFloatValue, createLinkValue
 from opencog.atomspace import types
-from opencog.type_constructors import *
-from opencog.type_constructors import ConceptNode, InheritanceLink
+# from opencog.type_constructors import *
+from opencog.type_constructors import ConceptNode, InheritanceLink, TruthValue
 from opencog.ure import BackwardChainer
 # from opencog.utilities import initialize_opencog
 from opencog.scheme_wrapper import scheme_eval
@@ -19,7 +19,7 @@ import rospy
 # initialize_opencog(atomspace)
 # set_type_ctor_atomspace(atomspace)
 from utils import atomspace
-from parameters import *
+# from parameters import *
 from parameters import ITERATIONS, COMPLEXITY_PENALTY
 # set_type_ctor_atomspace(self.atomspace)
 
@@ -464,6 +464,7 @@ class KnowledgeBase(object):
                             rbs).tv = TruthValue(0.1, 1)
             self.execution(self.schema("URE:maximum-iterations"),
                            rbs, self.number(ITERATIONS))
+            # self.build_linked_deduction(rbs)
         return rbs
 
     def build_inheritance_deduction(self, deduction_rbs):

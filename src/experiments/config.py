@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import itertools
+from copy import copy
 
 import rosbag
-from geometry_msgs.msg import PoseWithCovarianceStamped
 
 
         # self.behaviours = {120: {"start": None,
@@ -38,7 +38,6 @@ picking_filenames = [
 ]
 
 
-
 call_filenames = [
         "subject-10-moving-out/gesture_call-126-joints.bag",
         "subject-10-out/gesture_call-52-joints.bag",
@@ -64,6 +63,7 @@ call_filenames = [
         "subject-9-out/gesture_call-78-joints.bag",
         "subject-9-out/gesture_call-99-joints.bag",
         ]
+
 
 class Config():
 
@@ -99,13 +99,20 @@ class Config():
         #                     }
         self.behaviour_times = sorted(self.behaviours.keys())
         # self.termination_time = 20
-        self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch", "/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
+        self.launch_files = [
+         "/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch",
+         "/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"
+         ]
         # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
         # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch"]
         # self.robot_pose = PoseWithCovarianceStamped()
         # self.robot_pose.pose.pose.position.x = 11.649
         # self.robot_pose.pose.pose.position.y = 4.62
         # self.robot_pose.pose.pose.position.z = 0
+
+    def reset(self):
+        self.behaviour_times = copy(self._behaviour_times)
+        self.behaviours = copy(self._behaviours)
 
     def get_bag_paths(self):
         bags = {}
@@ -115,15 +122,15 @@ class Config():
                 bags[bag_path] = rosbag.Bag(bag_path)
         return bags
 
-
     def update_behaviour_times(self):
         self.behaviour_times = sorted(self.behaviours.keys())
+        self._behaviour_times = copy(self.behaviour_times)
+        self._behaviours = copy(self.behaviours)
 
     def add_parameter(self, label, values):
         if not isinstance(values, list):
             values = [values]
         self.parameters[label] = values
-
 
     def get_next_behaviour_time(self):
         try:
@@ -131,10 +138,8 @@ class Config():
         except IndexError:
             return float('inf')
 
-
     def get_next_behaviour(self):
         return self.behaviours[self.behaviour_times.pop(0)]
-
 
     def get_parameter_set(self):
         try:
@@ -142,7 +147,8 @@ class Config():
         except AttributeError:
             try:
                 keys, values = zip(*self.parameters.items())
-                self.parameter_set = [dict(zip(keys,v)) for v in itertools.product(*values)]
+                self.parameter_set = [dict(zip(keys, v))
+                                      for v in itertools.product(*values)]
             except ValueError:
                 self.parameter_set = [{}]
             return self.parameter_set

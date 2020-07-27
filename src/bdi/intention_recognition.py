@@ -175,7 +175,7 @@ class IntentionRecognition(object):
                         picker = listlink.get_out()[0]
                         i = intention(picker)
                         i.tv = self.ws.kb.TRUE
-                        # print(picker)
+                        # rospy.logwarn("{:} intention: {:}".format(picker.name, intention.__name__))
                 except IndexError:
                     pass
             else:
@@ -184,6 +184,7 @@ class IntentionRecognition(object):
                     for picker in pickers:
                         i = intention(picker)
                         i.tv  = self.ws.kb.TRUE
+                        # rospy.logwarn("{:} intention: {:}".format(picker.name, intention.__name__))
                         # print(picker)
                 except IndexError:
                     pass

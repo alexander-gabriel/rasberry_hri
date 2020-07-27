@@ -1,18 +1,18 @@
 import rospy
-import sys
 import time
 import inspect
 from copy import copy
 
 # from opencog.bindlink import execute_atom, evaluate_atom
-from opencog.type_constructors import *
+from opencog.type_constructors import ConceptNode, TypedVariableLink, \
+                                      VariableList, TypeNode, AndLink, \
+                                      GetLink, VariableNode
 
-from parameters import *
-from utils import OrderedConsistentSet, suppress, VariableCondition
-from actions import MoveAction, MoveToAction, GiveCrateAction, ExchangeCrateAction, DepositCrateAction, EvadeAction, BerryEvadeAction
+from parameters import ME, DEPOT
+from utils import OrderedConsistentSet, VariableCondition
+from actions import MoveAction, MoveToAction, GiveCrateAction, \
+                    ExchangeCrateAction, DepositCrateAction, EvadeAction
 from opencog.atomspace import types
-
-
 
 
 class WrongParameterException(Exception):
@@ -31,8 +31,8 @@ class Goal(object):
         self.subgoals = []
         self.world_state = world_state
         # action to be performed (only if there are no subgoals)
-        self.action = self.instantiate_action_template(world_state, robco, args)
-
+        self.action = self.instantiate_action_template(world_state,
+                                                       robco, args)
 
     @classmethod
     def instantiate_action_template(cls, world_state, robco, args):
@@ -40,7 +40,6 @@ class Goal(object):
             return cls.action_template(world_state, robco, args)
         except TypeError:
             return None
-
 
     def __eq__(self, other):
         """Override the default Equals behavior"""
@@ -53,9 +52,9 @@ class Goal(object):
             # for subgoal in other.subgoal_templates:
             #     if not subgoal in self.subgoal_templates:
             #         return False
-            return self.action_template == other.action_template and self.subgoal_templates == other.subgoal_templates
+            return self.action_template == other.action_template \
+                   and self.subgoal_templates == other.subgoal_templates
         return False
-
 
     def __neq__(self, other):
         """Override the default Equals behavior"""
@@ -66,38 +65,41 @@ class Goal(object):
             # for subgoal in other.subgoal_templates:
             #     if not subgoal in self.subgoal_templates:
             #         return True
-            return not (self.action_template == other.action_template and self.subgoal_templates == other.subgoal_templates)
+            return not (self.action_template == other.action_template
+                        and self.subgoal_templates == other.subgoal_templates)
         return True
-
 
     @classmethod
     def get_condition_templates(cls):
         try:
             cls.guide = []
             # cls.guide = cls.action_template.get_instance_guide()
-            rospy.logdebug("{:}.action_template.condition_templates: {}".format(cls.__name__, cls.action_template.condition_templates))
+            rospy.logdebug("{:}.action_template.condition_templates: {}"
+                           .format(cls.__name__,
+                                   cls.action_template.condition_templates))
             return cls.action_template.condition_templates
         except AttributeError:
             try:
-                rospy.logdebug("{:}.condition_templates: {}".format(cls.__name__, cls.condition_templates))
+                rospy.logdebug("{:}.condition_templates: {}"
+                               .format(cls.__name__, cls.condition_templates))
                 return cls.condition_templates
             except AttributeError:
                 cls.condition_templates = OrderedConsistentSet()
                 consequences = OrderedConsistentSet()
-                guide = OrderedConsistentSet()
                 for subgoal in cls.subgoal_templates:
                     new_conditions = subgoal.get_condition_templates()
-                    rospy.logdebug("{:}'s subgoal {:} condition_templates: {}".format(cls.__name__, subgoal.__name__, new_conditions))
+                    rospy.logdebug("{:}'s subgoal {:} condition_templates: {}"
+                                   .format(cls.__name__,
+                                           subgoal.__name__, new_conditions))
                     # rospy.loginfo("new conditions:")
                     # rospy.loginfo(new_conditions)
                     # rospy.loginfo("new consequences:")
                     # rospy.loginfo(consequences)
                     for condition in new_conditions:
-                        if not condition in consequences:
+                        if condition not in consequences:
                             cls.condition_templates.append(condition)
                     consequences += subgoal.get_consequence_templates()
                 return cls.condition_templates
-
 
     @classmethod
     def get_consequence_templates(cls):
@@ -109,9 +111,9 @@ class Goal(object):
             except AttributeError:
                 cls.consequences_templates = OrderedConsistentSet()
                 for subgoal in cls.subgoal_templates:
-                    cls.consequences_templates += subgoal.get_consequence_templates()
+                    cls.consequences_templates += subgoal \
+                                                  .get_consequence_templates()
                 return cls.consequences_templates
-
 
     def get_conditions(self):
         try:
@@ -125,27 +127,27 @@ class Goal(object):
                 for subgoal in self.subgoals:
                     new_conditions = subgoal.get_conditions()
                     for condition in new_conditions:
-                        if not condition in consequences:
+                        if condition not in consequences:
                             self.conditions.append(condition)
                     consequences += subgoal.get_consequences()
                 return self.conditions
 
-
     def get_consequences(self):
         rospy.logdebug("GOL: Getting consequences for: {}".format(self))
         try:
-            rospy.logdebug("GOL: self.action.consequences: {}".format(self.action.consequences))
+            rospy.logdebug("GOL: self.action.consequences: {}"
+                           .format(self.action.consequences))
             return self.action.consequences
         except AttributeError:
             try:
-                rospy.logdebug("GOL: self.consequences: {}".format(self.consequences))
+                rospy.logdebug("GOL: self.consequences: {}"
+                               .format(self.consequences))
                 return self.consequences
             except AttributeError:
                 self.consequences = OrderedConsistentSet()
                 for subgoal in self.subgoals:
                     self.consequences += subgoal.get_consequences()
                 return self.consequences
-
 
     @classmethod
     def get_targets(cls, targets, variables, results):
@@ -162,17 +164,17 @@ class Goal(object):
             elif variables[index].type_name == "VariableNode":
                 targets[variables[index].name] = results_out[index].name
                 # rospy.logwarn("GOL: Adding: {}: {}".format(variables[index].name, results_out[index].name))
-        rospy.logdebug("GOL: Found targets: {:} for goal: {:}".format(targets, cls.__name__))
+        rospy.logdebug("GOL: Found targets: {:} for goal: {:}"
+                       .format(targets, cls.__name__))
         return targets
 
-
     @classmethod
-    def build_query_fancy(cls, world_state, templates, picker, picker_location, me, my_location):
+    def build_query_fancy(cls, world_state, templates, picker,
+                          picker_location, me, my_location):
         conditions = []
         full_conditions = []
         picker_location_var = None
         my_location_var = None
-        clauses = []
         variables = OrderedConsistentSet()
         target = {}
         for fun, args in templates:
@@ -223,7 +225,8 @@ class Goal(object):
                     full_args.append(variable)
                     if not skip:
                         new_args.append(variable)
-                        variables.append(TypedVariableLink(variable, TypeNode("ConceptNode")))
+                        variables.append(TypedVariableLink(
+                                            variable, TypeNode("ConceptNode")))
             if not skip:
                 conditions.append(fun(world_state, *new_args))
             full_conditions.append(fun(world_state, *full_args))
@@ -234,7 +237,8 @@ class Goal(object):
 
     @classmethod
     def find_instances_fancy(cls, world_state):
-        rospy.loginfo("GOL: Checking goal {:} for targets --".format(cls.__name__))
+        rospy.loginfo("GOL: Checking goal {:} for targets --"
+                      .format(cls.__name__))
         targets = []
         start_time = time.time()
         templates = cls.get_condition_templates()
@@ -244,28 +248,33 @@ class Goal(object):
         if my_location is None:
             return targets
         for picker, picker_location in picker_locations:
-            query, variables, target = cls.build_query(world_state, templates, picker, picker_location, me, my_location)
+            query, variables, target = cls.build_query(world_state, templates,
+                                                       picker, picker_location,
+                                                       me, my_location)
             if len(variables) > 0:
                 # rospy.loginfo("GOL: Reason (has args):\n{:}".format(query))
-                vars = VariableListLink(*variables.items)
+                vars = VariableList(*variables.items)
                 # rospy.loginfo("GOL: Reason Variables:\n{:}".format(vars))
                 results = world_state.kb.reason(query, vars)
                 # rospy.logwarn("GOL: incl. variable results:\n{}".format(results))
                 for result in results.get_out():
                     if result.tv == world_state.kb.TRUE:
-                        rospy.logwarn("GOL: Found a target for goal: {}".format(cls.__name__))
+                        rospy.logwarn("GOL: Found a target for goal: {}"
+                                      .format(cls.__name__))
                         this_target = copy(target)
-                        world_state.kb.recursive_query_matcher(query, result, this_target)
+                        world_state.kb.recursive_query_matcher(query, result,
+                                                               this_target)
                         # rospy.logwarn(result)
                         # rospy.logwarn(this_target)
                         targets.append(this_target)
             else:
                 # rospy.loginfo("GOL: Reason (no args):\n{:}".format(query))
-                results = world_state.kb.reason(query, VariableListLink())
+                results = world_state.kb.reason(query, VariableList())
                 # rospy.logwarn("GOL: excl. variable results:\n{}".format(results))
                 for result in results.get_out():
                     if result.tv == world_state.kb.TRUE:
-                        rospy.logwarn("GOL: Found a target for goal: {}".format(cls.__name__))
+                        rospy.logwarn("GOL: Found a target for goal: {}"
+                                      .format(cls.__name__))
                         this_target = copy(target)
                         # rospy.logwarn("WE'VE GOT RESULTS - NO ARGS")
                         # rospy.logwarn(result)
@@ -273,19 +282,17 @@ class Goal(object):
                         targets.append(this_target)
         duration = time.time() - start_time
         # if duration > 0.01:
-        rospy.loginfo("GOL: Checked goal {:} for targets -- {:.4f}".format(cls.__name__, duration))
+        rospy.loginfo("GOL: Checked goal {:} for targets -- {:.4f}"
+                      .format(cls.__name__, duration))
         return targets
-
 
     @classmethod
     def build_query(cls, world_state, templates, me):
         full_conditions = []
-        clauses = []
         variables = OrderedConsistentSet()
         target = {}
         for fun, args in templates:
             full_args = []
-            skip = False
             if fun.__name__ == "is_at" and args[0].label == ME:
                 target[ME] = me.name
             for arg in args:
@@ -298,12 +305,11 @@ class Goal(object):
         # rospy.logwarn("Built variables:\n{:}".format(variables))
         return query, variables, target
 
-
     @classmethod
     def find_instances(cls, world_state):
         # rospy.loginfo("GOL: Checking goal {:} for targets --".format(cls.__name__))
         targets = []
-        start_time = time.time()
+        # start_time = time.time()
         templates = cls.get_condition_templates()
         me = ConceptNode(world_state.me.capitalize())
         query, variables, target = cls.build_query(world_state, templates, me)
@@ -323,11 +329,10 @@ class Goal(object):
                 # rospy.logwarn(this_target)
                 # world_state.kb.recursive_query_matcher(query, result, this_target)
                 targets.append(this_target)
-        duration = time.time() - start_time
+        # duration = time.time() - start_time
         # if duration > 0.01:
         # rospy.loginfo("GOL: Checked goal {:} for targets -- {:.4f}".format(cls.__name__, duration))
         return targets
-
 
     def is_achieved(self, world_state):
         if not self.get_action_queue():
@@ -383,13 +388,11 @@ class Goal(object):
         #
         # return success
 
-
-
     def get_action_queue(self):
         try:
             return self.action_queue
         except AttributeError:
-            if not self.action is None:
+            if self.action is not None:
                 self.action_queue = [self.action]
             else:
                 self.action_queue = []
@@ -397,13 +400,11 @@ class Goal(object):
                     self.action_queue += subgoal.get_action_queue()
         return self.action_queue
 
-
     def get_next_action(self):
         try:
             return self.get_action_queue()[0]
         except IndexError:
             return None
-
 
     def perform_action(self):
         action_queue = self.get_action_queue()
@@ -411,10 +412,10 @@ class Goal(object):
         succeeded = action.perform()
         if not succeeded:
             # rospy.logwarn("GOL: Peforming action {:}; result: {}".format(action, succeeded))
-            action_queue.insert(0,action)
+            action_queue.insert(0, action)
         else:
-            rospy.loginfo("GOL: Performed action {}; Action queue is: {} ".format(action, action_queue))
-
+            rospy.loginfo("GOL: Performed action {}; Action queue is: {}"
+                          .format(action, action_queue))
 
     def get_cost(self):
         try:
@@ -427,7 +428,6 @@ class Goal(object):
                 for subgoal in self.subgoals:
                     self.cost += subgoal.get_cost()
         return self.cost
-
 
     def get_gain(self):
         try:
@@ -442,7 +442,6 @@ class Goal(object):
         return self.gain
 
 
-
 class MoveGoal(Goal):
 
     action_template = MoveAction
@@ -451,24 +450,19 @@ class MoveGoal(Goal):
         # me, origin, destination
         super(MoveGoal, self).__init__(world_state, robco, args)
 
-
     def __repr__(self):
         return "<Goal:Move>"
 
 
-
-class MoveTo(Goal):
+class MoveToGoal(Goal):
 
     action_template = MoveToAction
 
     def __init__(self, world_state, robco, args):
-        # me, picker, origin, destination
         super(MoveToGoal, self).__init__(world_state, robco, args)
-
 
     def __repr__(self):
         return "<Goal:Move to>"
-
 
 
 class GiveCrateGoal(Goal):
@@ -476,13 +470,10 @@ class GiveCrateGoal(Goal):
     action_template = GiveCrateAction
 
     def __init__(self, world_state, robco, args):
-        # me, picker, destination
         super(GiveCrateGoal, self).__init__(world_state, robco, args)
-
 
     def __repr__(self):
         return "<Goal:Give crate>"
-
 
 
 class ExchangeCrateGoal(Goal):
@@ -490,13 +481,10 @@ class ExchangeCrateGoal(Goal):
     action_template = ExchangeCrateAction
 
     def __init__(self, world_state, robco, args):
-        # me, picker, destination
         super(ExchangeCrateGoal, self).__init__(world_state, robco, args)
-
 
     def __repr__(self):
         return "<Goal:Exchange crate>"
-
 
 
 class DepositCrateGoal(Goal):
@@ -504,13 +492,10 @@ class DepositCrateGoal(Goal):
     action_template = DepositCrateAction
 
     def __init__(self, world_state, robco, args):
-        # me, depot, destination, crate_count
         super(DepositCrateGoal, self).__init__(world_state, robco, args)
-
 
     def __repr__(self):
         return "<Goal:Deposit crate>"
-
 
 
 class EvadeGoal(Goal):
@@ -518,81 +503,52 @@ class EvadeGoal(Goal):
     action_template = EvadeAction
 
     def __init__(self, world_state, robco, args):
-        me = world_state.me.capitalize()
-        origin = args["my_position"]
-        self.picker = args["picker"]
-        self.destination = args["my_destination"]
-        if self.destination == args["picker_position"]:
-            print(self.destination)
-            print(args)
-            raise WrongParameterException()
-        super(EvadeGoal, self).__init__(world_state, robco, [me, self.picker, origin, self.destination])
-
-
-    def __repr__(self):
-        return "<Goal:Evade {:} by moving to {:} ({}, {})>".format(self.picker, self.destination, self.get_gain(), self.get_cost())
-
-
-
-class BerryEvadeGoal(Goal):
-
-    action_template = BerryEvadeAction
-
-    def __init__(self, world_state, robco, args):
-        me = world_state.me.capitalize()
-        origin = args["my_position"]
         self.picker = args["picker"]
         self.destination = args["my_destination"]
         if self.destination == args["picker_position"]:
             raise WrongParameterException()
-        super(BerryEvadeGoal, self).__init__(world_state, robco, [me, self.picker, origin, self.destination])
-
+        super(EvadeGoal, self).__init__(world_state, robco, args)
 
     def __repr__(self):
-        return "<Goal:BerryEvade {:} by moving to {:} ({}, {})>".format(self.picker, self.destination, self.get_gain(), self.get_cost())
-
+        return "<Goal:Evade {:} by moving to {:} ({}, {})>" \
+                .format(self.picker, self.destination,
+                        self.get_gain(), self.get_cost())
 
 
 class DeliverGoal(Goal):
 
     action_template = None
-    subgoal_templates = [MoveGoal,GiveCrateGoal]
+    subgoal_templates = [MoveGoal, GiveCrateGoal]
 
     def __init__(self, world_state, robco, args):
-        me = world_state.me.capitalize()
-        origin = args["my_position"]
         self.picker = args["picker"]
         self.destination = args["my_destination"]
         super(DeliverGoal, self).__init__(world_state, robco, args)
-        self.subgoals.append(MoveGoal(world_state, robco, [me, origin, self.destination]))
-        self.subgoals.append(GiveCrateGoal(world_state, robco, [me, self.picker, self.destination]))
-        self.subgoals.append(MoveGoal(world_state, robco, [me, self.destination, origin]))
-
+        self.subgoals.append(MoveGoal(world_state, robco, args))
+        self.subgoals.append(GiveCrateGoal(world_state, robco, args))
 
     def __repr__(self):
-        return "<Goal:Deliver crate to {:} at {:} ({}, {})>".format(self.picker, self.destination, self.get_gain(), self.get_cost())
-
+        return "<Goal:Deliver crate to {:} at {:} ({}, {})>" \
+                .format(self.picker, self.destination,
+                        self.get_gain(), self.get_cost())
 
 
 class ExchangeGoal(Goal):
 
     action_template = None
-    subgoal_templates = [MoveGoal,ExchangeCrateGoal,MoveGoal]
+    subgoal_templates = [MoveGoal, ExchangeCrateGoal, MoveGoal]
 
     def __init__(self, world_state, robco, args):
-        me = world_state.me.capitalize()
-        origin = args["my_position"]
         self.picker = args["picker"]
         self.destination = args["my_destination"]
         super(ExchangeGoal, self).__init__(world_state, robco, [])
-        self.subgoals.append(MoveGoal(world_state, robco, [me, origin, self.destination]))
-        self.subgoals.append(ExchangeCrateGoal(world_state, robco, [me, self.picker, self.destination]))
-        self.subgoals.append(MoveGoal(world_state, robco, [me, self.destination, origin]))
-
+        self.subgoals.append(MoveGoal(world_state, robco, args))
+        self.subgoals.append(ExchangeCrateGoal(world_state, robco, args))
 
     def __repr__(self):
-        return "<Goal:Exchange crate with {:} at {:} ({}, {})>".format(self.picker, self.destination, self.get_gain(), self.get_cost())
-
+        return "<Goal:Exchange crate with {:} at {:} ({}, {})>" \
+                .format(self.picker, self.destination,
+                        self.get_gain(), self.get_cost())
 
 
 class DepositGoal(Goal):
@@ -601,16 +557,10 @@ class DepositGoal(Goal):
     subgoal_templates = [MoveGoal, DepositCrateGoal, MoveGoal]
 
     def __init__(self, world_state, robco, args):
-        me = world_state.me.capitalize()
-        origin = args["my_position"]
-        self.depot = args["depot_position"]
-        self.destination = args["my_destination"]
-        self.crate_count = args["crate_count"]
         super(DepositGoal, self).__init__(world_state, robco, [])
-        self.subgoals.append(MoveGoal(world_state, robco, [me, origin, self.destination]))
-        self.subgoals.append(DepositCrateGoal(world_state, robco, [me, self.depot, self.destination, self.crate_count]))
-        self.subgoals.append(MoveGoal(world_state, robco, [me, self.destination, origin]))
-
+        self.subgoals.append(MoveGoal(world_state, robco, args))
+        self.subgoals.append(DepositCrateGoal(world_state, robco, args))
 
     def __repr__(self):
-        return "<Goal:Deposit crate at {:} at {:} ({}, {})>".format(self.depot, self.destination, self.get_gain(), self.get_cost())
+        return "<Goal:Deposit crate at {:} ({}, {})>" \
+                .format(DEPOT, self.get_gain(), self.get_cost())

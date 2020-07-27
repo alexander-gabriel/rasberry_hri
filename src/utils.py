@@ -12,13 +12,13 @@ import rospy
 from opencog.atomspace import AtomSpace
 
 from opencog.type_constructors import VariableNode, ConceptNode, \
-                              TypedVariableLink, TypeNode, set_type_ctor_atomspace
+                                      TypedVariableLink, TypeNode, \
+                                      PredicateNode
 from opencog.utilities import initialize_opencog
 
 
 atomspace = AtomSpace()
 initialize_opencog(atomspace)
-# set_type_ctor_atomspace(atomspace)
 
 
 @contextmanager
@@ -49,11 +49,49 @@ class Condition(object):
     def replace(self, instances):
         return self.typ(self.label)
 
+    def __eq__(self, obj):
+        if not isinstance(obj, Condition):
+            return False
+        else:
+            return self.label == obj.label and self.typ == obj.typ
+
 
 class ConceptCondition(Condition):
 
     def __init__(self, label):
         super(ConceptCondition, self).__init__(label, ConceptNode)
+
+    def get_typed_variable(self):
+        try:
+            return TypedVariableLink(VariableNode(self.label),
+                                     TypeNode(self.typ.__name__))
+        except Exception as err:
+            rospy.logerr(
+                ("Couldn't create TypedVariableLink(VariableNode({:}), {:})"
+                 "because of error: {:}").format(self.label, self.typ.__name__,
+                                                 err))
+
+
+class PredicateCondition(Condition):
+
+    def __init__(self, label):
+        super(PredicateCondition, self).__init__(label, PredicateNode)
+
+    def get_typed_variable(self):
+        try:
+            return TypedVariableLink(VariableNode(self.label),
+                                     TypeNode(self.typ.__name__))
+        except Exception as err:
+            rospy.logerr(
+                ("Couldn't create TypedVariableLink(VariableNode({:}), {:})"
+                 "because of error: {:}").format(self.label, self.typ.__name__,
+                                                 err))
+
+
+class NumberCondition(Condition):
+
+    def __init__(self, label):
+        super(NumberCondition, self).__init__(label, NumberCondition)
 
     def get_typed_variable(self):
         try:
@@ -87,6 +125,13 @@ class VariableCondition(Condition):
             return self.variable_typ(instances[self.label])
         except KeyError:
             return self.typ(self.label)
+
+    def __eq__(self, obj):
+        if not isinstance(obj, VariableCondition):
+            return False
+        else:
+            return self.label == obj.label \
+                   and self.variable_typ == obj.variable_typ
 
 
 class OrderedConsistentSet(object):

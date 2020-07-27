@@ -27,6 +27,7 @@ SEEN_PICKING = rospy.get_param("{}/seen_picking".format(NS), False)
 HAS_CRATE = rospy.get_param("{}/has_crate".format(NS), False)
 CRATE_FULL = rospy.get_param("{}/crate_full".format(NS), False)
 INITIAL_WAYPOINT = rospy.get_param("{}/initial_robot_waypoint".format(NS), "WayPoint104")
+DEPOT = rospy.get_param("{}/depot_waypoint".format(NS), "WayPoint71")
 
 DETECTION_COUNT = rospy.get_param("{}/detection_count".format(NS), 10)
 COOLDOWN = rospy.get_param("{}/cooldown".format(NS), 0)
@@ -47,7 +48,7 @@ DEPOSIT_COST = rospy.get_param("{}/deposit_cost".format(NS), 2.5)
 EVADE_GAIN = rospy.get_param("{}/evade_gain".format(NS), 200)
 
 GIVE_GAIN = rospy.get_param("{}/give_gain".format(NS), 240)
-GIVE_COST = rospy.get_param("{}/give_cost".format(NS), 2.5)
+GIVE_COST = rospy.get_param("{}/give_cost".format(NS), 3.5)
 
 EXCHANGE_GAIN = rospy.get_param("{}/exchange_gain".format(NS), 240)
 EXCHANGE_COST = rospy.get_param("{}/exchange_cost".format(NS), 5)

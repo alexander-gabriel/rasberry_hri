@@ -194,12 +194,10 @@ class WorldState(object):
                 robot,
                 crate_type,
                 PlusLink(
-                    NumberNode("1"),
-                    GetLink(
-                        VariableNode("count"),
-                        ValueOfLink(
-                            robot,
-                            crate_type))))
+                    NumberNode("-1"),
+                    ValueOfLink(
+                        robot,
+                        crate_type)))
         return remove_crate
 
     def robot_set_crate_count(self, robot, crate_type, count):
@@ -209,10 +207,10 @@ class WorldState(object):
                 count)
         return link
 
-    def robot_get_crate_count(self, robot, crate_type):
-        link = ValueOfLink(
-            robot,
-            crate_type)
+    def robot_get_crate_count(self, robot, crate_type, result):
+        link = EqualLink(
+                result,
+                ValueOfLink(robot, crate_type))
         return link
 
     def crate_full(self, picker):
@@ -276,6 +274,10 @@ class WorldState(object):
                              GetLink(InheritanceLink(thing,
                                                      VariableNode("x"))))
         # link = InheritanceLink(thing, category)
+        return link
+
+    def same(self, thing1, thing2):
+        link = EqualLink(thing1, thing2)
         return link
 
     def not_same(self, thing1, thing2):
@@ -360,9 +362,9 @@ class WorldState(object):
         # EvaluationLink(
         #     PredicateNode("leads_to"),
         #     ListLink(p1, p2)).tv = truth_value
-        # EvaluationLink(
-        #     PredicateNode("linked"),
-        #     ListLink(p1, p2)).tv = truth_value
+        EvaluationLink(
+            PredicateNode("linked"),
+            ListLink(p1, p2)).tv = truth_value
         rospy.logdebug("WST: Adding place link: {:} to {:}".format(place1,
                                                                    place2))
 

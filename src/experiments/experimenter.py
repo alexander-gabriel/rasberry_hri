@@ -32,8 +32,6 @@ from experiment import Experiment
 # . TODO: implement log parser
 
 
-
-
 class Experimenter:
 
     def __init__(self):
@@ -42,7 +40,6 @@ class Experimenter:
         self.configs = []
         self.current_config = None
 
-
     def run(self):
         for config in self.configs:
             self.current_config = config
@@ -50,8 +47,8 @@ class Experimenter:
                 experiment = Experiment(parameters, config)
                 experiment.setup()
                 experiment.spin()
+                config.reset()
         rospy.core.signal_shutdown('timeout')
-
 
     def add_config(self, config):
         self.configs.append(config)

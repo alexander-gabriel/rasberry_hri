@@ -21,8 +21,8 @@ from parameters import NO_BERRY_PLACES, ROBOT_WIDTH, ROBOT_LENGTH, \
                        FULL_CRATE_COUNT, EMPTY_CRATE_COUNT
 
 from utils import OrderedConsistentSet, suppress
-from bdi.goals import ExchangeGoal, DeliverGoal, EvadeGoal, BerryEvadeGoal, \
-                      DepositGoal, WrongParameterException
+from bdi.goals import ExchangeGoal, DeliverGoal, EvadeGoal, DepositGoal, \
+                      WrongParameterException
 from bdi.robot_control import RobotControl
 from bdi.world_state import WorldState
 from bdi.intention_recognition import IntentionRecognition
@@ -55,11 +55,10 @@ class BDISystem:
             self.directions = {}
             self.latest_directions = {}
             self.desires = []
-            self.desires.append(DeliverGoal)
+            # self.desires.append(DeliverGoal)
             self.desires.append(ExchangeGoal)
-            self.desires.append(EvadeGoal)
-            self.desires.append(BerryEvadeGoal)
-            self.desires.append(DepositGoal)
+            # self.desires.append(EvadeGoal)
+            # self.desires.append(DepositGoal)
             self.intentions = []
             self.latest_robot_msg = None
             self.latest_people_msgs = {}
@@ -115,13 +114,11 @@ class BDISystem:
             self.world_state.crate_full(picker).tv = self.kb.TRUE
         else:
             self.world_state.not_crate_full(picker).tv = self.kb.TRUE
-
-        self.world_state.robot_set_crate_count(
-                                self.me, self.world_state._empty_crate_count,
-                                NumberNode(str(EMPTY_CRATE_COUNT)))
-        self.world_state.robot_set_crate_count(
-                                self.me, self.world_state._full_crate_count,
-                                NumberNode(str(FULL_CRATE_COUNT)))
+        self.me.set_value(self.world_state._empty_crate_count,
+                          NumberNode(str(EMPTY_CRATE_COUNT)))
+        # rospy.logerr("{:} has {:} empty crates".format(self.me.name, self.me.get_value(self.world_state._empty_crate_count)))
+        self.me.set_value(self.world_state._full_crate_count,
+                          NumberNode(str(FULL_CRATE_COUNT)))
         # self.robco.move_to(INITIAL_WAYPOINT)
 
     def generate_intention_candidates(self):
@@ -301,6 +298,8 @@ class BDISystem:
     def update_picker_node(self, person, msg):
         try:
             (current_node, closest_node) = self.locator.localise_pose(msg)
+            if current_node == "WayPoint104":
+                self.kb.debug += 1
             if current_node != "none":
                 latest_node = None
                 with suppress(KeyError):

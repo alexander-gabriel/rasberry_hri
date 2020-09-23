@@ -1,13 +1,36 @@
-from time import sleep
+from time import sleep, time
 
 import rospy
 
-from opencog.type_constructors import ConceptNode, TruthValue, NumberNode
+from opencog.type_constructors import (
+    ConceptNode,
+    TruthValue,
+    FloatValue,
+    NumberNode,
+)
 
-from parameters import ME, MOVE_GAIN, MEAN_WAYPOINT_DISTANCE, ROBOT_SPEED, \
-                       MOVETO_GAIN, EVADE_GAIN, GIVE_GAIN, GIVE_COST, \
-                       CRATE_CAPACITY, EXCHANGE_GAIN, EXCHANGE_COST, \
-                       DEPOSIT_GAIN, DEPOSIT_COST, DEPOT
+from parameters import (
+    ME,
+    MOVE_GAIN,
+    MEAN_WAYPOINT_DISTANCE,
+    ROBOT_SPEED,
+    MOVETO_GAIN,
+    EVADE_GAIN,
+    GIVE_GAIN,
+    GIVE_COST,
+    CRATE_CAPACITY,
+    EXCHANGE_GAIN,
+    EXCHANGE_COST,
+    DEPOSIT_GAIN,
+    DEPOSIT_COST,
+    DEPOT,
+    WAIT_GAIN,
+    WAIT_TIME,
+    TIMEOUT_LENGTH,
+    LEAVE_GAIN,
+    APPROACH_GAIN,
+    READY_POINT,
+)
 from utils import VariableCondition as V
 from utils import ConceptCondition as C
 from utils import PredicateCondition as P
@@ -24,42 +47,52 @@ class Action(object):
         self.kb = world_state.kb
         self.ws = world_state
         self.instances = args
-        rospy.logdebug("{:} has args: {}"
-                       .format(self.__class__.__name__, args))
+        rospy.logdebug(
+            "{:} has args: {}".format(self.__class__.__name__, args)
+        )
         self.conditions = []
         self.consequences = []
         self.cost = 0
         self.first_try = True
 
         replacement_table = args
-        # {key: value for key, value
-                             # in zip(self.placeholders, self.instances)}
+        # {key: value for key, value in zip(self.placeholders, self.instances)}
 
         for condition in self.condition_templates:
-            new_variables = list(map(lambda variable:
-                                     variable.replace(replacement_table),
-                                     condition[1]))
+            new_variables = list(
+                map(
+                    lambda variable: variable.replace(replacement_table),
+                    condition[1],
+                )
+            )
             self.conditions.append([condition[0], new_variables])
         for consequence in self.consequence_templates:
-            new_variables = list(map(lambda variable:
-                                     variable.replace(replacement_table),
-                                     consequence[1]))
+            new_variables = list(
+                map(
+                    lambda variable: variable.replace(replacement_table),
+                    consequence[1],
+                )
+            )
             self.consequences.append([consequence[0], new_variables])
 
     def __eq__(self, other):
         """Override the default Equals behavior"""
         if isinstance(other, self.__class__):
-            return (self.instances == other.instances
-                    and self.conditions == other.conditions
-                    and self.consequences == other.consequences)
+            return (
+                self.instances == other.instances
+                and self.conditions == other.conditions
+                and self.consequences == other.consequences
+            )
         return False
 
     def __neq__(self, other):
         """Override the default Equals behavior"""
         if isinstance(other, self.__class__):
-            return not (self.instances == other.instances
-                        and self.conditions == other.conditions
-                        and self.consequences == other.consequences)
+            return not (
+                self.instances == other.instances
+                and self.conditions == other.conditions
+                and self.consequences == other.consequences
+            )
         return True
 
     def __repr__(self):
@@ -86,14 +119,12 @@ class MoveAction(Action):
 
     condition_templates = [
         [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
-        [ws.linked, [V("my_position", ConceptNode),
-                       V("my_destination", ConceptNode)]]
+        # [ws.linked, [V("my_position", ConceptNode),
+        #                V("my_destination", ConceptNode)]]
     ]
     consequence_templates = [
         [ws.is_at, [C(ME), V("my_destination", ConceptNode)]]
     ]
-    # placeholders must be in same order
-    # as variables in "args" in the constructor
     placeholders = [ME, "my_position", "my_destination"]
 
     def __init__(self, world_state, robco, args):
@@ -102,10 +133,6 @@ class MoveAction(Action):
         self.destination = args["my_destination"]
         self.gain = MOVE_GAIN
         self.sent_movement_request = False
-    #     for condition in self.condition_templates:
-    #         self.conditions.append(condition.replace("?my_position", my_position).replace(C(ME), me))
-    #     for consequence in self.consequence_templates:
-    #         self.consequences.append(consequence.replace("?my_destination", my_destination).replace(C(ME), me))
 
     def perform(self):
         super(MoveAction, self).perform()
@@ -114,11 +141,11 @@ class MoveAction(Action):
             self.sent_movement_request = True
             self.ws.moving = True
         try:
-            success = self.robco.get_result().success
-            self.ws.moving = False
-            rospy.logwarn("ACT: Reached final my_destination: {}"
-                          .format(success))
-            return True
+            result = self.robco.get_result()
+            if result or self.ws.too_close:
+                self.ws.moving = False
+                rospy.logwarn("ACT: Reached my destination.")
+                return True
         except AttributeError:
             return False
 
@@ -133,50 +160,56 @@ class MoveToAction(Action):
 
     condition_templates = [
         [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
-        [ws.is_at, [V("picker", ConceptNode),
-                    V("my_destination", ConceptNode)]],
-        [ws.linked, [V("my_position", ConceptNode),
-                     V("my_destination", ConceptNode)]]
+        [
+            ws.is_at,
+            [V("picker", ConceptNode), V("my_destination", ConceptNode)],
+        ],
+        # [ws.linked, [V("my_position", ConceptNode),
+        #              V("my_destination", ConceptNode)]]
     ]
     consequence_templates = [
         [ws.is_at, [C(ME), V("my_destination", ConceptNode)]]
     ]
-    # placeholders must be in same order
-    # as variables in "args" in the constructor
     placeholders = [ME, "picker", "my_position", "my_destination"]
 
     def __init__(self, world_state, robco, args):
         super(MoveToAction, self).__init__(world_state, args)
         self.robco = robco
+        self.position = args["my_position"]
         self.destination = args["my_destination"]
         self.gain = MOVETO_GAIN
         self.sent_movement_request = False
-    #     for condition in self.condition_templates:
-    #         self.conditions.append(condition.replace("?my_position", my_position).replace(C(ME), me))
-    #     for consequence in self.consequence_templates:
-    #         self.consequences.append(consequence.replace("?my_destination", my_destination).replace(C(ME), me))
 
     def perform(self):
         super(MoveToAction, self).perform()
-        if not self.sent_movement_request:
-            self.robco.move_to(self.destination)
-            self.sent_movement_request = True
-            self.ws.moving = True
-        try:
-            success = self.robco.get_result().success
-            self.ws.moving = False
-            rospy.logwarn("ACT: Reached final my_destination: {}"
-                          .format(success))
+        if self.position == self.destination:
+            rospy.logwarn(
+                "ACT: Reached my destination: {}".format(self.destination)
+            )
             return True
-        except Exception as err:
-            rospy.logwarn(err)
-            return False
+        else:
+            if not self.sent_movement_request:
+                self.robco.move_to(self.destination)
+                self.sent_movement_request = True
+                self.ws.moving = True
+            try:
+                result = self.robco.get_result()
+                if result or self.ws.too_close:
+                    self.ws.moving = False
+
+                    rospy.logwarn(
+                        "ACT: Reached my destination"
+                    )
+                    return True
+            except Exception as err:
+                rospy.logwarn(err)
+                return False
 
     def get_cost(self):
         return MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
 
     def __repr__(self):
-        return "<Action:Move to {:}>".format(self.destination)
+        return "<Action:MoveTo {:}>".format(self.destination)
 
 
 class EvadeAction(Action):
@@ -184,22 +217,28 @@ class EvadeAction(Action):
     condition_templates = [
         [ws.is_a, [V("picker", ConceptNode), C("human")]],
         [ws.wants_to_pass, [V("picker", ConceptNode)]],
-        [ws.is_at, [V("picker", ConceptNode),
-                    V("picker_position", ConceptNode)]],
-        [ws.query_not_at, [V("anything", ConceptNode),
-                           V("my_destination", ConceptNode)]],
+        [
+            ws.is_at,
+            [V("picker", ConceptNode), V("picker_position", ConceptNode)],
+        ],
+        [
+            ws.query_not_at,
+            [V("anything", ConceptNode), V("my_destination", ConceptNode)],
+        ],
         [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
-        [ws.leads_to, [V("my_position", ConceptNode),
-                       V("my_destination", ConceptNode)]],
-        [ws.leads_to, [V("picker_position", ConceptNode),
-                       V("my_position", ConceptNode)]],
+        [
+            ws.leads_to,
+            [V("my_position", ConceptNode), V("my_destination", ConceptNode)],
+        ],
+        [
+            ws.leads_to,
+            [V("picker_position", ConceptNode), V("my_position", ConceptNode)],
+        ],
     ]
     consequence_templates = [
         [ws.is_at, [C(ME), V("my_destination", ConceptNode)]],
-        [ws.wants_nothing, [V("picker", ConceptNode)]]
+        [ws.wants_nothing, [V("picker", ConceptNode)]],
     ]
-    # placeholders must be in same order
-    # as variables in "args" in the constructor
     placeholders = [ME, "picker", "my_destination", "my_position"]
 
     def __init__(self, world_state, robco, args):
@@ -228,8 +267,9 @@ class EvadeAction(Action):
         return MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
 
     def __repr__(self):
-        return "<Action:Evade {:} by moving to {:}>".format(self.picker,
-                                                            self.destination)
+        return "<Action:Evade {:} by moving to {:}>".format(
+            self.picker, self.destination
+        )
 
 
 class GiveCrateAction(Action):
@@ -247,18 +287,19 @@ class GiveCrateAction(Action):
         [ws.robot_has_crate, [C(ME), P(ws._empty_crate_count.name)]],
         [ws.is_a, [V("picker", ConceptNode), C("human")]],
         [ws.wants_to_get_crate, [V("picker", ConceptNode)]],
-        [ws.is_at, [V("picker", ConceptNode),
-                    V("my_destination", ConceptNode)]],
-        [ws.is_at, [C(ME), V("my_position", ConceptNode)]]
+        [
+            ws.is_at,
+            [V("picker", ConceptNode), V("my_destination", ConceptNode)],
+        ],
+        [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
     ]
     consequence_templates = [
         [ws.not_called_robot, [V("picker", ConceptNode)]],
         [ws.wants_nothing, [V("picker", ConceptNode)]],
         [ws.has_crate, [V("picker", ConceptNode)]],
-        [ws.robot_remove_crate, [C(ME), P(ws._empty_crate_count.name)]]
+        [ws.dismissed_robot, [V("picker", ConceptNode)]],
+        [ws.robot_remove_crate, [C(ME), P(ws._empty_crate_count.name)]],
     ]
-    # placeholders must be in same order
-    # as variables in "args" in the constructor
     placeholders = [ME, "picker", "my_destination"]
 
     def __init__(self, world_state, robco, args):
@@ -267,10 +308,6 @@ class GiveCrateAction(Action):
         self.picker = args["picker"]
         self.gain = GIVE_GAIN
         self.cost = GIVE_COST
-    #     for condition in self.condition_templates:
-    #         self.conditions.append(condition.replace("?picker", picker).replace(C(ME), me))
-    #     for consequence in self.consequence_templates:
-    #         self.consequences.append(consequence.replace("?picker", picker).replace(C(ME), me))
 
     def get_cost(self):
         return self.cost
@@ -307,19 +344,20 @@ class ExchangeCrateAction(Action):
         [ws.robot_has_crate_capacity, [C(ME), P(ws._full_crate_count.name)]],
         [ws.is_a, [V("picker", ConceptNode), C("human")]],
         [ws.wants_to_exchange_their_crate, [V("picker", ConceptNode)]],
-        [ws.is_at, [V("picker", ConceptNode),
-                    V("my_destination", ConceptNode)]],
-        [ws.is_at, [C(ME), V("my_position", ConceptNode)]]
+        [
+            ws.is_at,
+            [V("picker", ConceptNode), V("my_destination", ConceptNode)],
+        ],
+        [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
     ]
     consequence_templates = [
         [ws.not_crate_full, [V("picker", ConceptNode)]],
         [ws.not_called_robot, [V("picker", ConceptNode)]],
         [ws.wants_nothing, [V("picker", ConceptNode)]],
         [ws.robot_add_crate, [C(ME), P(ws._full_crate_count.name)]],
-        [ws.robot_remove_crate, [C(ME), P(ws._empty_crate_count.name)]]
+        [ws.robot_remove_crate, [C(ME), P(ws._empty_crate_count.name)]],
+        [ws.dismissed_robot, [V("picker", ConceptNode)]],
     ]
-    # placeholders must be in same order
-    # as variables in "args" in the constructor
     placeholders = [ME, "picker", "my_destination"]
 
     def __init__(self, world_state, robco, args):
@@ -329,11 +367,6 @@ class ExchangeCrateAction(Action):
         self.picker = args["picker"]
         self.gain = EXCHANGE_GAIN
         self.cost = EXCHANGE_COST
-
-    #     for condition in self.condition_templates:
-    #         self.conditions.append(condition.replace("?picker", picker).replace(C(ME), me))
-    #     for consequence in self.consequence_templates:
-    #         self.consequences.append(consequence.replace("?picker", picker).replace(C(ME), me))
 
     def get_cost(self):
         return self.cost
@@ -357,26 +390,38 @@ class ExchangeCrateAction(Action):
 class DepositCrateAction(Action):
 
     condition_templates = [
+        [ws.dismissed_robot, [V("picker", ConceptNode)]],
         [ws.robot_has_crate, [C(ME), P(ws._full_crate_count.name)]],
-        [ws.robot_get_crate_count, [C(ME),
-                                    P(ws._full_crate_count.name),
-                                    V("full crates", NumberNode)]],
-        [ws.robot_get_crate_count, [C(ME),
-                                    P(ws._empty_crate_count.name),
-                                    V("empty crates", NumberNode)]],
-        [ws.is_at, [C(ME), C(DEPOT)]]
+        [ws.same, [V("my_destination", ConceptNode), C(DEPOT)]],
+        [
+            ws.robot_get_crate_count,
+            [
+                C(ME),
+                P(ws._full_crate_count.name),
+                V("full crates", NumberNode),
+            ],
+        ],
+        [
+            ws.robot_get_crate_count,
+            [
+                C(ME),
+                P(ws._empty_crate_count.name),
+                V("empty crates", NumberNode),
+            ],
+        ],
+        [ws.is_at, [C(ME), V("my_destination", ConceptNode)]],
     ]
     consequence_templates = [
-        [ws.robot_set_crate_count, [C(ME),
-                                    P(ws._full_crate_count.name),
-                                    N("0")]],
-        [ws.robot_set_crate_count, [C(ME),
-                                    P(ws._empty_crate_count.name),
-                                    N(str(CRATE_CAPACITY))]]
+        [
+            ws.robot_set_crate_count2,
+            [C(ME), P(ws._full_crate_count.name), N("0")],
+        ],
+        [
+            ws.robot_set_crate_count2,
+            [C(ME), P(ws._empty_crate_count.name), N(str(CRATE_CAPACITY))],
+        ],
     ]
-    # placeholders must be in same order
-    # as variables in "args" in the constructor
-    placeholders = [ME, DEPOT, "full crates", "empty crates"]
+    placeholders = [ME, DEPOT, "my_destination", "full crates", "empty crates"]
 
     def __init__(self, world_state, robco, args):
         super(DepositCrateAction, self).__init__(world_state, args)
@@ -386,20 +431,21 @@ class DepositCrateAction(Action):
         self.gain = DEPOSIT_GAIN
 
     def get_cost(self):
-        return (self.full_crate_count
-                + self.empty_crate_count) * DEPOSIT_COST
+        return DEPOSIT_COST * (self.full_crate_count + self.empty_crate_count)
 
     def get_gain(self):
-        return (self.full_crate_count + CRATE_CAPACITY
-                - self.empty_crate_count) / 2 * DEPOSIT_GAIN
+        return DEPOSIT_GAIN * (
+            max(self.full_crate_count, CRATE_CAPACITY - self.empty_crate_count)
+            / CRATE_CAPACITY
+        )
 
     def perform(self):
         super(DepositCrateAction, self).perform()
-        sleep(self.cost)
+        sleep(self.get_cost())
         for fun, args in self.consequences:
             new_args = []
             for arg in args:
-                new_args.append(arg.typ(arg.node))
+                new_args.append(arg)
             consequence = fun(self.ws, *new_args)
             rospy.loginfo("Entering consequence: {}".format(consequence))
             consequence.tv = TruthValue(1, 1)
@@ -407,3 +453,310 @@ class DepositCrateAction(Action):
 
     def __repr__(self):
         return "<Action:Deposit crates at {:}>".format(DEPOT)
+
+
+class ApproachAction(Action):
+
+    condition_templates = [
+        [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
+        [ws.is_a, [V("picker", ConceptNode), C("human")]],
+        [ws.needs_help_soon, [V("picker", ConceptNode)]],
+        [ws.not_dismissed_robot, [V("picker", ConceptNode)]],
+        [
+            ws.is_at,
+            [V("picker", ConceptNode), V("picker_position", ConceptNode)],
+        ],
+        [
+            ws.leads_to,
+            [V("my_destination", ConceptNode), V("midway_point", ConceptNode)],
+        ],
+        [
+            ws.leads_to,
+            [
+                V("midway_point", ConceptNode),
+                V("picker_position", ConceptNode),
+            ],
+        ],
+        [
+            ws.query_not_at,
+            [V("anything", ConceptNode), V("midway_point", ConceptNode)],
+        ],
+        [
+            ws.not_same,
+            [
+                V("my_destination", ConceptNode),
+                V("picker_position", ConceptNode),
+            ],
+        ],
+        [
+            ws.not_same,
+            [V("my_destination", ConceptNode), V("midway_point", ConceptNode)],
+        ],
+        [
+            ws.not_same,
+            [V("my_position", ConceptNode), V("my_destination", ConceptNode)],
+        ],
+        # [ws.is_closer, [V("my_position", ConceptNode),
+        #              V("my_destination", ConceptNode),
+        #              V("picker_position", ConceptNode)]]
+    ]
+    consequence_templates = []
+    placeholders = [
+        ME,
+        "my_position",
+        "my_destination",
+        "picker",
+        "picker_position",
+    ]
+
+    def __init__(self, world_state, robco, args):
+        super(ApproachAction, self).__init__(world_state, args)
+        self.robco = robco
+        self.picker = args["picker"]
+        self.position = args["my_position"]
+        self.destination = args["my_destination"]
+        self.gain = APPROACH_GAIN
+        self.sent_movement_request = False
+
+    def perform(self):
+        super(ApproachAction, self).perform()
+        if self.position == self.destination:
+            rospy.logwarn(
+                "ACT: Reached my destination: {}".format(self.destination)
+            )
+            return True
+        else:
+            if not self.sent_movement_request:
+                self.robco.move_to(self.destination)
+                self.sent_movement_request = True
+                self.ws.moving = True
+            try:
+                # this next line will
+                result = self.robco.get_result()
+                if result:
+                    self.ws.moving = False
+                    rospy.logwarn(
+                        "ACT: Reached my destination: {}".format(
+                            result.success
+                        )
+                    )
+                    return True
+            except Exception as err:
+                # rospy.logwarn(err)
+                return False
+
+    def get_cost(self):
+        return 0
+
+    def __repr__(self):
+        return "<Action:Approach {:} at {:}>".format(
+            self.picker, self.destination
+        )
+
+
+class CloseApproachAction(Action):
+
+    condition_templates = [
+        [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
+        [ws.is_a, [V("picker", ConceptNode), C("human")]],
+        [ws.wants_something, [V("picker", ConceptNode)]],
+        [ws.not_dismissed_robot, [V("picker", ConceptNode)]],
+        [
+            ws.is_at,
+            [V("picker", ConceptNode), V("picker_position", ConceptNode)],
+        ],
+        [
+            ws.leads_to,
+            [V("my_destination", ConceptNode), V("picker_position", ConceptNode)],
+        ],
+        [
+            ws.not_same,
+            [
+                V("my_destination", ConceptNode),
+                V("picker_position", ConceptNode),
+            ],
+        ],
+        [
+            ws.not_same,
+            [V("my_position", ConceptNode), V("my_destination", ConceptNode)],
+        ],
+        # [ws.is_closer, [V("my_position", ConceptNode),
+        #              V("my_destination", ConceptNode),
+        #              V("picker_position", ConceptNode)]]
+    ]
+    consequence_templates = []
+    placeholders = [
+        ME,
+        "my_position",
+        "my_destination",
+        "picker",
+        "picker_position",
+    ]
+
+    def __init__(self, world_state, robco, args):
+        super(CloseApproachAction, self).__init__(world_state, args)
+        self.robco = robco
+        self.picker = args["picker"]
+        self.position = args["my_position"]
+        self.destination = args["my_destination"]
+        self.gain = APPROACH_GAIN
+        self.sent_movement_request = False
+
+    def perform(self):
+        super(CloseApproachAction, self).perform()
+        if self.position == self.destination:
+            rospy.logwarn(
+                "ACT: Reached my destination: {}".format(self.destination)
+            )
+            return True
+        else:
+            if not self.sent_movement_request:
+                self.robco.move_to(self.destination)
+                self.sent_movement_request = True
+                self.ws.moving = True
+            try:
+                # this next line will
+                result = self.robco.get_result()
+                if result:
+                    self.ws.moving = False
+                    rospy.logwarn(
+                        "ACT: Reached my destination: {}".format(
+                            result.success
+                        )
+                    )
+                    return True
+            except Exception as err:
+                # rospy.logwarn(err)
+                return False
+
+    def get_cost(self):
+        return 0
+
+    def __repr__(self):
+        return "<Action:CloseApproach {:} at {:}>".format(
+            self.picker, self.destination
+        )
+
+
+class WaitAction(Action):
+
+    condition_templates = [
+        [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
+        [ws.is_a, [V("picker", ConceptNode), C("human")]],
+        [ws.not_called_robot, [V("picker", ConceptNode)]],
+        [ws.not_dismissed_robot, [V("picker", ConceptNode)]],
+        # [ws.timeout_not_reached, [V("picker", ConceptNode)]],
+        [ws.needs_help_soon, [V("picker", ConceptNode)]],
+        [
+            ws.is_at,
+            [V("picker", ConceptNode), V("picker_position", ConceptNode)],
+        ],
+        [
+            ws.leads_to,
+            [V("my_position", ConceptNode), V("midway_point", ConceptNode)],
+        ],
+        [
+            ws.leads_to,
+            [
+                V("midway_point", ConceptNode),
+                V("picker_position", ConceptNode),
+            ],
+        ],
+        [
+            ws.query_not_at,
+            [V("anything", ConceptNode), V("midway_point", ConceptNode)],
+        ],
+        [
+            ws.not_same,
+            [V("my_position", ConceptNode), V("picker_position", ConceptNode)],
+        ],
+        [
+            ws.not_same,
+            [V("my_position", ConceptNode), V("midway_point", ConceptNode)],
+        ],
+    ]
+    consequence_templates = []
+    placeholders = [ME, "picker", "my_position"]
+
+    def __init__(self, world_state, robco, args):
+        super(WaitAction, self).__init__(world_state, args)
+        self.robco = robco
+        self.picker = args["picker"]
+        self.position = args["my_position"]
+        self.gain = WAIT_GAIN
+        self.timeout = -1
+
+    def perform(self):
+        super(WaitAction, self).perform()
+        picker = ConceptNode(self.picker)
+        current_time = time()
+        if self.timeout == -1:
+            self.timeout = current_time + TIMEOUT_LENGTH
+        else:
+            if current_time > self.timeout:
+                self.timeout = -1
+                self.ws.dismissed_robot(picker).tv = self.kb.TRUE
+        return True
+
+    def get_cost(self):
+        return 0
+
+    def __repr__(self):
+        return "<Action:Wait for {:} at {:}>".format(
+            self.picker, self.position
+        )
+
+
+class LeaveAction(Action):
+
+    condition_templates = [
+        [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
+        [ws.is_a, [V("picker", ConceptNode), C("human")]],
+        [ws.dismissed_robot, [V("picker", ConceptNode)]],
+        # [
+        #     ws.is_at,
+        #     [V("picker", ConceptNode), V("picker_position", ConceptNode)],
+        # ],
+        # [
+        #     ws.leads_to,
+        #     [V("my_position", ConceptNode), V("picker_position", ConceptNode)],
+        # ],
+        # [
+        #     ws.not_same,
+        #     [V("my_position", ConceptNode), V("picker_position", ConceptNode)],
+        # ],
+    ]
+    consequence_templates = [[ws.not_dismissed_robot, [V("picker", ConceptNode)]]]
+    placeholders = [ME, "picker"]
+
+    def __init__(self, world_state, robco, args):
+        super(LeaveAction, self).__init__(world_state, args)
+        self.robco = robco
+        self.picker = args["picker"]
+        self.destination = READY_POINT
+        self.gain = LEAVE_GAIN
+        self.sent_movement_request = False
+
+    def perform(self):
+        super(LeaveAction, self).perform()
+        if not self.sent_movement_request:
+            self.robco.move_to(self.destination)
+            self.sent_movement_request = True
+            self.ws.moving = True
+        try:
+            result = self.robco.get_result()
+            if result:
+                self.ws.moving = False
+                rospy.logwarn("ACT: Reached my destination: {}".format(result.success))
+                return True
+        except Exception as err:
+            rospy.logwarn(err)
+            return False
+
+    def get_cost(self):
+        return 0
+
+    def __repr__(self):
+        return "<Action:Leave {:} to {:}>".format(
+            self.picker, self.destination
+        )

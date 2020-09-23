@@ -13,7 +13,7 @@ from opencog.atomspace import AtomSpace
 
 from opencog.type_constructors import VariableNode, ConceptNode, \
                                       TypedVariableLink, TypeNode, \
-                                      PredicateNode
+                                      PredicateNode, NumberNode
 from opencog.utilities import initialize_opencog
 
 
@@ -91,7 +91,7 @@ class PredicateCondition(Condition):
 class NumberCondition(Condition):
 
     def __init__(self, label):
-        super(NumberCondition, self).__init__(label, NumberCondition)
+        super(NumberCondition, self).__init__(label, NumberNode)
 
     def get_typed_variable(self):
         try:

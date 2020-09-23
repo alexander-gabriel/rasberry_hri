@@ -56,9 +56,9 @@ class KnowledgeBase(object):
                                                                  variables))
         start_time = time.time()
         with self.lock:
-            if self.debug == 1:
+            # if self.debug == 1:
                 # log.use_stdout()
-                log.set_level("DEBUG")
+                # log.set_level("DEBUG")
             chainer = BackwardChainer(
                     _as=atomspace, rbs=ConceptNode("deduction-rule-base"),
                     trace_as=None, control_as=None, focus_set=None,
@@ -68,8 +68,8 @@ class KnowledgeBase(object):
         rospy.logdebug("WST: do_chain -- {:.4f}".format(
                                                     time.time() - start_time))
         results = chainer.get_results()
-        if self.debug == 1:
-            self.debug_reasoning(query, results, variables)
+        # if self.debug == 1:
+        #     self.debug_reasoning(query, results, variables)
         return results
 
     def debug_reasoning(self, query, results, variables):

@@ -7,9 +7,6 @@ from experiments.config import Config
 from experiments.experimenter import Experimenter
 
 
-
-
-
 # x TODO: storage of rosbag action data (start, end, filename, classification)
 # x TODO: keeping track of time (subscribing to the simulation clock, launching events at predefined time steps)
 # x TODO: start rosbag from experimenter
@@ -28,329 +25,609 @@ from experiments.experimenter import Experimenter
 # . TODO: in bdi system: pause, start simulation, change simulation realtime factor
 
 
-        # self.behaviours = {120: {"start": None,
-        #                     "duration": None,
-        #                     "filename": None,
-        #                     "label": None,
-        #                     "type": "action"},
-        #                 240: {"label": None,
-        #                     "type": "movement"},
-        #                     }
+# self.behaviours = {120: {"start": None,
+#                     "duration": None,
+#                     "filename": None,
+#                     "label": None,
+#                     "type": "action"},
+#                 240: {"label": None,
+#                     "type": "movement"},
+#                     }
 
 data = {
     "picking": {
         1: {
-            "standing": ("/data/subject-1-out/picking_berries-34-joints.bag",1,3),
-            "moving": ("/data/subject-1-moving-out/picking_berries-39-joints.bag",5,3)
+            "standing": (
+                "/data/subject-1-out/picking_berries-34-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-1-moving-out/picking_berries-39-joints.bag",
+                5,
+                3,
+            ),
         },
         2: {
-            "standing": ("/data/subject-2-out/picking_berries-14-joints.bag",1,3),
-            "moving": ("/data/subject-2-moving-out/picking_berries-10-joints.bag",1,3)
+            "standing": (
+                "/data/subject-2-out/picking_berries-14-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-2-moving-out/picking_berries-10-joints.bag",
+                1,
+                3,
+            ),
         },
         3: {
-            "standing": ("/data/subject-3-out/picking_berries-16-joints.bag",5,3),
-            "moving": ("/data/subject-3-moving-out/picking_berries-24-joints.bag",1,3)
+            "standing": (
+                "/data/subject-3-out/picking_berries-16-joints.bag",
+                5,
+                3,
+            ),
+            "moving": (
+                "/data/subject-3-moving-out/picking_berries-24-joints.bag",
+                1,
+                3,
+            ),
         },
         4: {
-            "standing": ("/data/subject-4-out/picking_berries-20-joints.bag",1,3),
-            "moving": ("/data/subject-4-moving-out/picking_berries-25-joints.bag",1,3)
+            "standing": (
+                "/data/subject-4-out/picking_berries-20-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-4-moving-out/picking_berries-25-joints.bag",
+                1,
+                3,
+            ),
         },
         5: {
-            "standing": ("/data/subject-5-out/picking_berries-15-joints.bag",1,3),
-            "moving": ("/data/subject-5-moving-out/picking_berries-23-joints.bag",1,3)
+            "standing": (
+                "/data/subject-5-out/picking_berries-15-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-5-moving-out/picking_berries-23-joints.bag",
+                1,
+                3,
+            ),
         },
         6: {
-            "standing": ("/data/subject-6-out/picking_berries-17-joints.bag",1,3),
-            "moving": ("/data/subject-6-moving-out/picking_berries-17-joints.bag",3,3)
+            "standing": (
+                "/data/subject-6-out/picking_berries-17-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-6-moving-out/picking_berries-17-joints.bag",
+                3,
+                3,
+            ),
         },
         7: {
-            "standing": ("/data/subject-7-out/picking_berries-17-joints.bag",1,3),
-            "moving": ("/data/subject-7-moving-out/picking_berries-49-joints.bag",1,3)
+            "standing": (
+                "/data/subject-7-out/picking_berries-17-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-7-moving-out/picking_berries-49-joints.bag",
+                1,
+                3,
+            ),
         },
         8: {
-            "standing": ("/data/subject-8-out/picking_berries-16-joints.bag",1,3),
-            "moving": ("/data/subject-8-moving-out/picking_berries-24-joints.bag",3,3)
+            "standing": (
+                "/data/subject-8-out/picking_berries-16-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-8-moving-out/picking_berries-24-joints.bag",
+                3,
+                3,
+            ),
         },
         9: {
-            "standing": ("/data/subject-9-out/picking_berries-22-joints.bag",3,3),
-            "moving": ("/data/subject-9-moving-out/picking_berries-32-joints.bag",9,3)
+            "standing": (
+                "/data/subject-9-out/picking_berries-22-joints.bag",
+                3,
+                3,
+            ),
+            "moving": (
+                "/data/subject-9-moving-out/picking_berries-32-joints.bag",
+                9,
+                3,
+            ),
         },
         10: {
-            "standing": ("/data/subject-10-out/picking_berries-18-joints.bag",2,3),
-            "moving": ("/data/subject-10-moving-out/picking_berries-23-joints.bag",1,3)
-        }
+            "standing": (
+                "/data/subject-10-out/picking_berries-18-joints.bag",
+                2,
+                3,
+            ),
+            "moving": (
+                "/data/subject-10-moving-out/picking_berries-23-joints.bag",
+                1,
+                3,
+            ),
+        },
     },
     "calling": {
         1: {
-            "standing": ("/data/subject-1-out/gesture_call-75-joints.bag",1,3),
-            "moving": ("/data/subject-1-moving-out/gesture_call-116-joints.bag",3,3)
+            "standing": (
+                "/data/subject-1-out/gesture_call-75-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-1-moving-out/gesture_call-116-joints.bag",
+                3,
+                3,
+            ),
         },
         2: {
-            "standing": ("/data/subject-1-out/gesture_call-92-joints.bag",1,3),
-            "moving": ("/data/subject-2-moving-out/gesture_call-123-joints.bag",1,3)
+            "standing": (
+                "/data/subject-1-out/gesture_call-92-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-2-moving-out/gesture_call-123-joints.bag",
+                1,
+                3,
+            ),
         },
         3: {
-            "standing": ("/data/subject-3-out/gesture_call-50-joints.bag",1,3),
-            "moving": ("/data/subject-1-moving-out/gesture_call-116-joints.bag",3,3)
+            "standing": (
+                "/data/subject-3-out/gesture_call-50-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-1-moving-out/gesture_call-116-joints.bag",
+                3,
+                3,
+            ),
         },
         4: {
-            "standing": ("/data/subject-4-out/gesture_call-57-joints.bag",1,3),
-            "moving": ("/data/subject-4-moving-out/gesture_call-116-joints.bag",1,3)
+            "standing": (
+                "/data/subject-4-out/gesture_call-57-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-4-moving-out/gesture_call-116-joints.bag",
+                1,
+                3,
+            ),
         },
         5: {
-            "standing": ("/data/subject-5-out/gesture_call-50-joints.bag",1,3),
-            "moving": ("/data/subject-5-moving-out/gesture_call-190-joints.bag",6,3)
+            "standing": (
+                "/data/subject-5-out/gesture_call-50-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-5-moving-out/gesture_call-190-joints.bag",
+                6,
+                3,
+            ),
         },
         6: {
-            "standing": ("/data/subject-6-out/gesture_call-56-joints.bag",1,3),
-            "moving": ("/data/subject-6-moving-out/gesture_call-110-joints.bag",1,3)
+            "standing": (
+                "/data/subject-6-out/gesture_call-56-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-6-moving-out/gesture_call-110-joints.bag",
+                1,
+                3,
+            ),
         },
         7: {
-            "standing": ("/data/subject-7-out/gesture_call-48-joints.bag",1,3),
-            "moving": ("/data/subject-7-moving-out/gesture_call-123-joints.bag",5,3)
+            "standing": (
+                "/data/subject-7-out/gesture_call-48-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-7-moving-out/gesture_call-123-joints.bag",
+                5,
+                3,
+            ),
         },
         8: {
-            "standing": ("/data/subject-8-out/gesture_call-53-joints.bag",1,3),
-            "moving": ("/data/subject-8-moving-out/gesture_call-92-joints.bag",1,3)
+            "standing": (
+                "/data/subject-8-out/gesture_call-53-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-8-moving-out/gesture_call-92-joints.bag",
+                1,
+                3,
+            ),
         },
         9: {
-            "standing": ("/data/subject-9-out/gesture_call-99-joints.bag",1,3),
-            "moving": ("/data/subject-9-moving-out/gesture_call-156-joints.bag",1,3)
+            "standing": (
+                "/data/subject-9-out/gesture_call-99-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-9-moving-out/gesture_call-156-joints.bag",
+                1,
+                3,
+            ),
         },
         10: {
-            "standing": ("/data/subject-10-out/gesture_call-52-joints.bag",1,3),
-            "moving": ("/data/subject-10-moving-out/gesture_call-126-joints.bag",1,3)
-        }
-    }
+            "standing": (
+                "/data/subject-10-out/gesture_call-52-joints.bag",
+                1,
+                3,
+            ),
+            "moving": (
+                "/data/subject-10-moving-out/gesture_call-126-joints.bag",
+                1,
+                3,
+            ),
+        },
+    },
 }
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     picks = {}
     calls = {}
-    for subject_id in range(1,10+1):
+    for subject_id in range(1, 10 + 1):
         picks[subject_id] = {}
         calls[subject_id] = {}
         for mode in ["standing", "moving"]:
             filename, start, duration = data["picking"][subject_id][mode]
-            picks[subject_id][mode] = {"type": "rosbag", "label": "picking_berries", "start": start, "duration": duration, "filename": filename, "topics": ["/human_actions"]}
+            picks[subject_id][mode] = {
+                "type": "rosbag",
+                "label": "picking_berries",
+                "start": start,
+                "duration": duration,
+                "filename": filename,
+                "topics": ["/human_actions"],
+            }
             filename, start, duration = data["calling"][subject_id][mode]
-            calls[subject_id][mode] = {"type": "rosbag", "label": "calling", "start": start, "duration": duration, "filename": filename, "topics": ["/human_actions"]}
-
-
+            calls[subject_id][mode] = {
+                "type": "rosbag",
+                "label": "calling",
+                "start": start,
+                "duration": duration,
+                "filename": filename,
+                "topics": ["/human_actions"],
+            }
     rospy.init_node("experiment_node")
     rospy.myargv(argv=sys.argv)
 
     e = Experimenter()
     # do 5, 7, and 9 later
     print("EXPE: Generating Configurations")
-    for subject_id in [1]: #,2,3,4,5,6,7,8,9,10]:
-        for mode in ["standing"]:#, "moving"]:
-            try: # delivery
-                c = Config("thorvald_001", "Delivery - Subject {} - Mode {}".format(subject_id, mode))
+    for subject_id in [1]:  # ,2,3,4,5,6,7,8,9,10]:
+        for mode in ["standing"]:  # , "moving"]:
+            try:  # delivery
+                c = Config(
+                    "thorvald_001",
+                    "Delivery - Subject {} - Mode {}".format(subject_id, mode),
+                )
                 c.behaviours = {}
                 # c.behaviours[2] = calls[subject_id][mode]
-                c.behaviours[4] = {"type": "message",
-                                           "target": "picker_movement",
-                                           "message": "deliver"}
-                c.parameters = {"has_crate": [False],
-                                "crate_full": [True, False],
-                                "called_robot": [True, False],
-                                "no_berry_places": [["Waypoint103", "WayPoint104"], []],
-                                "picker_speed": [0.7],
-                                "target_picker": ["Picker02"],
-                                "iterations": ["30"]}
-                c.termination_time = 30
-                c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-            try: # delivery
-                c = Config("thorvald_001", "Exchange 1 - Subject {} - Mode {}".format(subject_id, mode))
-                c.behaviours = {}
-                # c.behaviours[2] = calls[subject_id][mode]
-                c.behaviours[4] = {"type": "message",
-                                           "target": "picker_movement",
-                                           "message": "deliver"}
-                c.parameters = {"has_crate": [True],
-                                "called_robot": [True],
-                                "crate_full": [True, False],
-                                "no_berry_places": [["Waypoint103", "WayPoint104"], []],
-                                "picker_speed": [0.7],
-                                "target_picker": ["Picker02"],
-                                "iterations": ["30"]}
-                c.termination_time = 30
-                c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-            try: # delivery
-                c = Config("thorvald_001", "Exchange 2 - Subject {} - Mode {}".format(subject_id, mode))
-                c.behaviours = {}
-                # c.behaviours[2] = calls[subject_id][mode]
-                c.behaviours[4] = {"type": "message",
-                                           "target": "picker_movement",
-                                           "message": "deliver"}
-                c.parameters = {"has_crate": [True],
-                                "called_robot": [False],
-                                "crate_full": [True],
-                                "no_berry_places": [["Waypoint103", "WayPoint104"], []],
-                                "picker_speed": [0.7],
-                                "target_picker": ["Picker02"],
-                                "iterations": ["30"]}
-                c.termination_time = 30
-                c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-            try: # delivery
-                c = Config("thorvald_001", "Exchange 3 - Subject {} - Mode {}".format(subject_id, mode))
-                c.behaviours = {}
-                # c.behaviours[2] = calls[subject_id][mode]
-                c.behaviours[4] = {"type": "message",
-                                           "target": "picker_movement",
-                                           "message": "deliver"}
-                c.parameters = {"has_crate": [True],
-                                "called_robot": [False],
-                                "crate_full": [False],
-                                "no_berry_places": [[]],
-                                "picker_speed": [0.7],
-                                "target_picker": ["Picker02"],
-                                "iterations": ["30"]}
-                c.termination_time = 30
+                c.behaviours[2] = {
+                    "type": "message",
+                    "target": "picker_movement",
+                    "message": "deliver",
+                }
+                c.parameters = {
+                    "robot_position": [[11.41, 4.6285]],
+                    "called_robot": [True],  # , False],
+                    "has_crate": [False],
+                    "crate_full": [True],  # , False],
+                    "picker_speed": [0.7],
+                    "full_crate_count": [0],
+                    "empty_crate_count": [3],
+                    "no_berry_places": [["WayPoint103", "WayPoint104"]],
+                    "target_picker": ["Picker02"],
+                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
+                    "iterations": ["30"],
+                }
+                c.termination_time = 23
                 c.update_behaviour_times()
                 # e.add_config(c)
             except KeyError as err:
                 rospy.logwarn(err)
 
-            try: # delivery
-                c = Config("thorvald_001", "Delivery - Subject {} - Mode {}".format(subject_id, mode))
+            try:  # evasion
+                c = Config(
+                    "thorvald_001",
+                    "Evasion - Subject {} - Mode {}".format(subject_id, mode),
+                )
                 c.behaviours = {}
-                # c.behaviours[2] = calls[subject_id][mode]
-                c.behaviours[4] = {"type": "message",
-                                           "target": "picker_movement",
-                                           "message": "deliver"}
-                c.parameters = {"called_robot": [True, False],
-                                "has_crate": [False],
-                                "crate_full": [True, False],
-                                "picker_speed": [0.7],
-                                "target_picker": ["Picker02"],
-                                "no_berry_places": [["Waypoint103", "WayPoint104"], []],
-                                # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
-                                "iterations": ["30"]}
-                c.termination_time = 30
+                c.behaviours[2] = {
+                    "type": "message",
+                    "target": "picker_movement",
+                    "message": "evade",
+                }
+                c.parameters = {
+                    "robot_position": [[11.41, 4.6285]],
+                    "called_robot": [False],
+                    "has_crate": [True],
+                    "crate_full": [False],
+                    "picker_speed": [0.7],
+                    "no_berry_places": [
+                        ["WayPoint103", "WayPoint104", "WayPoint105"]
+                    ],
+                    "target_picker": ["Picker02"],
+                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
+                    "iterations": ["30"],
+                }
+                c.termination_time = 15
                 c.update_behaviour_times()
                 # e.add_config(c)
             except KeyError as err:
                 rospy.logwarn(err)
-            try: # evasion
-                c = Config("thorvald_001", "Evasion - Subject {} - Mode {}".format(subject_id, mode))
+
+            try:  # exchange
+                c = Config(
+                    "thorvald_001",
+                    "Exchange 1 - Subject {} - Mode {}".format(
+                        subject_id, mode
+                    ),
+                )
                 c.behaviours = {}
-                c.behaviours[2] = {"type": "message",
-                                           "target": "picker_movement",
-                                           "message": "evade"}
-                c.parameters = {"called_robot": [False],
-                                "has_crate": [True],
-                                "crate_full": [False],
-                                "picker_speed": [0.7],
-                                "no_berry_places": [["Waypoint103", "WayPoint104"]],
-                                "target_picker": ["Picker02"],
-                                # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
-                                "iterations": ["30"]}
+                # c.behaviours[2] = calls[subject_id][mode]
+                c.behaviours[2] = {
+                    "type": "message",
+                    "target": "picker_movement",
+                    "message": "deliver",
+                }
+                c.parameters = {
+                    "robot_position": [[11.41, 4.6285]],
+                    "has_crate": [True],
+                    "called_robot": [True],
+                    "crate_full": [True],
+                    "no_berry_places": [[]],
+                    "picker_speed": [0.7],
+                    "target_picker": ["Picker02"],
+                    "iterations": ["30"],
+                }
+                c.termination_time = 25
+                c.update_behaviour_times()
+                # e.add_config(c)s
+            except KeyError as err:
+                rospy.logwarn(err)
+
+            try:  # exchange
+                c = Config(
+                    "thorvald_001",
+                    "Exchange 2 - Subject {} - Mode {}".format(
+                        subject_id, mode
+                    ),
+                )
+                c.behaviours = {}
+                # c.behaviours[2] = calls[subject_id][mode]
+                c.behaviours[2] = {
+                    "type": "message",
+                    "target": "picker_movement",
+                    "message": "deliver",
+                }
+                c.parameters = {
+                    "robot_position": [[11.41, 4.6285]],
+                    "has_crate": [True],
+                    "called_robot": [False],
+                    "crate_full": [True],
+                    "no_berry_places": [["Waypoint103", "WayPoint104"], []],
+                    "picker_speed": [0.7],
+                    "target_picker": ["Picker02"],
+                    "iterations": ["30"],
+                }
+                c.termination_time = 20
+                c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+
+            try:  # exchange
+                c = Config(
+                    "thorvald_001",
+                    "Exchange 3 - Subject {} - Mode {}".format(
+                        subject_id, mode
+                    ),
+                )
+                c.behaviours = {}
+                # c.behaviours[2] = calls[subject_id][mode]
+                c.behaviours[2] = {
+                    "type": "message",
+                    "target": "picker_movement",
+                    "message": "deliver",
+                }
+                c.parameters = {
+                    "robot_position": [[11.41, 4.6285]],
+                    "has_crate": [True],
+                    "called_robot": [False],
+                    "crate_full": [False],
+                    "no_berry_places": [[]],
+                    "picker_speed": [0.7],
+                    "target_picker": ["Picker02"],
+                    "iterations": ["30"],
+                }
+                c.termination_time = 25
+                c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+
+            try:  # leave
+                c = Config(
+                    "thorvald_001",
+                    "Leave - Subject {} - Mode {}".format(subject_id, mode),
+                )
+                c.behaviours = {}
+                c.parameters = {
+                    "robot_position": [[14.12, 4.63]],
+                    "called_robot": [False],
+                    "dismissed_robot": [True],
+                    "has_crate": [True],
+                    "crate_full": [False],
+                    "picker_speed": [0.7],
+                    "full_crate_count": [2],
+                    "no_berry_places": [["WayPoint103", "WayPoint104"]],
+                    "target_picker": ["Picker02"],
+                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
+                    "iterations": ["30"],
+                }
+                c.termination_time = 15
+                c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+
+            try:  # approach because picker has no crate
+                c = Config(
+                    "thorvald_001",
+                    "Wait 3 - Subject {} - Mode {}".format(subject_id, mode),
+                )
+                c.behaviours = {}
+                # c.behaviours[1] = picks[subject_id][mode]
+                # c.behaviours[4] = calls[subject_id][mode]
+                c.parameters = {
+                    "robot_position": [[11.41, 4.6285]],
+                    "called_robot": [False],
+                    "has_crate": [False],
+                    "crate_full": [True, False],
+                    "picker_speed": [0.7],
+                    "no_berry_places": [["Waypoint103", "WayPoint104"], []],
+                    "target_picker": ["Picker02"],
+                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
+                    "iterations": ["30"],
+                }
+                c.termination_time = 5
+                c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+
+            try:  # approach because picker has a full crate
+                c = Config(
+                    "thorvald_001",
+                    "Approach 2 - Subject {} - Mode {}".format(
+                        subject_id, mode
+                    ),
+                )
+                c.behaviours = {}
+                # c.behaviours[1] = picks[subject_id][mode]
+                # c.behaviours[4] = calls[subject_id][mode]
+                c.parameters = {
+                    "robot_position": [[5.53, 4.62]],
+                    "called_robot": [False],
+                    "has_crate": [True],
+                    "crate_full": [True],
+                    "picker_speed": [0.7],
+                    "no_berry_places": [
+                        ["Waypoint103", "WayPoint104"]
+                    ],  # , []],
+                    "target_picker": ["Picker02"],
+                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
+                    "iterations": ["30"],
+                }
+                c.termination_time = 20
+                c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+
+            try:  # wait because picker has no crate
+                c = Config(
+                    "thorvald_001",
+                    "Wait 1 - Subject {} - Mode {}".format(subject_id, mode),
+                )
+                c.behaviours = {}
+                # c.behaviours[1] = picks[subject_id][mode]
+                # c.behaviours[4] = calls[subject_id][mode]
+                c.parameters = {
+                    "robot_position": [[11.41, 4.6285]],
+                    "called_robot": [False],
+                    "dismissed_robot": [False],
+                    "has_crate": [False],
+                    "crate_full": [False],
+                    "picker_speed": [0.7],
+                    "no_berry_places": [
+                        ["Waypoint103", "WayPoint104"]
+                    ],  # , []],
+                    "target_picker": ["Picker02"],
+                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
+                    "iterations": ["30"],
+                }
+                c.termination_time = 20
+                c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+
+            try:  # wait because picker's crate is full
+                c = Config(
+                    "thorvald_001",
+                    "Wait 2 - Subject {} - Mode {}".format(subject_id, mode),
+                )
+                c.behaviours = {}
+                # c.behaviours[1] = picks[subject_id][mode]
+                # c.behaviours[4] = calls[subject_id][mode]
+                c.parameters = {
+                    "robot_position": [[11.41, 4.6285]],
+                    "called_robot": [False],
+                    "dismissed_robot": [False],
+                    "has_crate": [True],
+                    "crate_full": [True],
+                    "picker_speed": [0.7],
+                    "no_berry_places": [["Waypoint103", "WayPoint104"]],
+                    "target_picker": ["Picker02"],
+                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
+                    "iterations": ["30"],
+                }
+                c.termination_time = 10
+                c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+
+            try:  # approach because picker raised their hand
+                c = Config(
+                    "thorvald_001",
+                    "CloseApproach 2 - Subject {} - Mode {}".format(subject_id, mode),
+                )
+                c.behaviours = {}
+                # c.behaviours[1] = picks[subject_id][mode]
+                # c.behaviours[4] = calls[subject_id][mode]
+                c.behaviours[5] = {
+                    "type": "message",
+                    "target": "picker_movement",
+                    "message": "deliver",
+                }
+                c.parameters = {
+                    "robot_position": [[11.41, 4.6285]],
+                    "called_robot": [True],
+                    "dismissed_robot": [False],
+                    "has_crate": [True],
+                    "crate_full": [True],
+                    "picker_speed": [0.7],
+                    "no_berry_places": [["Waypoint103", "WayPoint104"]],
+                    "target_picker": ["Picker02"],
+                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
+                    "iterations": ["30"],
+                }
                 c.termination_time = 15
                 c.update_behaviour_times()
                 e.add_config(c)
             except KeyError as err:
                 rospy.logwarn(err)
-            try: # exchange
-                c = Config("thorvald_001", "Wait 1 - Subject {} - Mode {}".format(subject_id, mode))
-                c.behaviours = {}
-                # c.behaviours[1] = picks[subject_id][mode]
-                # c.behaviours[4] = calls[subject_id][mode]
-                c.parameters = {"called_robot": [True],
-                                "has_crate": [True, False],
-                                "crate_full": [True, False],
-                                "picker_speed": [0.7],
-                                "no_berry_places": [["Waypoint103", "WayPoint104"], []],
-                                "target_picker": ["Picker02"],
-                                # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
-                                "iterations": ["30"]}
-                c.termination_time = 30
-                c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-            try: # exchange
-                c = Config("thorvald_001", "Wait 2 - Subject {} - Mode {}".format(subject_id, mode))
-                c.behaviours = {}
-                # c.behaviours[1] = picks[subject_id][mode]
-                # c.behaviours[4] = calls[subject_id][mode]
-                c.parameters = {"called_robot": [False],
-                                "has_crate": [True],
-                                "crate_full": [True],
-                                "picker_speed": [0.7],
-                                "no_berry_places": [["Waypoint103", "WayPoint104"], []],
-                                "target_picker": ["Picker02"],
-                                # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
-                                "iterations": ["30"]}
-                c.termination_time = 30
-                c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-            try: # exchange
-                c = Config("thorvald_001", "Wait 3 - Subject {} - Mode {}".format(subject_id, mode))
-                c.behaviours = {}
-                # c.behaviours[1] = picks[subject_id][mode]
-                # c.behaviours[4] = calls[subject_id][mode]
-                c.parameters = {"called_robot": [False],
-                                "has_crate": [False],
-                                "crate_full": [True, False],
-                                "picker_speed": [0.7],
-                                "no_berry_places": [["Waypoint103", "WayPoint104"], []],
-                                "target_picker": ["Picker02"],
-                                # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
-                                "iterations": ["30"]}
-                c.termination_time = 30
-                c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-            try: # exchange
-                c = Config("thorvald_001", "Leave - Subject {} - Mode {}".format(subject_id, mode))
-                c.behaviours = {}
-                c.parameters = {"called_robot": [False],
-                                "has_crate": [True, False],
-                                "crate_full": [False],
-                                "picker_speed": [0.7],
-                                "no_berry_places": [["Waypoint103", "WayPoint104"], []],
-                                "target_picker": ["Picker02"],
-                                # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
-                                "iterations": ["30"]}
-                c.termination_time = 30
-                c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-            # try: # exchange
-            #     c = Config("thorvald_001", "Exchange - Subject {} - Mode {}".format(subject_id, mode))
-            #     c.behaviours = {}
-            #     c.behaviours[1] = picks[subject_id][mode]
-            #     c.behaviours[4] = calls[subject_id][mode]
-            #     c.behaviours[6] = {"type": "message",
-            #                                "target": "picker_movement",
-            #                                "message": "exchange"}
-            #     c.parameters = {"called_robot": [False],
-            #                     "has_crate": [True],
-            #                     "crate_full": [True],
-            #                     "picker_speed": [0.7],
-            #                     "target_picker": ["Picker02"],
-            #                     # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
-            #                     "iterations": ["30"]}
-            #     c.termination_time = 30
-            #     c.update_behaviour_times()
-            #     # e.add_config(c)
-            # except KeyError as err:
-            #     rospy.logwarn(err)
+
     print("EXPE: Starting Experimenter")
     e.run()

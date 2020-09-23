@@ -1,21 +1,49 @@
 # from threading import Lock
 from os.path import join
 from math import sqrt
+
 # import time
 
 
 import rospy
 import rospkg
 
-from opencog.type_constructors import PredicateNode, ConceptNode, \
-    VariableNode, TypedVariableLink, FloatValue, TruthValue, AbsentLink, \
-    PresentLink, StateLink, ListLink, ExistsLink, AndLink, OrLink, NotLink, \
-    InheritanceLink, IdenticalLink, LinkValue, NumberNode, GreaterThanLink, \
-    ValueOfLink, SetValueLink, PlusLink, GetLink, EqualLink, EvaluationLink, \
-    VariableList, TypeNode
+from opencog.type_constructors import (
+    PredicateNode,
+    ConceptNode,
+    VariableNode,
+    TypedVariableLink,
+    FloatValue,
+    TruthValue,
+    AbsentLink,
+    PresentLink,
+    StateLink,
+    ListLink,
+    ExistsLink,
+    AndLink,
+    OrLink,
+    NotLink,
+    InheritanceLink,
+    IdenticalLink,
+    LinkValue,
+    NumberNode,
+    GreaterThanLink,
+    ValueOfLink,
+    SetValueLink,
+    PlusLink,
+    GetLink,
+    EqualLink,
+    EvaluationLink,
+    VariableList,
+    TypeNode,
+    FalseLink,
+    MinusLink,
+)
+
 # from opencog.utilities import initialize_opencog
 
-from parameters import MINIMUM_DISTANCE, CRATE_CAPACITY
+from parameters import MINIMUM_DISTANCE, CRATE_CAPACITY, TIMEOUT_LENGTH
+
 # from utils import atomspace
 
 # from topological_navigation.tmap_utils import get_distance
@@ -26,7 +54,7 @@ from parameters import MINIMUM_DISTANCE, CRATE_CAPACITY
 # initialize_opencog(atsp)
 
 rospack = rospkg.RosPack()
-path = join(rospack.get_path('rasberry_hri'), 'src', 'bdi')
+path = join(rospack.get_path("rasberry_hri"), "src", "bdi")
 
 TRUE = TruthValue(1, 1)
 
@@ -40,12 +68,18 @@ class WorldState(object):
     _full_crate_count = PredicateNode("full crate count")
     _empty_crate_count = PredicateNode("empty crate count")
     _distance = PredicateNode("distance")
+    _dismissed = PredicateNode("dismissed robot")
+    _called = PredicateNode("called robot")
+    _movement = PredicateNode("movement")
+    _seen_picking = PredicateNode("seen_picking")
+    _timeout = PredicateNode("timeout")
 
     def __init__(self, kb, me):
         self.CALLED_ROBOT = "CALLED_ROBOT"
         self.kb = kb
         self.me = me
         self.moving = False
+        self.too_close = False
 
         # DefineLink(DefinedSchemaNode("NewName"), )
 
@@ -104,6 +138,9 @@ class WorldState(object):
         distances.append(distance)
         person.set_value(self._distance, FloatValue(distances))
 
+    def false(self, thing):
+        return FalseLink(thing)
+
     def update_position(self, person, place):
         self.is_at(person, place).tv = TRUE
         rospy.loginfo("WST: {:} is at {:}".format(person.name, place.name))
@@ -112,18 +149,21 @@ class WorldState(object):
         return place.get_value(self._position).to_list()
 
     def get_distance(self, thing1, thing2):
-        w1, l1 = self.get_size(thing1)
-        w2, l2 = self.get_size(thing1)
         p1x, p1y, _ = self.get_position(thing1)[-1].to_list()
         p2x, p2y, _ = self.get_position(thing2)[-1].to_list()
         dx = p1x - p2x
         dy = p1y - p2y
         dxs = dx * dx
         dys = dy * dy
-        if dxs > dys:
-            return sqrt(dxs + dys) - 0.5 * (w1 + w2)
-        else:
-            return sqrt(dxs + dys) - 0.5 * (l1 + l2)
+        try:
+            w1, l1 = self.get_size(thing1)
+            w2, l2 = self.get_size(thing1)
+            if dxs > dys:
+                return sqrt(dxs + dys) - 0.5 * (w1 + w2)
+            else:
+                return sqrt(dxs + dys) - 0.5 * (l1 + l2)
+        except AttributeError:
+            return sqrt(dxs + dys)
 
     def set_berry_state(self, place, ripe):
         place.set_value(self._berry_count, NumberNode(str(ripe)))
@@ -133,22 +173,18 @@ class WorldState(object):
 
     def update_berry_state(self, place, ripe):
         old_ripe = self.get_berry_state(place)
-        self.set_berry_state(place, old_ripe+ripe)
+        self.set_berry_state(place, old_ripe + ripe)
 
     def has_berries(self, place):
         has_berries = GreaterThanLink(
-                            ValueOfLink(
-                                place,
-                                self._berry_count),
-                            NumberNode("0"))
+            ValueOfLink(place, self._berry_count), NumberNode("0")
+        )
         return has_berries
 
     def not_has_berries(self, place):
         not_has_berries = EqualLink(
-                            ValueOfLink(
-                                place,
-                                self._berry_count),
-                            NumberNode("0"))
+            ValueOfLink(place, self._berry_count), NumberNode("0")
+        )
         return not_has_berries
 
     def has_crate(self, picker):
@@ -160,19 +196,15 @@ class WorldState(object):
     def robot_has_crate(self, robot, crate_type):
         # return self.state(robot, PredicateNode("has full crate"), "TRUE")
         has_crates = GreaterThanLink(
-                        ValueOfLink(
-                            robot,
-                            crate_type),
-                        NumberNode("0"))
+            ValueOfLink(robot, crate_type), NumberNode("0")
+        )
         return has_crates
 
     def robot_has_crate_capacity(self, robot, crate_type):
         # return self.state(robot, PredicateNode("has full crate"), "TRUE")
         has_crate_capacity = GreaterThanLink(
-                        NumberNode(str(CRATE_CAPACITY)),
-                        ValueOfLink(
-                            robot,
-                            crate_type))
+            NumberNode(str(CRATE_CAPACITY)), ValueOfLink(robot, crate_type)
+        )
         return has_crate_capacity
 
     # def not_has_full_crate(self, robot):
@@ -180,37 +212,31 @@ class WorldState(object):
 
     def robot_add_crate(self, robot, crate_type):
         add_crate = SetValueLink(
-                robot,
-                crate_type,
-                PlusLink(
-                    NumberNode("1"),
-                    ValueOfLink(
-                        robot,
-                        crate_type)))
+            robot,
+            crate_type,
+            PlusLink(NumberNode("1"), ValueOfLink(robot, crate_type)),
+        )
         return add_crate
 
     def robot_remove_crate(self, robot, crate_type):
         remove_crate = SetValueLink(
-                robot,
-                crate_type,
-                PlusLink(
-                    NumberNode("-1"),
-                    ValueOfLink(
-                        robot,
-                        crate_type)))
+            robot,
+            crate_type,
+            PlusLink(NumberNode("-1"), ValueOfLink(robot, crate_type)),
+        )
         return remove_crate
 
     def robot_set_crate_count(self, robot, crate_type, count):
-        link = SetValueLink(
-                robot,
-                crate_type,
-                count)
+        link = SetValueLink(robot, crate_type, count)
+        return link
+
+    def robot_set_crate_count2(self, robot, crate_type, count):
+        robot.set_value(crate_type, count)
+        link = SetValueLink(robot, crate_type, count)
         return link
 
     def robot_get_crate_count(self, robot, crate_type, result):
-        link = EqualLink(
-                result,
-                ValueOfLink(robot, crate_type))
+        link = EqualLink(result, ValueOfLink(robot, crate_type))
         return link
 
     def crate_full(self, picker):
@@ -219,25 +245,53 @@ class WorldState(object):
     def not_crate_full(self, picker):
         return self.state(picker, PredicateNode("crate is full"), "FALSE")
 
+    def timeout_reset(self, picker):
+        picker.set_value(self._timeout, NumberNode("-1"))
+
+    def timeout_counter_increase(self, picker):
+        timeout = picker.get_value(self._timeout).to_list()[0] + 1
+        picker.set_value(self._timeout, NumberNode(str(timeout)))
+
+    def timeout_not_reached(self, picker):
+        timout_reached = GreaterThanLink(
+            ValueOfLink(picker, self._timeout), NumberNode(str(TIMEOUT_LENGTH))
+        )
+        return timout_reached
+
+    def wants_something(self, picker):
+        return self.state2(
+            ListLink(picker, self._intent), ConceptNode("something")
+        )
+
     def wants_nothing(self, picker):
-        return self.state2(ListLink(picker, self._intent),
-                           ConceptNode("nothing"))
+        return self.state2(
+            ListLink(picker, self._intent), ConceptNode("nothing")
+        )
 
     def wants_to_pass(self, picker):
-        return self.state2(ListLink(picker, self._intent),
-                           ConceptNode("wants to pass"))
+        return self.state2(
+            ListLink(picker, self._intent), ConceptNode("wants to pass")
+        )
+
+    def needs_help_soon(self, picker):
+        return self.state2(
+            ListLink(picker, self._intent), ConceptNode("needs help soon")
+        )
 
     def wants_to_exchange_their_crate(self, picker):
-        return self.state2(ListLink(picker, self._intent),
-                           ConceptNode("wants to exchange their crate"))
+        return self.state2(
+            ListLink(picker, self._intent),
+            ConceptNode("wants to exchange their crate"),
+        )
 
     def wants_to_get_crate(self, picker):
-        return self.state2(ListLink(picker, self._intent),
-                           ConceptNode("wants to get a crate"))
+        return self.state2(
+            ListLink(picker, self._intent), ConceptNode("wants to get a crate")
+        )
 
-    def wants_help_soon(self, picker):
-        return self.state2(ListLink(picker, self._intent),
-                           ConceptNode("unknown"))
+    # def wants_help_soon(self, picker):
+    #     return self.state2(ListLink(picker, self._intent),
+    #                        ConceptNode("unknown"))
 
     def full_crate_count(self, robot, crate_count):
         return self.state2(ListLink(robot, self._crate_count), crate_count)
@@ -254,11 +308,16 @@ class WorldState(object):
 
     def is_occupied(self, place):
         someone = VariableNode("someone")
-        link = ExistsLink(someone,
-                          AndLink(OrLink(
-                                    self.is_a(someone, ConceptNode("human")),
-                                    self.is_a(someone, ConceptNode("robot"))),
-                                  self.is_at(someone, place)))
+        link = ExistsLink(
+            someone,
+            AndLink(
+                OrLink(
+                    self.is_a(someone, ConceptNode("human")),
+                    self.is_a(someone, ConceptNode("robot")),
+                ),
+                self.is_at(someone, place),
+            ),
+        )
         return link
 
     def is_not_occupied(self, place):
@@ -270,9 +329,9 @@ class WorldState(object):
         return link
 
     def query_a(self, thing, category):
-        link = IdenticalLink(category,
-                             GetLink(InheritanceLink(thing,
-                                                     VariableNode("x"))))
+        link = IdenticalLink(
+            category, GetLink(InheritanceLink(thing, VariableNode("x")))
+        )
         # link = InheritanceLink(thing, category)
         return link
 
@@ -285,54 +344,58 @@ class WorldState(object):
         return link
 
     def colocated(self, thing1, thing2):
-        link = EvaluationLink(PredicateNode("colocated"),
-                              ListLink(thing1, thing2))
+        link = EvaluationLink(
+            PredicateNode("colocated"), ListLink(thing1, thing2)
+        )
         return link
 
     def leads_to(self, origin, destination):
         link = EvaluationLink(
-            PredicateNode("leads_to"),
-            ListLink(origin, destination))
+            PredicateNode("leads_to"), ListLink(origin, destination)
+        )
         return link
 
     def linked(self, origin, destination):
         link = EvaluationLink(
-            PredicateNode("linked"),
-            ListLink(origin, destination))
+            PredicateNode("linked"), ListLink(origin, destination)
+        )
         return link
 
     def approaching(self, picker):
-        return self.state(picker, PredicateNode("movement"), "APPROACHING")
+        return self.state(picker, self._movement, "APPROACHING")
 
     def not_approaching(self, picker):
-        return self.absent(self.state(
-                            picker, PredicateNode("movement"), "APPROACHING"))
+        return self.absent(self.state(picker, self._movement, "APPROACHING"))
 
     def leaving(self, picker):
-        return self.state(picker, PredicateNode("movement"), "LEAVING")
+        return self.state(picker, self._movement, "LEAVING")
 
     def not_leaving(self, picker):
-        return self.absent(self.state(
-                            picker, PredicateNode("movement"), "LEAVING"))
+        return self.absent(self.state(picker, self._movement, "LEAVING"))
 
     def standing(self, picker):
-        return self.state(picker, PredicateNode("movement"), "STANDING")
+        return self.state(picker, self._movement, "STANDING")
 
     def not_standing(self, picker):
-        return self.absent(self.state(
-                            picker, PredicateNode("movement"), "STANDING"))
+        return self.absent(self.state(picker, self._movement, "STANDING"))
 
     def seen_picking(self, picker):
-        return self.state(picker, PredicateNode("seen_picking"), "TRUE")
+        return self.state(picker, self._seen_picking, "TRUE")
 
     def not_seen_picking(self, picker):
-        return self.state(picker, PredicateNode("seen_picking"), "FALSE")
+        return self.state(picker, self._seen_picking, "FALSE")
 
     def called_robot(self, picker):
-        return self.state(picker, PredicateNode("called robot"), "TRUE")
+        return self.state(picker, self._called, "TRUE")
 
     def not_called_robot(self, picker):
-        return self.state(picker, PredicateNode("called robot"), "FALSE")
+        return self.state(picker, self._called, "FALSE")
+
+    def dismissed_robot(self, picker):
+        return self.state(picker, self._dismissed, "TRUE")
+
+    def not_dismissed_robot(self, picker):
+        return self.state(picker, self._dismissed, "FALSE")
 
     # add a place ConceptNode to the KB
     def add_place(self, name, x, y, truth_value=None):
@@ -359,14 +422,15 @@ class WorldState(object):
         # link.tv = truth_value
         self.leads_to(p1, p2).tv = truth_value
         # self.leads_to(p2, p1).tv = truth_value
-        # EvaluationLink(
-        #     PredicateNode("leads_to"),
-        #     ListLink(p1, p2)).tv = truth_value
         EvaluationLink(
-            PredicateNode("linked"),
-            ListLink(p1, p2)).tv = truth_value
-        rospy.logdebug("WST: Adding place link: {:} to {:}".format(place1,
-                                                                   place2))
+            PredicateNode("leads_to"), ListLink(p1, p2)
+        ).tv = truth_value
+        EvaluationLink(
+            PredicateNode("linked"), ListLink(p1, p2)
+        ).tv = truth_value
+        rospy.logdebug(
+            "WST: Adding place link: {:} to {:}".format(place1, place2)
+        )
 
     # add arbitrary typed things to the KB
     def add_thing(self, name, klasse, truth_value=TRUE):
@@ -383,15 +447,19 @@ class WorldState(object):
         person = ConceptNode(person)
         if action == "picking berries" or action == "picking_berries_right":
             self.seen_picking(person).tv = TRUE
-            rospy.loginfo("WST: {:} was observed {:}".format(person.name,
-                                                             action))
+            rospy.loginfo(
+                "WST: {:} was observed {:}".format(person.name, action)
+            )
         elif action == "calling":
             self.called_robot(person).tv = TRUE
-            rospy.loginfo("WST: {:} was observed {:}".format(person.name,
-                                                             action))
+            rospy.loginfo(
+                "WST: {:} was observed {:}".format(person.name, action)
+            )
         elif action == "gesture_cancel":
-            pass
-            # self.called_robot(ConceptNode(person)).tv = TRUE
+            self.dismissed_robot(ConceptNode(person)).tv = TRUE
+            rospy.loginfo(
+                "WST: {:} was observed {:}".format(person.name, action)
+            )
         elif action == "gesture_stop":
             pass
             # self.called_robot(ConceptNode(person)).tv = TRUE
@@ -405,7 +473,8 @@ class WorldState(object):
             pass
         else:
             rospy.logerr("WST: Perceived unknown action {}".format(action))
-        # results = self.kb.reason(self.seen_picking(VariableNode("picker")), VariableNode("picker"))
+        # results = self.kb.reason(self.seen_picking(VariableNode("picker")),
+        #                          VariableNode("picker"))
 
     def get_picker_locations(self):
         pickers = []
@@ -413,10 +482,12 @@ class WorldState(object):
         location = VariableNode("location")
         variables = VariableList(
             TypedVariableLink(picker, TypeNode("ConceptNode")),
-            TypedVariableLink(location, TypeNode("ConceptNode")))
+            TypedVariableLink(location, TypeNode("ConceptNode")),
+        )
         query = AndLink(
             self.is_a(picker, ConceptNode("human")),
-            self.is_at(picker, location))
+            self.is_at(picker, location),
+        )
         results = self.kb.reason(GetLink(variables, query), variables)
 
         for list_link in results.get_out()[0].get_out():
@@ -427,7 +498,8 @@ class WorldState(object):
     def get_location(self, target):
         location = VariableNode("location")
         variables = VariableList(
-            TypedVariableLink(location, TypeNode("ConceptNode")))
+            TypedVariableLink(location, TypeNode("ConceptNode"))
+        )
         query = self.is_at(target, location)
         results = self.kb.reason(GetLink(variables, query), variables)
         for concept_node in results.get_out()[0].get_out():

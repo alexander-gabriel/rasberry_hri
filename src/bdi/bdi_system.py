@@ -48,6 +48,7 @@ from bdi.goals import (
     LeaveGoal,
     WaitForGoal,
     WaitGoal,
+    MoveGoal,
 )
 from bdi.robot_control import RobotControl
 from bdi.world_state import WorldState
@@ -80,14 +81,15 @@ class BDISystem:
             self.directions = {}
             self.latest_directions = {}
             self.desires = []
-            self.desires.append(WaitGoal)
-            self.desires.append(LeaveGoal)
-            self.desires.append(ApproachGoal)
-            self.desires.append(CloseApproachGoal)
-            self.desires.append(DeliverGoal)
-            self.desires.append(ExchangeGoal)
-            self.desires.append(EvadeGoal)
-            self.desires.append(DepositGoal)
+            self.desires.append(MoveGoal)
+            # self.desires.append(WaitGoal)
+            # self.desires.append(LeaveGoal)
+            # self.desires.append(ApproachGoal)
+            # self.desires.append(CloseApproachGoal)
+            # self.desires.append(DeliverGoal)
+            # self.desires.append(ExchangeGoal)
+            # self.desires.append(EvadeGoal)
+            # self.desires.append(DepositGoal)
             self.intentions = []
             self.latest_robot_msg = None
             self.latest_people_msgs = {}
@@ -99,6 +101,9 @@ class BDISystem:
             # self.node_positions = {}
             self.route_search = TopologicalRouteSearch(self.locator.tmap)
             rospy.loginfo("BDI: Adding Waypoints")
+            # variance experiment
+            target = rospy.get_param("/thorvald_001/hri/target")[0]
+            # variance experiment
             for node in self.locator.tmap.nodes:
                 # if node in ["WayPoint103", "WayPoint104", "WayPoint105",
                 #             "WayPoint106", "WayPoint107", "WayPoint108",
@@ -111,6 +116,10 @@ class BDISystem:
                     rospy.loginfo("BDI: No Berries at {}".format(place.name))
                 else:
                     self.world_state.set_berry_state(place, 1)
+                # variance experiment
+                if place.name == target:
+                    self.world_state.is_target(place).tv = self.kb.TRUE
+                # variance experiment
                 # self.node_positions[node.name] = node.pose
                 for edge in node.edges:
                     if node.name != edge.node:

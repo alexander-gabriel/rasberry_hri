@@ -16,6 +16,7 @@ from opencog.type_constructors import VariableNode, ConceptNode, \
                                       PredicateNode, NumberNode
 from opencog.utilities import initialize_opencog
 
+from experiments.log_writer import DB
 
 atomspace = AtomSpace()
 initialize_opencog(atomspace)
@@ -291,3 +292,6 @@ def get_position_prototype_3d():
 
 def mean(liste):
     return sum(liste)/len(liste)
+
+
+db = DB()

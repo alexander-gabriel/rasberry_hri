@@ -30,10 +30,12 @@ DELIVER_WAIT_COUNTS = rospy.get_param("/thorvald_001/hri/give_cost", 5) * FREQUE
 ANGLE = 0.0 # angle between direction of travel and X coordinate
 X_DISTANCE = cos(ANGLE) * PICKER_SPEED / FREQUENCY
 Y_DISTANCE = sin(ANGLE) * PICKER_SPEED / FREQUENCY
+
+INITIAL_X, INITIAL_Y = rospy.get_param("/thorvald_001/hri/picker_position", [19.997, 4.568])
 #102: 8.675 4.65
 #103: 11.649 4.64
 #104: 14.12 4.612
-#105: 17.061 4.609
+#105: 17.061 4.609 ,_ was this
 #106: 19.997 4.568
 
 class PickerMover(object):
@@ -43,10 +45,10 @@ class PickerMover(object):
         self.publisher = rospy.Publisher('/hedge_pos_a', hedge_pos_a, queue_size=10)
         self.strategy = "stand"
         self.counter = 0
-        self.initial_x = 17.561 #20.639 # 17.061
-        self.initial_y = 4.609 #4.628 # 4.609
-        self.x = self.initial_x
-        self.y = self.initial_y
+        # self.initial_x = 17.561 #20.639 # 17.061
+        # self.initial_y = 4.609 #4.628 # 4.609
+        self.x = INITIAL_X
+        self.y = INITIAL_Y
         self.wait = 0
         self.return1 = False
 

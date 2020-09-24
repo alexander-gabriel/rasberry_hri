@@ -35,6 +35,7 @@ from utils import VariableCondition as V
 from utils import ConceptCondition as C
 from utils import PredicateCondition as P
 from utils import NumberCondition as N
+from utils import db
 from world_state import WorldState as ws
 
 
@@ -119,6 +120,9 @@ class MoveAction(Action):
 
     condition_templates = [
         [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
+        [ws.not_same, [V("my_position", ConceptNode), V("my_destination", ConceptNode)]],
+        # [ws.is_a, [V("my_destination", ConceptNode), C("place")]],
+        [ws.is_target, [V("my_destination", ConceptNode)]],  # variance experiment
         # [ws.linked, [V("my_position", ConceptNode),
         #                V("my_destination", ConceptNode)]]
     ]
@@ -130,6 +134,7 @@ class MoveAction(Action):
     def __init__(self, world_state, robco, args):
         super(MoveAction, self).__init__(world_state, args)
         self.robco = robco
+        self.position = args["my_position"]
         self.destination = args["my_destination"]
         self.gain = MOVE_GAIN
         self.sent_movement_request = False
@@ -137,12 +142,17 @@ class MoveAction(Action):
     def perform(self):
         super(MoveAction, self).perform()
         if not self.sent_movement_request:
+            # timestamp, typ, distance, x, y
+            x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+            db.add_entry(time(), "start", self.destination, float(x), float(y))
             self.robco.move_to(self.destination)
             self.sent_movement_request = True
             self.ws.moving = True
         try:
             result = self.robco.get_result()
             if result or self.ws.too_close:
+                x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+                db.add_entry(time(), "end", self.destination, float(x), float(y))
                 self.ws.moving = False
                 rospy.logwarn("ACT: Reached my destination.")
                 return True

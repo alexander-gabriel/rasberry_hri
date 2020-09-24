@@ -625,6 +625,66 @@ if __name__ == "__main__":
                 }
                 c.termination_time = 15
                 c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+
+            try:  # wait because picker's crate is full
+                c = Config(
+                    "thorvald_001",
+                    "Wait 2 - Subject {} - Mode {}".format(subject_id, mode),
+                )
+                c.behaviours = {}
+                # c.behaviours[1] = picks[subject_id][mode]
+                # c.behaviours[4] = calls[subject_id][mode]
+                c.parameters = {
+                    "robot_position": [[11.41, 4.6285]],
+                    "called_robot": [False],
+                    "dismissed_robot": [False],
+                    "has_crate": [True],
+                    "crate_full": [True],
+                    "picker_speed": [0.7],
+                    "no_berry_places": [["Waypoint103", "WayPoint104"]],
+                    "target_picker": ["Picker02"],
+                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id,mode)],
+                    "iterations": ["30"],
+                }
+                c.termination_time = 10
+                c.update_behaviour_times()
+                # e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+
+            try:  # variance testing short
+                c = Config(
+                    "thorvald_001",
+                    "Variance Test 1 Waypoint - Mode {}".format(mode),
+                )
+                c.behaviours = {}
+                c.parameters = {
+                    "robot_position": [[8.675, 4.6285]],
+                    "target": [["WayPoint103"]]*100,
+                    "iterations": ["30"],
+                }
+                c.termination_time = 7
+                c.update_behaviour_times()
+                e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+
+            try:  # variance testing long
+                c = Config(
+                    "thorvald_001",
+                    "Variance Test 3 Waypoints - Mode {}".format(mode),
+                )
+                c.behaviours = {}
+                c.parameters = {
+                    "robot_position": [[8.675, 4.6285]],
+                    "target": [["WayPoint105"]]*100,
+                    "iterations": ["30"],
+                }
+                c.termination_time = 16
+                c.update_behaviour_times()
                 e.add_config(c)
             except KeyError as err:
                 rospy.logwarn(err)

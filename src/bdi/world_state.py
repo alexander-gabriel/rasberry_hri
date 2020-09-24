@@ -93,6 +93,11 @@ class WorldState(object):
     def absent(self, link):
         return AbsentLink(link)
 
+    # variance experiment
+    def is_target(self, place):
+        return self.state2(ConceptNode("target"), place)
+    # variance experiment
+
     def state(self, concept, predicate, truth="TRUE"):
         # if not concept.type_name == "VariableNode":
         #     rospy.loginfo("KB: created StateLink(ListLink{:}, {:}), ConceptNode({:}))".format(concept, predicate, truth))

@@ -7,7 +7,7 @@ from image_recognition_msgs.msg import Recognitions
 from rasberry_hri.msg import Joints, Joint
 
 from converter import Converter
-from utils import get_model_prototype
+from common.utils import get_model_prototype
 
 CATEGORY_JOINTS_OPENPOSE_2D_RGB = 3
 CATEGORY_JOINTS_OPENPOSE_2D_THERMAL = 4

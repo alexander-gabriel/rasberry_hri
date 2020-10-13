@@ -14,7 +14,7 @@ def deduction_formula(AC, AB, BC):
 
 def _float_value2object_state(float_value, name):
     l = float_value.to_list()
-    if name.startsWith("Thorvald_"):
+    if name.startsWith("thorvald_"):
         return Object_State(name=name, timestamp=l[2], x=l[0], y=l[1], xsize=ROBOT_WIDTH, ysize=ROBOT_LENGTH, object_type="Person")
     else:
         return Object_State(name=name, timestamp=l[2], x=l[0], y=l[1], xsize=PICKER_WIDTH, ysize=PICKER_LENGTH, object_type="Person")

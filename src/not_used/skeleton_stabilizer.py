@@ -11,7 +11,7 @@ from sensor_msgs.msg import RegionOfInterest
 from image_recognition_msgs.msg import Recognitions, Recognition, CategoricalDistribution, CategoryProbability
 from rasberry_hri.msg import Joints, Joint
 
-from utils import get_model_prototype, mean
+from common.utils import get_model_prototype, mean
 
 PUBLISHING_RATE = 30 #Hz
 CATEGORY_JOINTS_OPENPOSE_2D_RGB = 3

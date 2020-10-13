@@ -47,7 +47,7 @@ class Experimenter:
                 experiment = Experiment(parameters, config)
                 experiment.setup()
                 experiment.spin()
-                config.reset()
+                # config.reset()
         rospy.core.signal_shutdown('timeout')
 
     def add_config(self, config):

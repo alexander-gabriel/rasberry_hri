@@ -1,30 +1,35 @@
 import os
 import time
-import threading
+from math import sqrt, sin, cos, atan2
 
-from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
-from qsrlib_io.world_trace import Object_State, World_Trace
+import numpy as np
+
+# from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
+# from qsrlib_io.world_trace import Object_State, World_Trace
 
 from opencog.type_constructors import ConceptNode
 from opencog.utilities import initialize_opencog
-from opencog.atomspace import AtomSpace
+# from opencog.atomspace import AtomSpace
 
+import tf
 import rospy
-import actionlib
+# import actionlib
 from rasberry_hri.msg import Action
-from topological_navigation.msg import GotoNodeAction, GotoNodeGoal
-from bayes_people_tracker.msg import PeopleTracker
-from std_srvs.srv import Empty
+# from topological_navigation.msg import GotoNodeAction, GotoNodeGoal
+# from bayes_people_tracker.msg import PeopleTracker
+# from std_srvs.srv import Empty
 from std_msgs.msg import String
 from geometry_msgs.msg import Pose, PoseStamped
 
-from parameters import TARGET_PICKER, FREQUENCY
-from utils import suppress, wp2sym, sym2wp, atomspace
+from common.parameters import TARGET_PICKER, FREQUENCY, MOVEMENT_NOISE_ALPHA, \
+                       MOVEMENT_NOISE_BETA, MOVEMENT_NOISE_GAMMA, \
+                       MOVEMENT_NOISE_DELTA, NS
+from common.utils import wp2sym, atomspace
 
 from bdi_system import BDISystem
 from knowledge_base import KnowledgeBase
 
-from opencog.logger import log
+# from opencog.logger import log
 
 # log.use_stdout()
 # log.set_level("DEBUG")
@@ -51,11 +56,12 @@ class Scheduler:
             self.robot_position_node_callback,
         )
         self.human_action_sub = rospy.Subscriber(
-            "/human_actions", Action, self.human_intention_callback
+            "{}/human_actions".format(NS),
+            Action, self.human_intention_callback
         )
         # self.picker01_sub = rospy.Subscriber("/picker01/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker01") )
         self.picker02_sub = rospy.Subscriber(
-            "/picker02/posestamped",
+            "/{}/posestamped".format(TARGET_PICKER),
             PoseStamped,
             lambda msg: self.picker_tracker_callback(msg, TARGET_PICKER),
         )
@@ -73,7 +79,6 @@ class Scheduler:
         Blocks until ROS node is shutdown. Yields activity to other threads.
         @raise ROSInitException: if node is not in a properly initialized state
         """
-        bdi = None
         if not rospy.core.is_initialized():
             raise rospy.exceptions.ROSInitException(
                 "client code must call rospy.init_node() first"
@@ -102,16 +107,56 @@ class Scheduler:
             rospy.logdebug("keyboard interrupt, shutting down")
             rospy.core.signal_shutdown("keyboard interrupt")
 
-    def robot_position_coordinate_callback(self, msg):
+    def add_position_noise(self, pose):
+        old_pose = self.bdi.latest_robot_msg
+        if old_pose is not None:
+            dx = pose.position.x - old_pose.position.x
+            dy = pose.position.y - old_pose.position.y
+            translation = sqrt(dx*dx + dy*dy)
+            q = [old_pose.orientation.x,
+                 old_pose.orientation.y,
+                 old_pose.orientation.z,
+                 old_pose.orientation.w]
+            (r, p, old_theta) = tf.transformations.euler_from_quaternion(q)
+            q = [pose.orientation.x,
+                 pose.orientation.y,
+                 pose.orientation.z,
+                 pose.orientation.w]
+            (r, p, theta) = tf.transformations.euler_from_quaternion(q)
+            old_rotation = atan2(dy, dx) - old_theta
+            rotation = theta - old_theta - old_rotation
+
+            sd_old_rotation = (MOVEMENT_NOISE_ALPHA * abs(old_rotation)
+                               + MOVEMENT_NOISE_BETA * translation)
+            sd_rotation = (MOVEMENT_NOISE_ALPHA * abs(rotation)
+                           + MOVEMENT_NOISE_BETA * translation)
+            sd_translation = (MOVEMENT_NOISE_GAMMA * translation
+                              + MOVEMENT_NOISE_DELTA * (abs(old_rotation)
+                                                        + abs(rotation)))
+
+            translation += np.random.normal(0, sd_translation * sd_translation)
+            old_rotation += np.random.normal(0,
+                                             sd_old_rotation * sd_old_rotation)
+            rotation += np.random.normal(0, sd_rotation * sd_rotation)
+
+            pose.position.x += \
+                translation * cos(old_theta + old_rotation)
+            pose.position.y += \
+                translation * sin(old_theta + old_rotation)
+            pose.orientation.x, pose.orientation.y, pose.orientation.z,
+            pose.orientation.w = tf.transformations.quaternion_from_euler(
+                    0, 0, old_theta + old_rotation + rotation)
+        return pose
+
+    def robot_position_coordinate_callback(self, pose):
         # rospy.loginfo("SCH: Robot position coordinate callback")
         start_time = time.time()
-        self.bdi.latest_robot_msg = msg
+        self.bdi.latest_robot_msg = pose  # self.add_position_noise(pose)
         duration = time.time() - start_time
         if duration > 0.01:
             rospy.loginfo(
-                "SCH: handled robot_position_coordinate_callback -- {:.4f}".format(
-                    duration
-                )
+                "SCH: handled robot_position_coordinate_callback -- {:.4f}"
+                .format(duration)
             )
 
     def robot_position_node_callback(self, msg):
@@ -122,7 +167,7 @@ class Scheduler:
             # set_type_ctor_atomspace(self.atomspace)
             self.latest_robot_node = wp2sym(msg.data)
             self.bdi.world_state.update_position(
-                ConceptNode(self.robot_id.capitalize()),
+                ConceptNode(self.robot_id),
                 ConceptNode(self.latest_robot_node),
             )
         else:
@@ -141,16 +186,17 @@ class Scheduler:
             # set_type_ctor_atomspace(self.atomspace)
             ## TODO: remove the next line for runs where action recognition is run in-line
             msg.person = TARGET_PICKER
-            rospy.loginfo(
-                "SCH: Perceived human action {}, {}".format(
-                    msg.person.capitalize(), msg.action
-                )
-            )
-            person = msg.person.capitalize()
+            # rospy.loginfo(
+            #     "SCH: Perceived human action {}, {}".format(
+            #         msg.person, msg.action
+            #     )
+            # )
+            person = msg.person
             self.bdi.world_state.update_action(person, msg.action)
 
     def picker_tracker_callback(self, msg, id):
         # rospy.loginfo("SCH: Picker position node callback")
+        # msg.pose = self.add_position_noise(msg.pose)
         start_time = time.time()
         self.bdi.latest_people_msgs[id] = msg
         duration = time.time() - start_time
@@ -197,7 +243,7 @@ class Scheduler:
     #                     qsrlib_response_message.qsrs.trace[t].qsrs.values()):
     #         foo += str(k) + ":" + str(v.qsr) + "; "
     #     rospy.loginfo(foo)
-    # world_qsr.trace[4].qsrs[self.robot_id.capitalize()+','+id].qsr['tpcc']
+    # world_qsr.trace[4].qsrs[self.robot_id','+id].qsr['tpcc']
     # direction = ""
     # if direction in ["dsf","csf"]:
     #     self.bdi.latest_people_msgs[id] = msg

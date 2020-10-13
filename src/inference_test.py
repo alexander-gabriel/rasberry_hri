@@ -8,7 +8,7 @@ from opencog.utilities import initialize_opencog
 from opencog.atomspace import AtomSpace, types
 from opencog.scheme_wrapper import scheme_eval
 
-from utils import OrderedConsistentSet, not_seen_picking
+from common.utils import OrderedConsistentSet, not_seen_picking
 from experiment_config import Small, Medium, Large, Short, Middle, Long, Deliver, Exchange
 
 

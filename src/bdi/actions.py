@@ -9,7 +9,7 @@ from opencog.type_constructors import (
     NumberNode,
 )
 
-from parameters import (
+from common.parameters import (
     ME,
     MOVE_GAIN,
     MEAN_WAYPOINT_DISTANCE,
@@ -31,11 +31,12 @@ from parameters import (
     APPROACH_GAIN,
     READY_POINT,
 )
-from utils import VariableCondition as V
-from utils import ConceptCondition as C
-from utils import PredicateCondition as P
-from utils import NumberCondition as N
-from utils import db
+
+from common.utils import VariableCondition as V
+from common.utils import ConceptCondition as C
+from common.utils import PredicateCondition as P
+from common.utils import NumberCondition as N
+from common.utils import db
 from world_state import WorldState as ws
 
 
@@ -120,9 +121,10 @@ class MoveAction(Action):
 
     condition_templates = [
         [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
-        [ws.not_same, [V("my_position", ConceptNode), V("my_destination", ConceptNode)]],
-        # [ws.is_a, [V("my_destination", ConceptNode), C("place")]],
-        [ws.is_target, [V("my_destination", ConceptNode)]],  # variance experiment
+        [ws.not_same, [V("my_position", ConceptNode),
+                       V("my_destination", ConceptNode)]],
+        [ws.is_a, [V("my_destination", ConceptNode), C("place")]],
+        # [ws.is_target, [V("my_destination", ConceptNode)]],  # variance experiment
         # [ws.linked, [V("my_position", ConceptNode),
         #                V("my_destination", ConceptNode)]]
     ]
@@ -149,10 +151,10 @@ class MoveAction(Action):
             self.sent_movement_request = True
             self.ws.moving = True
         try:
-            result = self.robco.get_result()
-            if result or self.ws.too_close:
+            if self.ws.too_close or self.robco.get_result():
                 x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
-                db.add_entry(time(), "end", self.destination, float(x), float(y))
+                db.add_entry(time(), "end", self.destination,
+                             float(x), float(y))
                 self.ws.moving = False
                 rospy.logwarn("ACT: Reached my destination.")
                 return True
@@ -577,7 +579,8 @@ class CloseApproachAction(Action):
         ],
         [
             ws.leads_to,
-            [V("my_destination", ConceptNode), V("picker_position", ConceptNode)],
+            [V("my_destination", ConceptNode),
+             V("picker_position", ConceptNode)],
         ],
         [
             ws.not_same,
@@ -736,7 +739,8 @@ class LeaveAction(Action):
         #     [V("my_position", ConceptNode), V("picker_position", ConceptNode)],
         # ],
     ]
-    consequence_templates = [[ws.not_dismissed_robot, [V("picker", ConceptNode)]]]
+    consequence_templates = [[ws.not_dismissed_robot,
+                              [V("picker", ConceptNode)]]]
     placeholders = [ME, "picker"]
 
     def __init__(self, world_state, robco, args):
@@ -757,7 +761,8 @@ class LeaveAction(Action):
             result = self.robco.get_result()
             if result:
                 self.ws.moving = False
-                rospy.logwarn("ACT: Reached my destination: {}".format(result.success))
+                rospy.logwarn("ACT: Reached my destination: {}"
+                              .format(result.success))
                 return True
         except Exception as err:
             rospy.logwarn(err)

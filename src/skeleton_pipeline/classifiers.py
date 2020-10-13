@@ -3,8 +3,8 @@ from math import pi
 
 from numpy import arctan2, abs, mean
 
-from parameters import *
-from utils import suppress
+from common.parameters import *
+from common.utils import suppress
 from poses import pose_list
 from rasberry_hri.msg import Classification, Pose, Criterium
 
@@ -61,23 +61,23 @@ class MinimumDifferenceClassifier:
 
                     if limit is None or abs(limit - 3.14159) < 0.001:
                         if limit is None:
-                            rospy.logwarn("DETECTED NONE ERROR")
-                            rospy.loginfo("{}-{}".format(label, target))
+                            rospy.logwarn("CLA: DETECTED NONE ERROR")
+                            rospy.loginfo("CLA: {}-{}".format(label, target))
                         else:
-                            rospy.logwarn("DETECTED PI ERROR")
-                            rospy.loginfo("{}-{}".format(label, target))
+                            rospy.logwarn("CLA: DETECTED PI ERROR")
+                            rospy.loginfo("CLA: {}-{}".format(label, target))
                         limit = pi
-                        rospy.logwarn("{}".format(label))
+                        rospy.logwarn("CLA: {}".format(label))
                         error = True
                     if value is None or abs(value - 3.14159) < 0.001:
                         if value is None:
-                            rospy.logwarn("DETECTED NONE ERROR")
-                            rospy.loginfo("{}-{}".format(label, target))
+                            rospy.logwarn("CLA: DETECTED NONE ERROR")
+                            rospy.loginfo("CLA: {}-{}".format(label, target))
                         else:
-                            rospy.logwarn("DETECTED PI ERROR")
-                            rospy.loginfo("{}-{}".format(label, target))
+                            rospy.logwarn("CLA: DETECTED PI ERROR")
+                            rospy.loginfo("CLA: {}-{}".format(label, target))
                         value = pi
-                        rospy.logwarn("{}".format(label))
+                        rospy.logwarn("CLA: {}".format(label))
                         error = True
                     if not error:
                         if direction == "=":

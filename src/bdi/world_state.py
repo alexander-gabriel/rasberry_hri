@@ -42,9 +42,9 @@ from opencog.type_constructors import (
 
 # from opencog.utilities import initialize_opencog
 
-from parameters import MINIMUM_DISTANCE, CRATE_CAPACITY, TIMEOUT_LENGTH
+from common.parameters import MINIMUM_DISTANCE, CRATE_CAPACITY, TIMEOUT_LENGTH
 
-# from utils import atomspace
+# from common.utils import atomspace
 
 # from topological_navigation.tmap_utils import get_distance
 
@@ -55,8 +55,6 @@ from parameters import MINIMUM_DISTANCE, CRATE_CAPACITY, TIMEOUT_LENGTH
 
 rospack = rospkg.RosPack()
 path = join(rospack.get_path("rasberry_hri"), "src", "bdi")
-
-TRUE = TruthValue(1, 1)
 
 
 class WorldState(object):
@@ -147,8 +145,9 @@ class WorldState(object):
         return FalseLink(thing)
 
     def update_position(self, person, place):
-        self.is_at(person, place).tv = TRUE
-        rospy.loginfo("WST: {:} is at {:}".format(person.name, place.name))
+        self.is_at(person, place).tv = self.kb.TRUE
+        rospy.loginfo("WST: Observation: {:} is at {:}".format(person.name,
+                                                               place.name))
 
     def get_position(self, place):
         return place.get_value(self._position).to_list()
@@ -162,11 +161,11 @@ class WorldState(object):
         dys = dy * dy
         try:
             w1, l1 = self.get_size(thing1)
-            w2, l2 = self.get_size(thing1)
+            w2, l2 = self.get_size(thing2)
             if dxs > dys:
-                return sqrt(dxs + dys) - 0.5 * (w1 + w2)
-            else:
                 return sqrt(dxs + dys) - 0.5 * (l1 + l2)
+            else:
+                return sqrt(dxs + dys) - 0.5 * (w1 + w2)
         except AttributeError:
             return sqrt(dxs + dys)
 
@@ -404,7 +403,7 @@ class WorldState(object):
 
     # add a place ConceptNode to the KB
     def add_place(self, name, x, y, truth_value=None):
-        truth_value = TRUE if truth_value is None else truth_value
+        truth_value = self.kb.TRUE if truth_value is None else truth_value
         node1 = ConceptNode(name)
         self.set_position(node1, x, y, 0)
         node1.tv = truth_value
@@ -413,7 +412,8 @@ class WorldState(object):
         return node1
 
     # add two 'linked' places
-    def add_place_link(self, place1, place2, truth_value=TRUE):
+    def add_place_link(self, place1, place2, truth_value=None):
+        truth_value = self.kb.TRUE if truth_value is None else truth_value
         p1 = ConceptNode(place1)
         p1.tv = truth_value
         self.is_a(p1, self.kb.place).tv = truth_value
@@ -438,7 +438,8 @@ class WorldState(object):
         )
 
     # add arbitrary typed things to the KB
-    def add_thing(self, name, klasse, truth_value=TRUE):
+    def add_thing(self, name, klasse, truth_value=None):
+        truth_value = self.kb.TRUE if truth_value is None else truth_value
         node1 = ConceptNode(name)
         node1.tv = truth_value
         node2 = ConceptNode(klasse)
@@ -451,33 +452,33 @@ class WorldState(object):
         # _as = self.kb.queryspace
         person = ConceptNode(person)
         if action == "picking berries" or action == "picking_berries_right":
-            self.seen_picking(person).tv = TRUE
+            self.seen_picking(person).tv = self.kb.TRUE
             rospy.loginfo(
-                "WST: {:} was observed {:}".format(person.name, action)
+                "WST: Observation: {:} is {:}".format(person.name, action)
             )
         elif action == "calling":
-            self.called_robot(person).tv = TRUE
+            self.called_robot(person).tv = self.kb.TRUE
             rospy.loginfo(
-                "WST: {:} was observed {:}".format(person.name, action)
+                "WST: Observation: {:} is {:}".format(person.name, action)
             )
         elif action == "gesture_cancel":
-            self.dismissed_robot(ConceptNode(person)).tv = TRUE
+            self.dismissed_robot(ConceptNode(person)).tv = self.kb.TRUE
             rospy.loginfo(
-                "WST: {:} was observed {:}".format(person.name, action)
+                "WST: Observation: {:} is {:}".format(person.name, action)
             )
         elif action == "gesture_stop":
             pass
-            # self.called_robot(ConceptNode(person)).tv = TRUE
+            # self.called_robot(ConceptNode(person)).tv = self.kb.TRUE
         elif action == "gesture_forward":
             pass
-            # self.called_robot(ConceptNode(person)).tv = TRUE
+            # self.called_robot(ConceptNode(person)).tv = self.kb.TRUE
         elif action == "gesture_backward":
             pass
-            # self.called_robot(ConceptNode(person)).tv = TRUE
+            # self.called_robot(ConceptNode(person)).tv = self.kb.TRUE
         elif action == "neutral" or action == "put_or_get_crate":
             pass
         else:
-            rospy.logerr("WST: Perceived unknown action {}".format(action))
+            rospy.logerr("WST: Observed unknown behaviour {}".format(action))
         # results = self.kb.reason(self.seen_picking(VariableNode("picker")),
         #                          VariableNode("picker"))
 

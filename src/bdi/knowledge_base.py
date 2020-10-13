@@ -18,9 +18,9 @@ import rospy
 # atomspace = AtomSpace()
 # initialize_opencog(atomspace)
 # set_type_ctor_atomspace(atomspace)
-from utils import atomspace
-# from parameters import *
-from parameters import ITERATIONS, COMPLEXITY_PENALTY
+from common.utils import atomspace
+# from common.parameters import *
+from common.parameters import ITERATIONS, COMPLEXITY_PENALTY
 # set_type_ctor_atomspace(self.atomspace)
 
 # def lock():
@@ -57,8 +57,8 @@ class KnowledgeBase(object):
         start_time = time.time()
         with self.lock:
             # if self.debug == 1:
-                # log.use_stdout()
-                # log.set_level("DEBUG")
+            #     log.use_stdout()
+            #     log.set_level("DEBUG")
             chainer = BackwardChainer(
                     _as=atomspace, rbs=ConceptNode("deduction-rule-base"),
                     trace_as=None, control_as=None, focus_set=None,

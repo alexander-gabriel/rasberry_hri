@@ -3,7 +3,7 @@ import rospy
 from rasberry_hri.msg import Joints, Joint, Action, Command
 from classifiers import MinimumDifferenceClassifier
 
-from utils import get_model_prototype
+from common.utils import get_model_prototype
 
 class SkeletonComparator():
 

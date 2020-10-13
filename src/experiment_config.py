@@ -1,7 +1,7 @@
 from opencog.type_constructors import *
 
 from bdi.goals import DeliverGoal, ExchangeGoal
-from utils import not_called_robot, called_robot, seen_picking, not_seen_picking
+from common.utils import not_called_robot, called_robot, seen_picking, not_seen_picking
 
 TRUE = TruthValue(1,1)
 

@@ -9,7 +9,7 @@ from opencog.atomspace import AtomSpace, types
 from opencog.scheme_wrapper import scheme_eval
 
 
-from utils import OrderedConsistentSet, atomspace
+from common.utils import OrderedConsistentSet, atomspace
 from experiment_config import Small, Medium, Large, Short, Middle, Long, Deliver, Exchange
 # scheme_eval(atomspace, execute_code)
 

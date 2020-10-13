@@ -9,7 +9,7 @@
         <!-- Set to match the cameras that are launched in the include file (camera launch script) -->
         <!-- <arg name="topic_prefixes" default="rsense"/>--> <!-- Separate topic_prefixes with commas -->
 
-        <node pkg="rasberry_hri" name="picker_mover" type="picker_mover_node" ns="$(arg _ns)" output="screen">
+        <node pkg="rasberry_hri" name="experimenter_node" type="experimenter_node" ns="$(arg _ns)" output="screen">
           <param name="/use_sim_time" value="true"/>
           <!-- <param name="robot_speed" type="double" value="$(arg robot_speed)"/>
           <param name="picker_speed" type="double" value="1.3"/>

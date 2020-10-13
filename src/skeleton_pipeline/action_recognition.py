@@ -1,35 +1,35 @@
-import sys
 import json
-import time
-from math import pi
 
 import rospy
 from openpose import Openpose
 
 from sensor_msgs.msg import Image
 from image_recognition_msgs.srv import Recognize
-from image_recognition_msgs.msg import Recognitions
 
-from parameters import *
+from common.parameters import NS, DETECTION_COUNT, COOLDOWN, TARGET_PICKER, \
+    CAMERA_TOPIC
 from rasberry_hri.msg import Action, Command, Joint, Classification
 from converter import Converter
 from classifiers import MinimumDifferenceClassifier
-from utils import get_angle_prototype, get_position_prototype, suppress
-
+from common.utils import get_angle_prototype, get_position_prototype, suppress
 
 
 class ActionRecognition:
-
 
     def __init__(self, normal_mode=False):
         self.normal_mode = normal_mode
         rospy.loginfo("ACR: ActionRecognition Node starting")
         if self.normal_mode:
-            self.action_publisher = rospy.Publisher('/human_actions', Action, queue_size=10)
+            self.action_publisher = rospy.Publisher('{}/human_actions'.format(
+                                                    NS), Action, queue_size=10)
         else:
-            self.action_publisher2 = rospy.Publisher('/human_actions_fast', Action, queue_size=10)
-        self.command_publisher = rospy.Publisher('/movement_control', Command, queue_size=10)
-        self.classification_publisher = rospy.Publisher('/pose_classification', Classification, queue_size=10)
+            self.action_publisher2 = rospy.Publisher('/human_actions_fast',
+                                                     Action, queue_size=10)
+        self.command_publisher = rospy.Publisher('/movement_control',
+                                                 Command, queue_size=10)
+        self.classification_publisher = rospy.Publisher('/pose_classification',
+                                                        Classification,
+                                                        queue_size=10)
         self.picker = TARGET_PICKER
         self.converter = Converter()
         self.classifier = MinimumDifferenceClassifier()
@@ -48,8 +48,6 @@ class ActionRecognition:
         else:
             rospy.Subscriber('/human_actions', Action, self.action_callback)
 
-
-
         # rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.callback_depth)
         # rospy.Subscriber("/camera/infra1/image_rect_raw", Image, self.callback_infra1)
         # rospy.Subscriber("/camera/infra2/image_rect_raw", Image, self.callback_infra2)
@@ -67,7 +65,6 @@ class ActionRecognition:
         else:
             rospy.spin()
 
-
     def openpose_callback(self, timestamp, source, response):
         if response.recognitions:
             self.converter.create_index_map(response.recognitions)
@@ -77,7 +74,7 @@ class ActionRecognition:
                 json.dump(angles, f)
             with open("/home/rasberry/positions.log", 'w') as f:
                 json.dump(positions, f)
-            action, classification  = self.get_action(angles, positions)
+            action, classification = self.get_action(angles, positions)
             classification.header.stamp = timestamp
             self.classification_publisher.publish(classification)
             with open("/home/rasberry/action.log", 'w') as f:
@@ -95,19 +92,19 @@ class ActionRecognition:
                 joint.label = key
                 try:
                     joint.angle = angles[key]
-                except:
+                except Exception:
                     pass
                 try:
                     joint.position.x = positions[key]["X"]
                     joint.position.y = positions[key]["Y"]
-                except:
+                except Exception:
                     pass
                 try:
-                    join.confidence = positions[key]["P"]
-                except:
+                    joint.confidence = positions[key]["P"]
+                except Exception:
                     pass
                 outmsg.joints.append(joint)
-                #TODO: identify picker
+                # TODO: identify picker
 
             self.action_publisher.publish(outmsg)
                 # outmsg = Command()
@@ -115,13 +112,12 @@ class ActionRecognition:
                 # outmsg.command = action
                 # self.command_publisher.publish(outmsg)
 
-
     def action_callback(self, msg):
         # start_time = time.time()
         positions = get_position_prototype()
         angles = get_angle_prototype()
         for joint in msg.joints:
-            #old
+            # old
             # angle_key = "{:}-X".format(joint.label)
             # pos_x_key = "{:}-X".format(joint.label)
             # pos_y_key = "{:}-Y".format(joint.label)
@@ -129,7 +125,7 @@ class ActionRecognition:
             positions[joint.label] = {}
             positions[joint.label]['X'] = joint.position.x
             positions[joint.label]['Y'] = joint.position.y
-            positions[joint.label]['P'] = 0.5 #joint.confidence
+            positions[joint.label]['P'] = 0.5  # joint.confidence
         # rospy.loginfo(angles)
         # sys.exit(0)
         with open("/home/rasberry/angles.log", 'w') as f:
@@ -157,23 +153,21 @@ class ActionRecognition:
                 joint.label = key
                 try:
                     joint.angle = angles[key]
-                except:
+                except Exception:
                     pass
                 try:
                     joint.position.x = positions[key]["X"]
                     joint.position.y = positions[key]["Y"]
-                except:
+                except Exception:
                     pass
                 try:
-                    join.confidence = positions[key]["P"]
-                except:
+                    joint.confidence = positions[key]["P"]
+                except Exception:
                     pass
                 outmsg.joints.append(joint)
-                #TODO: identify picker
+                # TODO: identify picker
             # rospy.logwarn("ACR: action recognition took {:.4f}s".format(time.time()-start_time))
             self.action_publisher2.publish(outmsg)
-
-
 
     def get_positions(self, recognitions):
 
@@ -185,24 +179,24 @@ class ActionRecognition:
                 model[id] = self.converter.get_position(id)
         return model
 
-
     def get_angles(self, recognitions):
         model = get_angle_prototype()
         for id in ['Neck', 'Upper-Spine', 'Mid-Spine', 'Lower-Spine']:
             try:
                 model[id] = self.converter.get_angle2(id)
-            except:
+            except Exception:
                 pass
 
-        for id in ['Right:Elbow', 'Upper-Spine', 'Mid-Spine', 'Lower-Spine', 'Right:Shoulder', 'Right:Hip', 'Right:Knee']:
+        for id in ['Right:Elbow', 'Upper-Spine', 'Mid-Spine', 'Lower-Spine',
+                   'Right:Shoulder', 'Right:Hip', 'Right:Knee']:
             try:
                 model[id] = self.converter.get_angle1(id)
-            except:
+            except Exception:
                 pass
         for id in ['Left:Elbow', 'Left:Shoulder', 'Left:Hip', 'Left:Knee']:
             try:
                 model[id] = self.converter.get_angle1(id)
-            except:
+            except Exception:
                 pass
         # self.publisher.publish(outmsg)
         # if msg.header.frame_id == "RGB":
@@ -214,21 +208,25 @@ class ActionRecognition:
         #self.model.classify(inp)
         return model
 
-
     def get_action(self, angles, positions):
         tuple, classification = self.classifier.classify(angles, positions)
         action_label = tuple[0]
         error = tuple[1]
         try:
-            rospy.logdebug("ACR: Detected behavior '{}' with penalty {}, counts {}".format(action_label, error, self.last_detected_count[action_label]))
-        except:
-            rospy.logdebug("ACR: Detected behavior '{}' with penalty {}, counts {}".format(action_label, error, 0))
+            rospy.logdebug(
+                "ACR: Detected behavior '{}' with penalty {}, counts {}"
+                .format(action_label, error,
+                        self.last_detected_count[action_label]))
+        except Exception:
+            rospy.logdebug(
+                "ACR: Detected behavior '{}' with penalty {}, counts {}"
+                .format(action_label, error, 0))
         if error < self.classifier.limit:
-            if not action_label in self.last_detected_count:
+            if action_label not in self.last_detected_count:
                 self.last_detected_count[action_label] = 1
             else:
                 self.last_detected_count[action_label] += 1
-            ## TODO: readjust
+            # TODO: readjust
             if self.last_detected_count[action_label] == self.detection_count:
                 self.last_detected_count.clear()
                 self.last_detected_count[action_label] = self.cooldown
@@ -239,10 +237,8 @@ class ActionRecognition:
         else:
             return (None, classification)
 
-
     def callback_rgb(self, data):
         self.openpose.latest_rgb.append(data)
-
 
     def callback_thermal(self, data):
         self.openpose.latest_thermal.append(data)

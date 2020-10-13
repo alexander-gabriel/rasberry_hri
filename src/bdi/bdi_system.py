@@ -17,7 +17,8 @@ from topological_navigation.route_search import TopologicalRouteSearch
 
 from rasberry_people_perception.topological_localiser import TopologicalNavLoc
 
-from parameters import (
+from common.parameters import (
+    NS,
     NO_BERRY_PLACES,
     ROBOT_WIDTH,
     ROBOT_LENGTH,
@@ -36,7 +37,7 @@ from parameters import (
     DISMISSED_ROBOT,
 )
 
-from utils import OrderedConsistentSet, suppress
+from common.utils import OrderedConsistentSet, suppress
 from bdi.goals import (
     ExchangeGoal,
     DeliverGoal,
@@ -81,12 +82,12 @@ class BDISystem:
             self.directions = {}
             self.latest_directions = {}
             self.desires = []
-            self.desires.append(MoveGoal)
+            # self.desires.append(MoveGoal)
             # self.desires.append(WaitGoal)
             # self.desires.append(LeaveGoal)
             # self.desires.append(ApproachGoal)
             # self.desires.append(CloseApproachGoal)
-            # self.desires.append(DeliverGoal)
+            self.desires.append(DeliverGoal)
             # self.desires.append(ExchangeGoal)
             # self.desires.append(EvadeGoal)
             # self.desires.append(DepositGoal)
@@ -102,7 +103,8 @@ class BDISystem:
             self.route_search = TopologicalRouteSearch(self.locator.tmap)
             rospy.loginfo("BDI: Adding Waypoints")
             # variance experiment
-            target = rospy.get_param("/thorvald_001/hri/target")[0]
+            target = rospy.get_param("{}/target_picker".format(NS))
+            rospy.loginfo("BDI: Target picker is: {}".format(target))
             # variance experiment
             for node in self.locator.tmap.nodes:
                 # if node in ["WayPoint103", "WayPoint104", "WayPoint105",
@@ -133,8 +135,8 @@ class BDISystem:
         rospy.loginfo("BDI: Initialized BDI System")
 
     def _setup_experiment(self, me):
-        rospy.loginfo("BDI: Adding Me")
-        self.me = self.world_state.add_thing(me.capitalize(), "robot")
+        rospy.loginfo("BDI: Adding Me: {}".format(me))
+        self.me = self.world_state.add_thing(me, "robot")
         self.world_state.set_size(self.me, ROBOT_WIDTH, ROBOT_LENGTH)
         rospy.loginfo("BDI: Adding Pickers")
         picker = self.world_state.add_thing(TARGET_PICKER, "human")
@@ -161,12 +163,16 @@ class BDISystem:
             self.world_state.crate_full(picker).tv = self.kb.TRUE
         else:
             self.world_state.not_crate_full(picker).tv = self.kb.TRUE
+        rospy.loginfo("BDI: Setting empty crate count of '{}' to {:d}.".format(
+            self.me.name, EMPTY_CRATE_COUNT))
         self.me.set_value(
             self.world_state._empty_crate_count, FloatValue(EMPTY_CRATE_COUNT),
         )
         # rospy.logerr("{:} has {:} empty crates".format(
         #     self.me.name,
         #     self.me.get_value(self.world_state._empty_crate_count)))
+        rospy.loginfo("BDI: Setting full crate count of '{}' to {:d}.".format(
+            self.me.name, FULL_CRATE_COUNT))
         self.me.set_value(
             self.world_state._full_crate_count, FloatValue(FULL_CRATE_COUNT),
         )
@@ -332,11 +338,11 @@ class BDISystem:
                 if update_direction:
                     if direction == "+":
                         self.world_state.leaving(picker).tv = self.kb.TRUE
-                        rospy.logwarn("BDI: {} is leaving".format(picker.name))
+                        rospy.logwarn("BDI: Observation: {} is leaving".format(picker.name))
                     elif direction == "-":
                         self.world_state.approaching(picker).tv = self.kb.TRUE
                         rospy.logwarn(
-                            "BDI: {} is approaching".format(picker.name)
+                            "BDI: Observation: {} is approaching".format(picker.name)
                         )
                     else:
                         if (
@@ -348,7 +354,7 @@ class BDISystem:
                             )
                         self.world_state.standing(picker).tv = self.kb.TRUE
                         rospy.logwarn(
-                            "BDI: {} is standing".format(picker.name)
+                            "BDI: Observation: {} is standing".format(picker.name)
                         )
                     self.latest_directions[picker.name] = direction
         # except (KeyError, AttributeError) as err:
@@ -365,38 +371,29 @@ class BDISystem:
             self.latest_distances[person.name] = distance
             minimum_distance = max(
                 MINIMUM_DISTANCE, self.world_state.get_optimum_distance(person)
-            )
-
-            if distance < minimum_distance:
+            ) + 0.35
+            # rospy.loginfo("BDI: Distance is: {:.2f}".format(distance))
+            if distance <= minimum_distance:
                 if not self.world_state.too_close:
-                    rospy.logwarn(
-                        ("BDI: Robot has met picker. " "Distance: {}").format(
-                            distance
-                        )
-                    )
+                    rospy.logwarn("BDI: Robot has met picker. Halting.")
                     self.world_state.too_close = True
                     self.picker_pose_publisher.publish("at robot")
                     self.robco.cancel_movement()
-                elif distance < 0.2:
-                    rospy.logwarn(
-                        ("BDI: Picker is too close. " "Distance: {}").format(
-                            distance
-                        )
-                    )
+                # elif distance < minimum_distance + 0.35:
+                    # rospy.logwarn(
+                    #     ("BDI: Picker is too close. " "Distance: {}").format(
+                    #         distance
+                    #     )
+                    # )
                 # elif abs(distance - self.last_distance) < 0.04:
             elif self.world_state.too_close:
-                rospy.loginfo(
-                    ("BDI: Robot has left picker. " "Distance: {}").format(
-                        distance
-                    )
-                )
+                rospy.loginfo("BDI: Robot has left picker.")
                 self.world_state.too_close = False
             # self.last_distance = distance
         except Exception as err:
             rospy.logerr(
-                "BDI: 268 - Couldn't react to distance events. Error: {:}".format(
-                    err
-                )
+                "BDI: 268 - Couldn't react to distance events. Error: {:}"
+                .format(err)
             )
             raise err
 

@@ -5,7 +5,7 @@ import numpy as np
 import rospy
 
 from filter import LimbFilter, PositionFilter
-from utils import suppress
+from common.utils import suppress
 
 class Converter:
 

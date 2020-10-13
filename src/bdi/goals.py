@@ -14,8 +14,8 @@ from opencog.type_constructors import (
     VariableNode,
 )
 
-from parameters import ME, DEPOT
-from utils import OrderedConsistentSet, VariableCondition
+from common.parameters import ME, DEPOT
+from common.utils import OrderedConsistentSet, VariableCondition
 from actions import (
     MoveAction,
     MoveToAction,
@@ -288,7 +288,7 @@ class Goal(object):
         start_time = time.time()
         templates = cls.get_condition_templates()
         picker_locations = world_state.get_picker_locations()
-        me = ConceptNode(world_state.me.capitalize())
+        me = ConceptNode(ME)
         my_location = world_state.get_location(me)
         if my_location is None:
             return targets
@@ -373,7 +373,7 @@ class Goal(object):
         targets = []
         # start_time = time.time()
         templates = cls.get_condition_templates()
-        me = ConceptNode(world_state.me.capitalize())
+        me = ConceptNode(ME)
         query, variables, target = cls.build_query(world_state, templates, me)
         # rospy.loginfo("GOL: Reason (has args):\n{:}".format(query))
         vars = VariableList(*variables.items)
@@ -414,7 +414,7 @@ class Goal(object):
         #         new_args = []
         #         for arg in args:
         #             if arg == ME:
-        #                 new_args.append(ConceptNode(world_state.me.capitalize()))
+        #                 new_args.append(ConceptNode(ME))
         #             else:
         #                 new_args.append(ConceptNode(arg))
         #         candidate = fun(world_state, *new_args)

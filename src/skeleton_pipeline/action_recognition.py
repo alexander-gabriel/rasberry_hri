@@ -16,7 +16,7 @@ from common.utils import get_angle_prototype, get_position_prototype, suppress
 
 class ActionRecognition:
 
-    def __init__(self, normal_mode=False):
+    def __init__(self, normal_mode=True):
         self.normal_mode = normal_mode
         rospy.loginfo("ACR: ActionRecognition Node starting")
         if self.normal_mode:
@@ -34,6 +34,7 @@ class ActionRecognition:
         self.converter = Converter()
         self.classifier = MinimumDifferenceClassifier()
         if self.normal_mode:
+            rospy.loginfo("ACR: Waiting for Recognition service")
             rospy.wait_for_service('recognize')
             self.interface = rospy.ServiceProxy('recognize', Recognize)
             rospy.loginfo("ACR: Waiting for OpenPose")
@@ -42,11 +43,12 @@ class ActionRecognition:
         self.cooldown = COOLDOWN
         self.last_detected_count = {}
         camera = CAMERA_TOPIC
-        rospy.loginfo("ACR: Subscribing to {:}".format(camera))
         if self.normal_mode:
             rospy.Subscriber(camera, Image, self.callback_rgb)
+            rospy.loginfo("ACR: Subscribed to {:}".format(camera))
         else:
             rospy.Subscriber('/human_actions', Action, self.action_callback)
+            rospy.loginfo("ACR: Subscribed to {:}".format('/human_actions'))
 
         # rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.callback_depth)
         # rospy.Subscriber("/camera/infra1/image_rect_raw", Image, self.callback_infra1)

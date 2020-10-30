@@ -3,6 +3,8 @@ import time
 import inspect
 from copy import copy
 
+from common.utils import db
+
 # from opencog.bindlink import execute_atom, evaluate_atom
 from opencog.type_constructors import (
     ConceptNode,
@@ -46,20 +48,25 @@ class Goal(object):
         self.subgoals = []
         self.world_state = world_state
         # action to be performed (only if there are no subgoals)
+        self.start_time = rospy.get_time()
         self.action = self.instantiate_action_template(
             world_state, robco, args
         )
+        x, y, _ = self.world_state.get_position(ConceptNode(ME))[-1].to_list()
+        if self.action_template is None:
+            db.add_goal_entry(self.start_time, float(x), float(y),
+                              self.__class__.__name__)
 
     @classmethod
     def instantiate_action_template(cls, world_state, robco, args):
         try:
             return cls.action_template(world_state, robco, args)
-        except TypeError as err:
-            rospy.logwarn(
-                "Goal {:} initialization error: {:}".format(
-                    cls, err
-                )
-            )
+        except TypeError:
+            # rospy.loginfo(
+            #     "GOL: {:} initialization error: {:}".format(
+            #         cls, err
+            #     )
+            # )
             return None
 
     def __eq__(self, other):
@@ -398,8 +405,12 @@ class Goal(object):
 
     def is_achieved(self, world_state):
         if not self.get_action_queue():
+            time = rospy.get_time()
             for fun, args in self.get_consequences():
                 fun(world_state, *args)
+            x, y, _ = world_state.get_position(ConceptNode(ME))[-1].to_list()
+            db.update_goal_entry(self.start_time, float(x), float(y),
+                                 time - self.start_time)
             return True
         else:
             return False

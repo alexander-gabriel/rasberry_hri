@@ -2,6 +2,8 @@
 
 import sys
 import time
+import json
+from hashlib import sha256
 
 import rospy
 from experiments.config import Config
@@ -75,6 +77,9 @@ if __name__ == "__main__":
                     "iterations": ["30"],
                 }
                 c.termination_time = 15
+                c.experiment_id = sha256(json.dumps(c.behaviours)
+                                         + json.dumps(c.parameters)
+                                         + str(c.termination_time)).hexdigest()
                 # c.update_behaviour_times()
                 # e.add_config(c)
             except KeyError as err:
@@ -106,6 +111,9 @@ if __name__ == "__main__":
                     "iterations": ["30"],
                 }
                 c.termination_time = 23
+                c.experiment_id = sha256(json.dumps(c.behaviours)
+                                         + json.dumps(c.parameters)
+                                         + str(c.termination_time)).hexdigest()
                 # c.update_behaviour_times()
                 # e.add_config(c)
             except KeyError as err:
@@ -137,6 +145,9 @@ if __name__ == "__main__":
                     "iterations": ["30"],
                 }
                 c.termination_time = 25
+                c.experiment_id = sha256(json.dumps(c.behaviours)
+                                         + json.dumps(c.parameters)
+                                         + str(c.termination_time)).hexdigest()
                 # c.update_behaviour_times()
                 # e.add_config(c)s
             except KeyError as err:
@@ -168,6 +179,9 @@ if __name__ == "__main__":
                     "iterations": ["30"],
                 }
                 c.termination_time = 20
+                c.experiment_id = sha256(json.dumps(c.behaviours)
+                                         + json.dumps(c.parameters)
+                                         + str(c.termination_time)).hexdigest()
                 # c.update_behaviour_times()
                 # e.add_config(c)
             except KeyError as err:
@@ -199,6 +213,9 @@ if __name__ == "__main__":
                     "iterations": ["30"],
                 }
                 c.termination_time = 25
+                c.experiment_id = sha256(json.dumps(c.behaviours)
+                                         + json.dumps(c.parameters)
+                                         + str(c.termination_time)).hexdigest()
                 # c.update_behaviour_times()
                 # e.add_config(c)
             except KeyError as err:
@@ -225,6 +242,9 @@ if __name__ == "__main__":
                     "iterations": ["30"],
                 }
                 c.termination_time = 15
+                c.experiment_id = sha256(json.dumps(c.behaviours)
+                                         + json.dumps(c.parameters)
+                                         + str(c.termination_time)).hexdigest()
                 # c.update_behaviour_times()
                 # e.add_config(c)
             except KeyError as err:
@@ -255,6 +275,9 @@ if __name__ == "__main__":
                     "iterations": ["30"],
                 }
                 c.termination_time = 20
+                c.experiment_id = sha256(json.dumps(c.behaviours)
+                                         + json.dumps(c.parameters)
+                                         + str(c.termination_time)).hexdigest()
                 # c.update_behaviour_times()
                 # e.add_config(c)
             except KeyError as err:
@@ -284,6 +307,9 @@ if __name__ == "__main__":
                     "iterations": ["30"],
                 }
                 c.termination_time = 20
+                c.experiment_id = sha256(json.dumps(c.behaviours)
+                                         + json.dumps(c.parameters)
+                                         + str(c.termination_time)).hexdigest()
                 # c.update_behaviour_times()
                 # e.add_config(c)
             except KeyError as err:
@@ -311,6 +337,9 @@ if __name__ == "__main__":
                     "iterations": ["30"],
                 }
                 c.termination_time = 10
+                c.experiment_id = sha256(json.dumps(c.behaviours)
+                                         + json.dumps(c.parameters)
+                                         + str(c.termination_time)).hexdigest()
                 # c.update_behaviour_times()
                 # e.add_config(c)
             except KeyError as err:
@@ -343,6 +372,9 @@ if __name__ == "__main__":
                     "iterations": ["30"],
                 }
                 c.termination_time = 15
+                c.experiment_id = sha256(json.dumps(c.behaviours)
+                                         + json.dumps(c.parameters)
+                                         + str(c.termination_time)).hexdigest()
                 # c.update_behaviour_times()
                 # e.add_config(c)
             except KeyError as err:
@@ -379,6 +411,9 @@ if __name__ == "__main__":
                     "iterations": ["30"],
                 }
                 c.termination_time = 16
+                c.experiment_id = sha256(json.dumps(c.behaviours)
+                                         + json.dumps(c.parameters)
+                                         + str(c.termination_time)).hexdigest()
                 # c.update_behaviour_times()
                 # e.add_config(c)
             except KeyError as err:
@@ -405,13 +440,57 @@ if __name__ == "__main__":
                     "full_crate_count": [1],
                     "empty_crate_count": [2],
                     "no_berry_places": [["WayPoint103", "WayPoint104"]],
-                    "target_picker": ["picker02"],
+                    "target_picker": ["picker01"],
+                    # "pickers": [["picker01", "picker02", "picker02",
+                    #             "picker03", "picker04", "picker05",
+                    #             "picker06", "picker07", "picker08",
+                    #             "picker09", "picker10"]],
                     # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id, mode)],
                     "iterations": ["30"],
                 }
                 c.termination_time = 23
+                c.experiment_id = sha256(json.dumps(c.behaviours)
+                                         + json.dumps(c.parameters)
+                                         + str(c.termination_time)).hexdigest()
                 # c.update_behaviour_times()
                 e.add_config(c)
+            except KeyError as err:
+                rospy.logwarn(err)
+            try:  # deliver because picker called
+                c = Config(
+                    "thorvald_001",
+                    "Delivery - Subject {} - Mode {}".format(subject_id, mode),
+                )
+                c.behaviours = BEHAVIOURS["deliver no call"]
+                # c.behaviours[2] = calls[subject_id][mode]
+                # c.behaviours[2] = {
+                #     "type": "message",
+                #     "target": "picker_movement",
+                #     "message": "deliver",
+                # }
+                c.parameters = {
+                    "robot_position": [[11.41, 4.6285]],
+                    "called_robot": [False],  # , False],
+                    "has_crate": [False],
+                    "crate_full": [True],  # , False],
+                    "picker_speed": [0.7],
+                    "full_crate_count": [1],
+                    "empty_crate_count": [2],
+                    "no_berry_places": [["WayPoint103", "WayPoint104"]],
+                    "target_picker": ["picker01"],
+                    # "pickers": [["picker01", "picker02", "picker02",
+                    #             "picker03", "picker04", "picker05",
+                    #             "picker06", "picker07", "picker08",
+                    #             "picker09", "picker10"]],
+                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id, mode)],
+                    "iterations": ["30"],
+                }
+                c.termination_time = 23
+                c.experiment_id = sha256(json.dumps(c.behaviours)
+                                         + json.dumps(c.parameters)
+                                         + str(c.termination_time)).hexdigest()
+                # c.update_behaviour_times()
+                # e.add_config(c)
             except KeyError as err:
                 rospy.logwarn(err)
 

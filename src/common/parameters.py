@@ -4,10 +4,13 @@ import rospy
 
 VERBOSE = False
 
-FREQUENCY = 5  # Hz
+REASONING_LOOP_FREQUENCY = 20  # Hz
 ME = rospy.names.get_namespace()
 NS = "{}hri".format(ME)
 ME = ME.strip("/")
+
+EXPERIMENT_ID = rospy.get_param("{}/experiment_id".format(NS), "NO ID SET")
+
 ITERATIONS = rospy.get_param("{}/iterations".format(NS), "30")
 COMPLEXITY_PENALTY = rospy.get_param("{}/complexity_penalty".format(NS), 0.1)
 MAX_COST = rospy.get_param("{}/max_cost", 240)
@@ -23,7 +26,13 @@ ROBOT_LENGTH = 1.5
 ROBOT_WIDTH = 1.35584
 PICKER_LENGTH = 0.4
 PICKER_WIDTH = 0.5
-PICKERS = rospy.get_param("{}/pickers".format(NS), "picker01,picker02")
+PICKERS = rospy.get_param("{}/pickers".format(NS), [
+    "picker01", "picker02", "picker02", "picker03", "picker04",
+    "picker05", "picker06", "picker07", "picker08", "picker09",
+    "picker10"])
+PICKER_MODE = rospy.get_param("{}/picker_mode".format(NS), "standing")
+PICKER_SPEED = rospy.get_param("{}/picker_speed".format(NS), 0.7)  # m/s
+PICKER_UPDATE_FREQUENCY = rospy.get_param("{}/picker_sim_frequency".format(NS), 30)  # Hz
 TARGET_PICKER = rospy.get_param(
     "{}/target_picker".format(NS), "TARGET_PICKER-IS-NOT-SET"
 )
@@ -101,43 +110,43 @@ MOVEMENT_NOISE_DELTA = rospy.get_param("{}/movement_noise_delta".format(NS), 0)
 BEHAVIOURS = {"deliver wait after call": [["wait for robot", 2],
                                           ["call robot", 0],
                                           ["wait for robot to move", 0],
-                                          ["approach robot", 0],
+                                          ["approach without crate", 0],
                                           ["wait for robot", 2.5],
-                                          ["leave robot", 0],
+                                          ["leave with crate", 0],
                                           ["pick berries", 10]],
               "deliver no call": [["wait for robot", 2],
                                   ["wait for robot to move", 0],
-                                  ["approach robot", 0],
+                                  ["approach without crate", 0],
                                   ["wait for robot", 2.5],
-                                  ["leave robot", 0],
+                                  ["leave with crate", 0],
                                   ["pick berries", 10]],
               "deliver no wait": [["wait for robot", 2],
                                   ["call robot", 0],
-                                  ["approach robot", 0],
+                                  ["approach without crate", 0],
                                   ["wait for robot", 2.5],
-                                  ["leave robot", 0],
+                                  ["leave with crate", 0],
                                   ["pick berries", 10]],
               "exchange wait after call": [["pick berries", 2],
                                            ["call robot", 0],
                                            ["wait for robot to move", 0],
-                                           ["approach robot", 0],
+                                           ["approach with crate", 0],
                                            ["wait for robot", 5.0],
-                                           ["leave robot", 0],
+                                           ["leave with crate", 0],
                                            ["pick berries", 10]],
               "exchange no call": [["pick berries", 2],
                                    ["wait for robot to move", 0],
-                                   ["approach robot", 0],
+                                   ["approach with crate", 0],
                                    ["wait for robot", 5.0],
-                                   ["leave robot", 0],
+                                   ["leave with crate", 0],
                                    ["pick berries", 10]],
               "exchange no wait": [["pick berries", 2],
                                    ["call robot", 0],
-                                   ["approach robot", 0],
+                                   ["approach with crate", 0],
                                    ["wait for robot", 5],
-                                   ["leave robot", 0],
+                                   ["leave with crate", 0],
                                    ["pick berries", 10]],
               "wait": [["wait for robot", 10]],
               "picking berries": [["pick berries", 10]],
               "pass robot": [["pick berries", 2],
-                             ["pass robot", 0],
+                             ["pass with crate", 0],
                              ["pick berries", 10]]}

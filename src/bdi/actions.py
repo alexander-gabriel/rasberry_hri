@@ -1,4 +1,4 @@
-from time import sleep, time
+from time import time
 
 import rospy
 
@@ -56,6 +56,7 @@ class Action(object):
         self.consequences = []
         self.cost = 0
         self.first_try = True
+        self.start_time = None
 
         replacement_table = args
         # {key: value for key, value in zip(self.placeholders, self.instances)}
@@ -102,6 +103,7 @@ class Action(object):
 
     def perform(self):
         if self.first_try:
+            self.start_time = rospy.get_time()
             rospy.loginfo("ACT: Performing {:}".format(self))
             self.first_try = False
         # for condition in self.conditions:
@@ -146,17 +148,20 @@ class MoveAction(Action):
         if not self.sent_movement_request:
             # timestamp, typ, distance, x, y
             x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
-            db.add_entry(time(), "start", self.destination, float(x), float(y))
+            db.add_action_entry(self.start_time, float(x), float(y),
+                                self.__class__.__name__, "{} - {}"
+                                .format(self.position, self.destination))
             self.robco.move_to(self.destination)
             self.sent_movement_request = True
             self.ws.moving = True
         try:
             if self.ws.too_close or self.robco.get_result():
+                time = rospy.get_time()
                 x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
-                db.add_entry(time(), "end", self.destination,
-                             float(x), float(y))
                 self.ws.moving = False
                 rospy.logwarn("ACT: Reached my destination.")
+                db.update_action_entry(self.start_time, float(x), float(y),
+                                            time - self.start_time)
                 return True
         except AttributeError:
             return False
@@ -195,12 +200,22 @@ class MoveToAction(Action):
     def perform(self):
         super(MoveToAction, self).perform()
         if self.position == self.destination:
+            time = rospy.get_time()
             rospy.logwarn(
                 "ACT: Reached my destination: {}".format(self.destination)
             )
+            x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+            db.update_action_entry(self.start_time, float(x), float(y),
+                                        time - self.start_time)
             return True
         else:
             if not self.sent_movement_request:
+                x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+                db.add_action_entry(self.start_time, float(x), float(y),
+                                         self.__class__.__name__,
+                                         "{} - {}".format(
+                                            self.position,
+                                            self.destination))
                 self.robco.move_to(self.destination)
                 self.sent_movement_request = True
                 self.ws.moving = True
@@ -256,6 +271,7 @@ class EvadeAction(Action):
     def __init__(self, world_state, robco, args):
         super(EvadeAction, self).__init__(world_state, args)
         self.robco = robco
+        self.position = args["my_position"]
         self.picker = args["picker"]
         self.destination = args["my_destination"]
         self.gain = EVADE_GAIN
@@ -264,6 +280,12 @@ class EvadeAction(Action):
     def perform(self):
         super(EvadeAction, self).perform()
         if not self.sent_movement_request:
+            x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+            db.add_action_entry(self.start_time, float(x), float(y),
+                                     self.__class__.__name__,
+                                     "{} - {}".format(
+                                        self.position,
+                                        self.destination))
             self.robco.move_to(self.destination)
             self.sent_movement_request = True
             self.ws.moving = True
@@ -271,6 +293,10 @@ class EvadeAction(Action):
             success = self.robco.get_result().success
             self.ws.moving = False
             rospy.logwarn("movement success is: {}".format(success))
+            time = rospy.get_time()
+            x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+            db.update_action_entry(self.start_time, float(x), float(y),
+                                        time - self.start_time)
             return True
         except Exception:
             return False
@@ -318,6 +344,7 @@ class GiveCrateAction(Action):
         super(GiveCrateAction, self).__init__(world_state, args)
         self.robco = robco
         self.picker = args["picker"]
+        self.position = args["my_position"]
         self.gain = GIVE_GAIN
         self.cost = GIVE_COST
 
@@ -326,14 +353,21 @@ class GiveCrateAction(Action):
 
     def perform(self):
         super(GiveCrateAction, self).perform()
-        sleep(self.cost)
+        rospy.sleep(self.cost)
         for fun, args in self.consequences:
             new_args = []
             for arg in args:
                 new_args.append(arg)
             consequence = fun(self.ws, *new_args)
-            rospy.loginfo("Entering consequence: {}".format(consequence))
+            # rospy.loginfo("Entering consequence: {}".format(consequence))
             consequence.tv = TruthValue(1, 1)
+        time = rospy.get_time()
+        x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+        db.add_action_entry(self.start_time, float(x), float(y),
+                            self.__class__.__name__,
+                            "{}".format(self.position))
+        db.update_action_entry(self.start_time, float(x), float(y),
+                               time - self.start_time)
         return True
 
     def __repr__(self):
@@ -385,14 +419,21 @@ class ExchangeCrateAction(Action):
 
     def perform(self):
         super(ExchangeCrateAction, self).perform()
-        sleep(self.cost)
+        rospy.sleep(self.cost)
         for fun, args in self.consequences:
             new_args = []
             for arg in args:
                 new_args.append(arg)
             consequence = fun(self.ws, *new_args)
-            rospy.loginfo("Entering consequence: {}".format(consequence))
+            # rospy.loginfo("Entering consequence: {}".format(consequence))
             consequence.tv = TruthValue(1, 1)
+        time = rospy.get_time()
+        x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+        db.add_action_entry(self.start_time, float(x), float(y),
+                            self.__class__.__name__,
+                            "{}".format(self.position))
+        db.update_action_entry(self.start_time, float(x), float(y),
+                               time - self.start_time)
         return True
 
     def __repr__(self):
@@ -453,14 +494,21 @@ class DepositCrateAction(Action):
 
     def perform(self):
         super(DepositCrateAction, self).perform()
-        sleep(self.get_cost())
+        rospy.sleep(self.get_cost())
         for fun, args in self.consequences:
             new_args = []
             for arg in args:
                 new_args.append(arg)
             consequence = fun(self.ws, *new_args)
-            rospy.loginfo("Entering consequence: {}".format(consequence))
+            # rospy.loginfo("Entering consequence: {}".format(consequence))
             consequence.tv = TruthValue(1, 1)
+        time = rospy.get_time()
+        x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+        db.add_action_entry(self.start_time, float(x), float(y),
+                            self.__class__.__name__,
+                            "{}".format(self.position))
+        db.update_action_entry(self.start_time, float(x), float(y),
+                               time - self.start_time)
         return True
 
     def __repr__(self):
@@ -539,6 +587,11 @@ class ApproachAction(Action):
             return True
         else:
             if not self.sent_movement_request:
+                x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+                db.add_action_entry(self.start_time, float(x), float(y),
+                                    self.__class__.__name__,
+                                    "{} - {}".format(self.position,
+                                                     self.destination))
                 self.robco.move_to(self.destination)
                 self.sent_movement_request = True
                 self.ws.moving = True
@@ -546,12 +599,17 @@ class ApproachAction(Action):
                 # this next line will
                 result = self.robco.get_result()
                 if result:
+                    time = rospy.get_time()
                     self.ws.moving = False
                     rospy.logwarn(
                         "ACT: Reached my destination: {}".format(
                             result.success
                         )
                     )
+                    x, y, _ = self.ws.get_position(
+                        ConceptNode(ME))[-1].to_list()
+                    db.update_action_entry(self.start_time, float(x), float(y),
+                                           time - self.start_time)
                     return True
             except Exception as err:
                 # rospy.logwarn(err)
@@ -624,6 +682,11 @@ class CloseApproachAction(Action):
             return True
         else:
             if not self.sent_movement_request:
+                x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+                db.add_action_entry(self.start_time, float(x), float(y),
+                                    self.__class__.__name__,
+                                    "{} - {}".format(self.position,
+                                                     self.destination))
                 self.robco.move_to(self.destination)
                 self.sent_movement_request = True
                 self.ws.moving = True
@@ -631,12 +694,17 @@ class CloseApproachAction(Action):
                 # this next line will
                 result = self.robco.get_result()
                 if result:
+                    time = rospy.get_time()
                     self.ws.moving = False
                     rospy.logwarn(
                         "ACT: Reached my destination: {}".format(
                             result.success
                         )
                     )
+                    x, y, _ = self.ws.get_position(
+                        ConceptNode(ME))[-1].to_list()
+                    db.update_action_entry(self.start_time, float(x), float(y),
+                                           time - self.start_time)
                     return True
             except Exception as err:
                 # rospy.logwarn(err)
@@ -704,11 +772,18 @@ class WaitAction(Action):
         picker = ConceptNode(self.picker)
         current_time = time()
         if self.timeout == -1:
+            x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+            db.add_action_entry(self.start_time, float(x), float(y),
+                                self.__class__.__name__,
+                                "{}".format(self.position))
             self.timeout = current_time + TIMEOUT_LENGTH
         else:
             if current_time > self.timeout:
                 self.timeout = -1
                 self.ws.dismissed_robot(picker).tv = self.kb.TRUE
+                x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+                db.update_action_entry(self.start_time, float(x), float(y),
+                                       current_time - self.start_time)
         return True
 
     def get_cost(self):
@@ -747,6 +822,7 @@ class LeaveAction(Action):
         super(LeaveAction, self).__init__(world_state, args)
         self.robco = robco
         self.picker = args["picker"]
+        self.position = args["my_position"]
         self.destination = READY_POINT
         self.gain = LEAVE_GAIN
         self.sent_movement_request = False
@@ -754,15 +830,23 @@ class LeaveAction(Action):
     def perform(self):
         super(LeaveAction, self).perform()
         if not self.sent_movement_request:
+            x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+            db.add_action_entry(self.start_time, float(x), float(y),
+                                self.__class__.__name__, "{} - {}"
+                                .format(self.position, self.destination))
             self.robco.move_to(self.destination)
             self.sent_movement_request = True
             self.ws.moving = True
         try:
             result = self.robco.get_result()
             if result:
+                time = rospy.get_time()
                 self.ws.moving = False
                 rospy.logwarn("ACT: Reached my destination: {}"
                               .format(result.success))
+                x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+                db.update_action_entry(self.start_time, float(x), float(y),
+                                       time - self.start_time)
                 return True
         except Exception as err:
             rospy.logwarn(err)

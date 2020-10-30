@@ -11,28 +11,33 @@ class DB:
 
     def build_db(self):
         cursor = self.db.cursor()
-        cursor.execute("CREATE TABLE parts (timestamp float, type text, distance int)")
+        cursor.execute(
+            "CREATE TABLE parts (timestamp float, type text, distance int)")
         self.db.commit()
 
     def add_timestamp(self, timestamp):
         cursor = self.db.cursor()
         print(timestamp)
-        cursor.execute("INSERT INTO parts VALUES ({:f}, '', 0)".format(timestamp))
+        cursor.execute("INSERT INTO parts VALUES ({:f}, '', 0)"
+                       .format(timestamp))
         self.db.commit()
 
     def update_timestamp(self, old_timestamp, new_timestamp):
         cursor = self.db.cursor()
-        cursor.execute("UPDATE parts SET timestamp='{:f}' WHERE timestamp={:f}".format(new_timestamp, old_timestamp))
+        cursor.execute("UPDATE parts SET timestamp='{:f}' WHERE timestamp={:f}"
+                       .format(new_timestamp, old_timestamp))
         self.db.commit()
 
     def add_type(self, timestamp, part_type):
         cursor = self.db.cursor()
-        cursor.execute("UPDATE parts SET type='{}' WHERE timestamp={:f}".format(part_type, timestamp))
+        cursor.execute("UPDATE parts SET type='{}' WHERE timestamp={:f}"
+                       .format(part_type, timestamp))
         self.db.commit()
 
     def add_distance(self, timestamp, distance):
         cursor = self.db.cursor()
-        cursor.execute("UPDATE parts SET distance='{}' WHERE timestamp={:f}".format(distance, timestamp))
+        cursor.execute("UPDATE parts SET distance='{}' WHERE timestamp={:f}"
+                       .format(distance, timestamp))
         self.db.commit()
 
     def get_last_timestamp(self):

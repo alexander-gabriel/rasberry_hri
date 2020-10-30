@@ -1,6 +1,7 @@
 # from threading import Lock
 from contextlib import contextmanager
 from math import pi
+
 import os
 # import sys
 
@@ -17,6 +18,8 @@ from opencog.type_constructors import VariableNode, ConceptNode, \
 from opencog.utilities import initialize_opencog
 
 from experiments.log_writer import DB
+
+from common.parameters import EXPERIMENT_ID
 
 atomspace = AtomSpace()
 initialize_opencog(atomspace)
@@ -294,4 +297,4 @@ def mean(liste):
     return sum(liste)/len(liste)
 
 
-db = DB()
+db = DB(EXPERIMENT_ID)

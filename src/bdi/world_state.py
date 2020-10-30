@@ -149,25 +149,33 @@ class WorldState(object):
         rospy.loginfo("WST: Observation: {:} is at {:}".format(person.name,
                                                                place.name))
 
-    def get_position(self, place):
-        return place.get_value(self._position).to_list()
+    def get_position(self, entity):
+        return entity.get_value(self._position).to_list()
 
-    def get_distance(self, thing1, thing2):
+    def get_distance(self, thing1, thing2, only_x=False):
         p1x, p1y, _ = self.get_position(thing1)[-1].to_list()
         p2x, p2y, _ = self.get_position(thing2)[-1].to_list()
         dx = p1x - p2x
         dy = p1y - p2y
         dxs = dx * dx
         dys = dy * dy
-        try:
-            w1, l1 = self.get_size(thing1)
-            w2, l2 = self.get_size(thing2)
-            if dxs > dys:
-                return sqrt(dxs + dys) - 0.5 * (l1 + l2)
-            else:
-                return sqrt(dxs + dys) - 0.5 * (w1 + w2)
-        except AttributeError:
-            return sqrt(dxs + dys)
+        if only_x:
+            try:
+                w1, l1 = self.get_size(thing1)
+                w2, l2 = self.get_size(thing2)
+                return abs(dx) - 0.5 * (l1 + l2)
+            except AttributeError:
+                return abs(dx)
+        else:
+            try:
+                w1, l1 = self.get_size(thing1)
+                w2, l2 = self.get_size(thing2)
+                if dxs > dys:
+                    return sqrt(dxs + dys) - 0.5 * (l1 + l2)
+                else:
+                    return sqrt(dxs + dys) - 0.5 * (w1 + w2)
+            except AttributeError:
+                return sqrt(dxs + dys)
 
     def set_berry_state(self, place, ripe):
         place.set_value(self._berry_count, NumberNode(str(ripe)))

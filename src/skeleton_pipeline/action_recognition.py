@@ -1,5 +1,5 @@
 import json
-
+import os
 import rospy
 from openpose import Openpose
 
@@ -7,7 +7,8 @@ from sensor_msgs.msg import Image
 from image_recognition_msgs.srv import Recognize
 
 from common.parameters import NS, DETECTION_COUNT, COOLDOWN, TARGET_PICKER, \
-    CAMERA_TOPIC
+    CAMERA_TOPIC, BEHAVIOR_PERCEPTION, GESTURE_PERCEPTION, CONFIG_DIRECTORY, \
+    LOG_DIRECTORY, USE_ACTION_RECOGNITION
 from rasberry_hri.msg import Action, Command, Joint, Classification
 from converter import Converter
 from classifiers import MinimumDifferenceClassifier
@@ -16,12 +17,14 @@ from common.utils import get_angle_prototype, get_position_prototype, suppress
 
 class ActionRecognition:
 
-    def __init__(self, normal_mode=True):
-        self.normal_mode = normal_mode
+    def __init__(self):
+        self.normal_mode = USE_ACTION_RECOGNITION
         rospy.loginfo("ACR: ActionRecognition Node starting")
         if self.normal_mode:
             self.action_publisher = rospy.Publisher('{}/human_actions'.format(
                                                     NS), Action, queue_size=10)
+            rospy.loginfo(
+                "ACR: Created publisher at {}/human_actions".format(NS))
         else:
             self.action_publisher2 = rospy.Publisher('/human_actions_fast',
                                                      Action, queue_size=10)
@@ -43,12 +46,12 @@ class ActionRecognition:
         self.cooldown = COOLDOWN
         self.last_detected_count = {}
         camera = CAMERA_TOPIC
-        if self.normal_mode:
+        if self.normal_mode and (BEHAVIOR_PERCEPTION or GESTURE_PERCEPTION):
             rospy.Subscriber(camera, Image, self.callback_rgb)
             rospy.loginfo("ACR: Subscribed to {:}".format(camera))
         else:
-            rospy.Subscriber('/human_actions', Action, self.action_callback)
-            rospy.loginfo("ACR: Subscribed to {:}".format('/human_actions'))
+            rospy.Subscriber('{}/human_actions'.format(NS), Action, self.action_callback)
+            rospy.loginfo("ACR: Subscribed to {}/human_actions".format(NS))
 
         # rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.callback_depth)
         # rospy.Subscriber("/camera/infra1/image_rect_raw", Image, self.callback_infra1)
@@ -72,47 +75,55 @@ class ActionRecognition:
             self.converter.create_index_map(response.recognitions)
             angles = self.get_angles(response.recognitions)
             positions = self.get_positions(response.recognitions)
-            with open("/home/rasberry/angles.log", 'w') as f:
+            with open(os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY, "angles.log"), 'w') as f:
                 json.dump(angles, f)
-            with open("/home/rasberry/positions.log", 'w') as f:
+            with open(os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY, "positions.log"), 'w') as f:
                 json.dump(positions, f)
             action, classification = self.get_action(angles, positions)
-            classification.header.stamp = timestamp
-            self.classification_publisher.publish(classification)
-            with open("/home/rasberry/action.log", 'w') as f:
-                json.dump(action, f)
-            if action is not None:
-                rospy.loginfo("ACR: Detected behavior '{}'".format(action))
-            outmsg = Action()
-            outmsg.header.stamp = timestamp
-            outmsg.action = action or ""
-            outmsg.person = self.picker
-            # outmsg.header.stamp = rospy.get_rostime()
-            outmsg.joints = []
-            for key in angles.keys():
-                joint = Joint()
-                joint.label = key
-                try:
-                    joint.angle = angles[key]
-                except Exception:
-                    pass
-                try:
-                    joint.position.x = positions[key]["X"]
-                    joint.position.y = positions[key]["Y"]
-                except Exception:
-                    pass
-                try:
-                    joint.confidence = positions[key]["P"]
-                except Exception:
-                    pass
-                outmsg.joints.append(joint)
-                # TODO: identify picker
+            if GESTURE_PERCEPTION and action in [
+                    "calling", "gesture_cancel", "gesture_stop",
+                    "gesture_forward", "gesture_backward"] \
+               or BEHAVIOR_PERCEPTION and action in [
+                    "picking berries", "picking_berries_right",
+                    "put_or_get_crate"] \
+               or action == "neutral":
+                classification.header.stamp = timestamp
+                self.classification_publisher.publish(classification)
+                with open(os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY, "action.log"), 'w') as f:
+                    json.dump(action, f)
+                if action is not None:
+                    # rospy.loginfo("ACR: Detected behavior '{}'".format(action))
+                    outmsg = Action()
+                    outmsg.header.stamp = timestamp
+                    outmsg.action = action or ""
+                    outmsg.person = self.picker
+                    # outmsg.header.stamp = rospy.get_rostime()
+                    outmsg.joints = []
+                    for key in angles.keys():
+                        joint = Joint()
+                        joint.label = key
+                        try:
+                            joint.angle = angles[key]
+                        except Exception:
+                            pass
+                        try:
+                            joint.position.x = positions[key]["X"]
+                            joint.position.y = positions[key]["Y"]
+                        except Exception:
+                            pass
+                        try:
+                            joint.confidence = positions[key]["P"]
+                        except Exception:
+                            pass
+                        outmsg.joints.append(joint)
+                        # TODO: identify picker
 
-            self.action_publisher.publish(outmsg)
-                # outmsg = Command()
-                # outmsg.header.stamp = timestamp
-                # outmsg.command = action
-                # self.command_publisher.publish(outmsg)
+                    self.action_publisher.publish(outmsg)
+                    # rospy.loginfo("ACR: Published behavior '{}: {}'".format(outmsg.person, action))
+                    # outmsg = Command()
+                    # outmsg.header.stamp = timestamp
+                    # outmsg.command = action
+                    # self.command_publisher.publish(outmsg)
 
     def action_callback(self, msg):
         # start_time = time.time()
@@ -130,14 +141,14 @@ class ActionRecognition:
             positions[joint.label]['P'] = 0.5  # joint.confidence
         # rospy.loginfo(angles)
         # sys.exit(0)
-        with open("/home/rasberry/angles.log", 'w') as f:
+        with open(os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY, "angles.log"), 'w') as f:
             json.dump(angles, f)
-        with open("/home/rasberry/positions.log", 'w') as f:
+        with open(os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY, "positions.log"), 'w') as f:
             json.dump(positions, f)
         action, classification = self.get_action(angles, positions)
         classification.header.stamp = msg.header.stamp
         self.classification_publisher.publish(classification)
-        with open("/home/rasberry/action.log", 'w') as f:
+        with open(os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY) +"action.log", 'w') as f:
             json.dump(action, f)
         if action is not None:
             # pass
@@ -168,8 +179,8 @@ class ActionRecognition:
                     pass
                 outmsg.joints.append(joint)
                 # TODO: identify picker
-            # rospy.logwarn("ACR: action recognition took {:.4f}s".format(time.time()-start_time))
-            self.action_publisher2.publish(outmsg)
+                # rospy.logwarn("ACR: action recognition took {:.4f}s".format(time.time()-start_time))
+                self.action_publisher2.publish(outmsg)
 
     def get_positions(self, recognitions):
 

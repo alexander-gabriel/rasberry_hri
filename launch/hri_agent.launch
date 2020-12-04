@@ -10,7 +10,7 @@
         <!-- <arg name="topic_prefixes" default="rsense"/>--> <!-- Separate topic_prefixes with commas -->
 
 
-        <node pkg="openpose_ros" name="openpose" type="openpose_ros_node" output="screen">
+        <!-- <node pkg="openpose_ros" name="openpose" type="openpose_ros_node" output="screen">
           <param name="net_input_width" value="320"/>
             <param name="net_input_height" value="240"/>
             <param name="net_output_width" value="320"/>
@@ -23,7 +23,7 @@
             <param name="scale_gap" value="0.3"/>
             <param name="num_gpu_start" value="0"/>
             <param name="/use_sim_time" value="true"/>
-        </node>
+        </node> -->
 
         <node pkg="rasberry_hri" name="action_recognition_node" type="action_recognition_node" output="screen">
           <param name="/use_sim_time" value="true"/>

@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 
 import sys
+import os
 import time
 import json
 from hashlib import sha256
 
+import roslaunch
 import rospy
 from experiments.config import Config
 from experiments.experimenter import Experimenter
-from common.parameters import BEHAVIOURS
+from common.parameters import CONFIG_DIRECTORY, ACTIVE_DIRECTORY
 
 
 # x TODO: storage of rosbag action data (start, end, filename, classification)
@@ -46,453 +48,41 @@ if __name__ == "__main__":
     while (rospy.get_time() == 0):
         time.sleep(0.01)
 
+
+    run_id = roslaunch.rlutil.get_or_generate_uuid(None, True)
+
+    opencog = roslaunch.parent.ROSLaunchParent(
+        run_id, ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/openpose.launch"], is_core=False
+    )
+    opencog.start()
+
     e = Experimenter()
     # do 5, 7, and 9 later
     print("EXPE: Generating Configurations")
-    for subject_id in [1]:  # ,2,3,4,5,6,7,8,9,10]:
-        for mode in ["standing"]:  # , "moving"]:
-            try:  # evasion
-                c = Config(
-                    "thorvald_001",
-                    "Evasion - Subject {} - Mode {}".format(subject_id, mode),
-                )
-                c.behaviours = BEHAVIOURS["pass robot"]
-                # c.behaviours = {}
-                # c.behaviours[2] = {
-                #     "type": "message",
-                #     "target": "picker_movement",
-                #     "message": "evade",
-                # }
-                c.parameters = {
-                    "robot_position": [[11.41, 4.6285]],
-                    "called_robot": [False],
-                    "has_crate": [True],
-                    "crate_full": [False],
-                    "picker_speed": [0.7],
-                    "no_berry_places": [
-                        ["WayPoint103", "WayPoint104", "WayPoint105"]
-                    ],
-                    "target_picker": ["picker02"],
-                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id, mode)],
-                    "iterations": ["30"],
-                }
-                c.termination_time = 15
-                c.experiment_id = sha256(json.dumps(c.behaviours)
-                                         + json.dumps(c.parameters)
-                                         + str(c.termination_time)).hexdigest()
-                # c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
+    for subdir, dirs, filenames in os.walk(os.path.join(CONFIG_DIRECTORY,
+                                                        ACTIVE_DIRECTORY)):
+        for filename in filenames:
+            try:
+                filepath = os.path.join(subdir, filename)
+                with open(filepath, "r") as file:
+                    data = json.load(file)
+                config = Config(data)
 
-            try:  # deliver because picker called
-                c = Config(
-                    "thorvald_001",
-                    "Delivery - Subject {} - Mode {}".format(subject_id, mode),
-                )
-                c.behaviours = BEHAVIOURS["deliver no wait"]
-                # c.behaviours[2] = calls[subject_id][mode]
-                # c.behaviours[2] = {
-                #     "type": "message",
-                #     "target": "picker_movement",
-                #     "message": "deliver",
-                # }
-                c.parameters = {
-                    "robot_position": [[11.41, 4.6285]],
-                    "called_robot": [True],  # , False],
-                    "has_crate": [False],
-                    "crate_full": [True],  # , False],
-                    "picker_speed": [0.7],
-                    "full_crate_count": [0],
-                    "empty_crate_count": [3],
-                    "no_berry_places": [["WayPoint103", "WayPoint104"]],
-                    "target_picker": ["picker02"],
-                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id, mode)],
-                    "iterations": ["30"],
-                }
-                c.termination_time = 23
-                c.experiment_id = sha256(json.dumps(c.behaviours)
-                                         + json.dumps(c.parameters)
-                                         + str(c.termination_time)).hexdigest()
-                # c.update_behaviour_times()
-                # e.add_config(c)
+                if "experiment_id" not in data:
+                    id = sha256(
+                        json.dumps(data, sort_keys=True)
+                    ).hexdigest()
+                    data["experiment_id"] = id
+                with open(filepath, "w") as file:
+                    json.dump(data, file, sort_keys=True, indent=4,
+                              separators=(',', ': '))
+                config.experiment_id = data["experiment_id"]
+                e.add_config(config)
             except KeyError as err:
                 rospy.logwarn(err)
-
-            try:  # exchange because picker called
-                c = Config(
-                    "thorvald_001",
-                    "Exchange 1 - Subject {} - Mode {}".format(
-                        subject_id, mode
-                    ),
-                )
-                c.behaviours = BEHAVIOURS["exchange no wait"]
-                # c.behaviours = {}
-                # # c.behaviours[2] = calls[subject_id][mode]
-                # c.behaviours[2] = {
-                #     "type": "message",
-                #     "target": "picker_movement",
-                #     "message": "deliver",
-                # }
-                c.parameters = {
-                    "robot_position": [[11.41, 4.6285]],
-                    "has_crate": [True],
-                    "called_robot": [True],
-                    "crate_full": [True],
-                    "no_berry_places": [[]],
-                    "picker_speed": [0.7],
-                    "target_picker": ["picker02"],
-                    "iterations": ["30"],
-                }
-                c.termination_time = 25
-                c.experiment_id = sha256(json.dumps(c.behaviours)
-                                         + json.dumps(c.parameters)
-                                         + str(c.termination_time)).hexdigest()
-                # c.update_behaviour_times()
-                # e.add_config(c)s
-            except KeyError as err:
+            except ValueError as err:
+                rospy.logwarn(
+                    "EXPE: Could not load {}".format(filepath))
                 rospy.logwarn(err)
-
-            try:  # exchange because crate is full
-                c = Config(
-                    "thorvald_001",
-                    "Exchange 2 - Subject {} - Mode {}".format(
-                        subject_id, mode
-                    ),
-                )
-                c.behaviours = BEHAVIOURS["exchange no call"]
-                # c.behaviours = {}
-                # # c.behaviours[2] = calls[subject_id][mode]
-                # c.behaviours[2] = {
-                #     "type": "message",
-                #     "target": "picker_movement",
-                #     "message": "deliver",
-                # }
-                c.parameters = {
-                    "robot_position": [[11.41, 4.6285]],
-                    "has_crate": [True],
-                    "called_robot": [False],
-                    "crate_full": [True],
-                    "no_berry_places": [["Waypoint103", "WayPoint104"], []],
-                    "picker_speed": [0.7],
-                    "target_picker": ["picker02"],
-                    "iterations": ["30"],
-                }
-                c.termination_time = 20
-                c.experiment_id = sha256(json.dumps(c.behaviours)
-                                         + json.dumps(c.parameters)
-                                         + str(c.termination_time)).hexdigest()
-                # c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-
-            try:  # exchange because approach despite present berries
-                c = Config(
-                    "thorvald_001",
-                    "Exchange 3 - Subject {} - Mode {}".format(
-                        subject_id, mode
-                    ),
-                )
-                c.behaviours = BEHAVIOURS["exchange no call"]
-                # c.behaviours = {}
-                # # c.behaviours[2] = calls[subject_id][mode]
-                # c.behaviours[2] = {
-                #     "type": "message",
-                #     "target": "picker_movement",
-                #     "message": "deliver",
-                # }
-                c.parameters = {
-                    "robot_position": [[11.41, 4.6285]],
-                    "has_crate": [True],
-                    "called_robot": [False],
-                    "crate_full": [False],
-                    "no_berry_places": [[]],
-                    "picker_speed": [0.7],
-                    "target_picker": ["picker02"],
-                    "iterations": ["30"],
-                }
-                c.termination_time = 25
-                c.experiment_id = sha256(json.dumps(c.behaviours)
-                                         + json.dumps(c.parameters)
-                                         + str(c.termination_time)).hexdigest()
-                # c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-
-            try:  # leave
-                c = Config(
-                    "thorvald_001",
-                    "Leave - Subject {} - Mode {}".format(subject_id, mode),
-                )
-                c.behaviours = BEHAVIOURS["picking berries"]
-                # c.behaviours = {}
-                c.parameters = {
-                    "robot_position": [[14.12, 4.63]],
-                    "called_robot": [False],
-                    "dismissed_robot": [True],
-                    "has_crate": [True],
-                    "crate_full": [False],
-                    "picker_speed": [0.7],
-                    "full_crate_count": [2],
-                    "no_berry_places": [["WayPoint103", "WayPoint104"]],
-                    "target_picker": ["picker02"],
-                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id, mode)],
-                    "iterations": ["30"],
-                }
-                c.termination_time = 15
-                c.experiment_id = sha256(json.dumps(c.behaviours)
-                                         + json.dumps(c.parameters)
-                                         + str(c.termination_time)).hexdigest()
-                # c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-
-            try:  # come closer because picker has a full crate
-                c = Config(
-                    "thorvald_001",
-                    "Approach 2 - Subject {} - Mode {}".format(
-                        subject_id, mode
-                    ),
-                )
-                c.behaviours = BEHAVIOURS["exchange no call"]
-                # c.behaviours = {}
-                # c.behaviours[1] = picks[subject_id][mode]
-                # c.behaviours[4] = calls[subject_id][mode]
-                c.parameters = {
-                    "robot_position": [[5.53, 4.62]],
-                    "called_robot": [False],
-                    "has_crate": [True],
-                    "crate_full": [True],
-                    "picker_speed": [0.7],
-                    "no_berry_places": [
-                        ["Waypoint103", "WayPoint104"]
-                    ],  # , []],
-                    "target_picker": ["picker02"],
-                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id, mode)],
-                    "iterations": ["30"],
-                }
-                c.termination_time = 20
-                c.experiment_id = sha256(json.dumps(c.behaviours)
-                                         + json.dumps(c.parameters)
-                                         + str(c.termination_time)).hexdigest()
-                # c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-
-            try:  # wait because picker has no crate
-                c = Config(
-                    "thorvald_001",
-                    "Wait 1 - Subject {} - Mode {}".format(subject_id, mode),
-                )
-                c.behaviours = BEHAVIOURS["deliver no call"]
-                # c.behaviours = {}
-                # c.behaviours[1] = picks[subject_id][mode]
-                # c.behaviours[4] = calls[subject_id][mode]
-                c.parameters = {
-                    "robot_position": [[11.41, 4.6285]],
-                    "called_robot": [False],
-                    "dismissed_robot": [False],
-                    "has_crate": [False],
-                    "crate_full": [True, False],
-                    "picker_speed": [0.7],
-                    "no_berry_places": [
-                        ["Waypoint103", "WayPoint104"]
-                    ],  # , []],
-                    "target_picker": ["picker02"],
-                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id, mode)],
-                    "iterations": ["30"],
-                }
-                c.termination_time = 20
-                c.experiment_id = sha256(json.dumps(c.behaviours)
-                                         + json.dumps(c.parameters)
-                                         + str(c.termination_time)).hexdigest()
-                # c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-
-            try:  # wait because picker's crate is full
-                c = Config(
-                    "thorvald_001",
-                    "Wait 2 - Subject {} - Mode {}".format(subject_id, mode),
-                )
-                c.behaviours = BEHAVIOURS["exchange no call"]
-                # c.behaviours = {}
-                # c.behaviours[1] = picks[subject_id][mode]
-                # c.behaviours[4] = calls[subject_id][mode]
-                c.parameters = {
-                    "robot_position": [[11.41, 4.6285]],
-                    "called_robot": [False],
-                    "dismissed_robot": [False],
-                    "has_crate": [True],
-                    "crate_full": [True],
-                    "picker_speed": [0.7],
-                    "no_berry_places": [["Waypoint103", "WayPoint104"]],
-                    "target_picker": ["picker02"],
-                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id, mode)],
-                    "iterations": ["30"],
-                }
-                c.termination_time = 10
-                c.experiment_id = sha256(json.dumps(c.behaviours)
-                                         + json.dumps(c.parameters)
-                                         + str(c.termination_time)).hexdigest()
-                # c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-
-            try:  # approach because picker raised their hand
-                c = Config(
-                    "thorvald_001",
-                    "CloseApproach 2 - Subject {} - Mode {}".format(subject_id, mode),
-                )
-                c.behaviours = BEHAVIOURS["exchange wait after call"]
-                # c.behaviours = {}
-                # c.behaviours[1] = picks[subject_id][mode]
-                # c.behaviours[4] = calls[subject_id][mode]
-                # c.behaviours[5] = {
-                #     "type": "message",
-                #     "target": "picker_movement",
-                #     "message": "deliver",
-                # }
-                c.parameters = {
-                    "robot_position": [[11.41, 4.6285]],
-                    "called_robot": [True],
-                    "dismissed_robot": [False],
-                    "has_crate": [True],
-                    "crate_full": [True],
-                    "picker_speed": [0.7],
-                    "no_berry_places": [["Waypoint103", "WayPoint104"]],
-                    "target_picker": ["picker02"],
-                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id, mode)],
-                    "iterations": ["30"],
-                }
-                c.termination_time = 15
-                c.experiment_id = sha256(json.dumps(c.behaviours)
-                                         + json.dumps(c.parameters)
-                                         + str(c.termination_time)).hexdigest()
-                # c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-
-            try:  # variance testing short
-                c = Config(
-                    "thorvald_001",
-                    "Variance Test 1 Waypoint - Mode {}".format(mode),
-                )
-                c.behaviours = BEHAVIOURS["wait"]
-                # c.behaviours = {}
-                c.parameters = {
-                    "robot_position": [[8.675, 4.6285]],
-                    "target": [["WayPoint103"]]*100,
-                    "iterations": ["30"],
-                }
-                c.termination_time = 7
-                # c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-
-            try:  # variance testing long
-                c = Config(
-                    "thorvald_001",
-                    "Variance Test 3 Waypoints - Mode {}".format(mode),
-                )
-                c.behaviours = BEHAVIOURS["wait"]
-                # c.behaviours = {}
-                c.parameters = {
-                    "robot_position": [[8.675, 4.6285]],
-                    "target": [["WayPoint105"]]*100,
-                    "iterations": ["30"],
-                }
-                c.termination_time = 16
-                c.experiment_id = sha256(json.dumps(c.behaviours)
-                                         + json.dumps(c.parameters)
-                                         + str(c.termination_time)).hexdigest()
-                # c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-
-            try:  # deliver because picker called
-                c = Config(
-                    "thorvald_001",
-                    "Delivery - Subject {} - Mode {}".format(subject_id, mode),
-                )
-                c.behaviours = BEHAVIOURS["deliver no wait"]
-                # c.behaviours[2] = calls[subject_id][mode]
-                # c.behaviours[2] = {
-                #     "type": "message",
-                #     "target": "picker_movement",
-                #     "message": "deliver",
-                # }
-                c.parameters = {
-                    "robot_position": [[11.41, 4.6285]],
-                    "called_robot": [False],  # , False],
-                    "has_crate": [False],
-                    "crate_full": [True],  # , False],
-                    "picker_speed": [0.7],
-                    "full_crate_count": [1],
-                    "empty_crate_count": [2],
-                    "no_berry_places": [["WayPoint103", "WayPoint104"]],
-                    "target_picker": ["picker01"],
-                    # "pickers": [["picker01", "picker02", "picker02",
-                    #             "picker03", "picker04", "picker05",
-                    #             "picker06", "picker07", "picker08",
-                    #             "picker09", "picker10"]],
-                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id, mode)],
-                    "iterations": ["30"],
-                }
-                c.termination_time = 23
-                c.experiment_id = sha256(json.dumps(c.behaviours)
-                                         + json.dumps(c.parameters)
-                                         + str(c.termination_time)).hexdigest()
-                # c.update_behaviour_times()
-                e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-            try:  # deliver because picker called
-                c = Config(
-                    "thorvald_001",
-                    "Delivery - Subject {} - Mode {}".format(subject_id, mode),
-                )
-                c.behaviours = BEHAVIOURS["deliver no call"]
-                # c.behaviours[2] = calls[subject_id][mode]
-                # c.behaviours[2] = {
-                #     "type": "message",
-                #     "target": "picker_movement",
-                #     "message": "deliver",
-                # }
-                c.parameters = {
-                    "robot_position": [[11.41, 4.6285]],
-                    "called_robot": [False],  # , False],
-                    "has_crate": [False],
-                    "crate_full": [True],  # , False],
-                    "picker_speed": [0.7],
-                    "full_crate_count": [1],
-                    "empty_crate_count": [2],
-                    "no_berry_places": [["WayPoint103", "WayPoint104"]],
-                    "target_picker": ["picker01"],
-                    # "pickers": [["picker01", "picker02", "picker02",
-                    #             "picker03", "picker04", "picker05",
-                    #             "picker06", "picker07", "picker08",
-                    #             "picker09", "picker10"]],
-                    # "target_picker": ["Subject{:02d}-Mode-{:}".format(subject_id, mode)],
-                    "iterations": ["30"],
-                }
-                c.termination_time = 23
-                c.experiment_id = sha256(json.dumps(c.behaviours)
-                                         + json.dumps(c.parameters)
-                                         + str(c.termination_time)).hexdigest()
-                # c.update_behaviour_times()
-                # e.add_config(c)
-            except KeyError as err:
-                rospy.logwarn(err)
-
     print("EXPE: Starting Experimenter")
     e.run()

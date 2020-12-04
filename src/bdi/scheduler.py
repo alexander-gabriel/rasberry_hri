@@ -35,10 +35,10 @@ from bdi_system import BDISystem
 from knowledge_base import KnowledgeBase
 
 from common.parameters import (
-    PICKERS, REASONING_LOOP_FREQUENCY, MOVEMENT_NOISE_ALPHA, MOVEMENT_NOISE_BETA,
-    MOVEMENT_NOISE_GAMMA, MOVEMENT_NOISE_DELTA, NS, MINIMUM_DISTANCE,
+    MOVEMENT_NOISE_ALPHA, MOVEMENT_NOISE_BETA, MOVEMENT_NOISE_GAMMA,
+    MOVEMENT_NOISE_DELTA, NS, MINIMUM_DISTANCE, REASONING_LOOP_FREQUENCY,
     PICKER_WIDTH, PICKER_LENGTH, ROBOT_WIDTH, ROBOT_LENGTH, PICKER_SPEED,
-    PICKER_UPDATE_FREQUENCY)
+    PICKER_UPDATE_FREQUENCY, DIRECTION_PERCEPTION, PICKERS)
 QUANTIZATION = PICKER_SPEED / PICKER_UPDATE_FREQUENCY * 0.9
 
 
@@ -63,7 +63,9 @@ class Scheduler:
         self.has_reached_150cm = {}
         self.has_reached_200cm = {}
         self.latest_robot_msg = None
+        self.latest_actual_robot_msg = None
         self.latest_people_msgs = {}
+        self.latest_actual_people_msgs = {}
         self.robot_tracks = {}
         self.people_tracks = {}
         self.directions = {}
@@ -144,8 +146,7 @@ class Scheduler:
             rospy.logdebug("keyboard interrupt, shutting down")
             rospy.core.signal_shutdown("keyboard interrupt")
 
-    def add_position_noise(self, pose):
-        old_pose = self.latest_robot_msg
+    def add_position_noise(self, pose, old_pose):
         if old_pose is not None:
             dx = pose.position.x - old_pose.position.x
             dy = pose.position.y - old_pose.position.y
@@ -160,29 +161,37 @@ class Scheduler:
                  pose.orientation.z,
                  pose.orientation.w]
             (r, p, theta) = tf.transformations.euler_from_quaternion(q)
-            old_rotation = atan2(dy, dx) - old_theta
-            rotation = theta - old_theta - old_rotation
+            pre_movement_rotation = atan2(dy, dx) - old_theta
+            post_movement_rotation = theta - (pre_movement_rotation
+                                              + old_theta)
 
-            sd_old_rotation = (MOVEMENT_NOISE_ALPHA * abs(old_rotation)
-                               + MOVEMENT_NOISE_BETA * translation)
-            sd_rotation = (MOVEMENT_NOISE_ALPHA * abs(rotation)
-                           + MOVEMENT_NOISE_BETA * translation)
-            sd_translation = (MOVEMENT_NOISE_GAMMA * translation
-                              + MOVEMENT_NOISE_DELTA * (abs(old_rotation)
-                                                        + abs(rotation)))
+            # calculate standard deviations
+            sd_pre_movement_rotation = (
+                MOVEMENT_NOISE_ALPHA * abs(pre_movement_rotation)
+                + MOVEMENT_NOISE_BETA * translation)
+            sd_post_movement_rotation = (
+                MOVEMENT_NOISE_ALPHA * abs(post_movement_rotation)
+                + MOVEMENT_NOISE_BETA * translation)
+            sd_translation = (
+                MOVEMENT_NOISE_GAMMA * translation
+                + MOVEMENT_NOISE_DELTA * (abs(pre_movement_rotation)
+                                          + abs(post_movement_rotation)))
 
-            translation += np.random.normal(0, sd_translation * sd_translation)
-            old_rotation += np.random.normal(0,
-                                             sd_old_rotation * sd_old_rotation)
-            rotation += np.random.normal(0, sd_rotation * sd_rotation)
+            translation += np.random.normal(
+                0, sd_translation * sd_translation)
+            pre_movement_rotation += np.random.normal(
+                0, sd_pre_movement_rotation * sd_pre_movement_rotation)
+            post_movement_rotation += np.random.normal(
+                0, sd_post_movement_rotation * sd_post_movement_rotation)
 
-            pose.position.x += \
-                translation * cos(old_theta + old_rotation)
-            pose.position.y += \
-                translation * sin(old_theta + old_rotation)
-            pose.orientation.x, pose.orientation.y, pose.orientation.z,
-            pose.orientation.w = tf.transformations.quaternion_from_euler(
-                    0, 0, old_theta + old_rotation + rotation)
+            pose.position.x = old_pose.position.x + \
+                translation * cos(old_theta + pre_movement_rotation)
+            pose.position.y = old_pose.position.y + \
+                translation * sin(old_theta + pre_movement_rotation)
+            pose.orientation.x, pose.orientation.y, pose.orientation.z, \
+                pose.orientation.w = tf.transformations.quaternion_from_euler(
+                    0, 0, old_theta + pre_movement_rotation
+                    + post_movement_rotation)
         return pose
 
     def get_speed(self, positions):
@@ -202,7 +211,10 @@ class Scheduler:
 
     def robot_position_coordinate_callback(self, pose):
         # rospy.loginfo("SCH: Robot position coordinate callback")
-        self.latest_robot_msg = pose  # self.add_position_noise(pose)
+        # self.latest_robot_msg = pose
+        self.latest_robot_msg = self.add_position_noise(
+            pose, self.latest_actual_robot_msg)
+        self.latest_actual_robot_msg = pose
         self.bdi.world_state.set_position(
             self.bdi.me, pose.position.x, pose.position.y, rospy.get_time())
 
@@ -220,16 +232,17 @@ class Scheduler:
             self.latest_robot_node = None
 
     def human_position_callback(self, msg, name):
+        timestamp = rospy.get_time()
+        initialize_opencog(self.atomspace)
         if not self.sensory_lock1.locked():
             self.sensory_lock1.acquire()
-            timestamp = rospy.get_time()
-            self.latest_people_msgs[name] = msg
-            initialize_opencog(self.atomspace)
             person = ConceptNode(name)
             self.bdi.world_state.set_position(
                 person, msg.pose.position.x, msg.pose.position.y, timestamp)
             self._update_picker_node(person, msg)
-            # # msg.pose = self.add_position_noise(msg.pose)
+            # msg.pose = self.add_position_noise(
+            #     msg.pose, self.latest_people_msgs[name].pose)
+            self.latest_people_msgs[name] = msg
             self._react_to_distance_events(person)
             self.sensory_lock1.release()
         if not self.sensory_lock2.locked():
@@ -240,7 +253,7 @@ class Scheduler:
     def human_action_callback(self, msg):
         if msg.action != "":
             initialize_opencog(self.atomspace)
-            msg.person = self.get_closest_human()
+            # msg.person = self.get_closest_human()
             self.bdi.world_state.update_action(msg.person, msg.action)
 
     def get_closest_human(self):
@@ -282,8 +295,8 @@ class Scheduler:
                 # self.latest_people_nodes[person] = ("is_near", closest_node)
                 # self.bdi.world_state.add_belief("is_near({:},{:})"
                 #                             .format(person, closest_node))
-                # rospy.logdebug("added is_near({:},{:})"
-                #                .format(person, closest_node))
+                # rospy.logwarn("added is_near({:},{:})"
+                #               .format(person, closest_node))
         except TypeError as err:
             rospy.logerr(
                 ("BDI - Couldn't update picker node. " "Error: {:}").format(
@@ -468,7 +481,8 @@ class Scheduler:
                 self.people_tracks[name] = collections.deque([position], maxlen=2)
             world.add_object_state_series(self.people_tracks[name])
             pairs = [(self.robot_id, name)]
-            self._calculate_directions(world, pairs)
+            if DIRECTION_PERCEPTION:
+                self._calculate_directions(world, pairs)
 
 
 

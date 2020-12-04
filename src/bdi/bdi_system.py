@@ -36,7 +36,12 @@ from common.parameters import (
     FULL_CRATE_COUNT,
     EMPTY_CRATE_COUNT,
     DISMISSED_ROBOT,
-    PICKERS
+    PICKERS,
+    BERRY_POSITION_PERCEPTION,
+    PICKER_CRATE_POSSESSION_PERCEPTION,
+    PICKER_CRATE_FILL_PERCEPTION,
+    ROBOT_CRATE_POSSESSION_PERCEPTION,
+    ROBOT_POSITION
 )
 
 from common.utils import OrderedConsistentSet, suppress, db
@@ -105,11 +110,13 @@ class BDISystem:
                 place = self.world_state.add_place(
                     node.name, node.pose.position.x, node.pose.position.y
                 )
-                if place.name in NO_BERRY_PLACES:
-                    self.world_state.set_berry_state(place, 0)
-                    rospy.loginfo("BDI: No Berries at {}".format(place.name))
-                else:
-                    self.world_state.set_berry_state(place, 1)
+                if BERRY_POSITION_PERCEPTION:
+                    if place.name in NO_BERRY_PLACES:
+                        self.world_state.set_berry_state(place, 0)
+                        rospy.loginfo("BDI: No Berries at {}"
+                                      .format(place.name))
+                    else:
+                        self.world_state.set_berry_state(place, 1)
                 # variance experiment
                 if place.name == target:
                     self.world_state.is_target(place).tv = self.kb.TRUE
@@ -129,12 +136,15 @@ class BDISystem:
     def _setup_experiment(self, me):
         rospy.loginfo("BDI: Adding Me: {}".format(me))
         self.me = self.world_state.add_thing(me, "robot")
+        self.world_state.set_position(self.me, ROBOT_POSITION[0],
+                                      ROBOT_POSITION[1], rospy.get_time())
         self.world_state.set_size(self.me, ROBOT_WIDTH, ROBOT_LENGTH)
         rospy.loginfo("BDI: Adding Pickers")
         for name in PICKERS:
             picker = self.world_state.add_thing(name, "human")
             picker.set_value(self.world_state._timeout, FloatValue(-1))
             self.world_state.set_size(picker, PICKER_WIDTH, PICKER_LENGTH)
+            self.world_state.not_seen_picking(picker).tv = self.kb.TRUE
         picker = ConceptNode(TARGET_PICKER)
         rospy.loginfo("BDI: Setting Target Picker State")
         # if CALLED_ROBOT:
@@ -145,30 +155,39 @@ class BDISystem:
         #     self.world_state.dismissed_robot(picker).tv = self.kb.TRUE
         # else:
         #     self.world_state.not_dismissed_robot(picker).tv = self.kb.TRUE
-        # if SEEN_PICKING:
-        #     self.world_state.seen_picking(picker).tv = self.kb.TRUE
-        # else:
-        #     self.world_state.not_seen_picking(picker).tv = self.kb.TRUE
-        if HAS_CRATE:
-            self.world_state.has_crate(picker).tv = self.kb.TRUE
+        if SEEN_PICKING:
+            self.world_state.seen_picking(picker).tv = self.kb.TRUE
         else:
-            self.world_state.not_has_crate(picker).tv = self.kb.TRUE
-        if CRATE_FULL:
-            self.world_state.crate_full(picker).tv = self.kb.TRUE
-        else:
-            self.world_state.not_crate_full(picker).tv = self.kb.TRUE
-        rospy.loginfo("BDI: Setting empty crate count of '{}' to {:d}."
-                      .format(self.me.name, EMPTY_CRATE_COUNT))
-        self.me.set_value(
-            self.world_state._empty_crate_count, FloatValue(EMPTY_CRATE_COUNT))
-        # rospy.logerr("{:} has {:} empty crates".format(
-        #     self.me.name,
-        #     self.me.get_value(self.world_state._empty_crate_count)))
-        rospy.loginfo("BDI: Setting full crate count of '{}' to {:d}.".format(
-            self.me.name, FULL_CRATE_COUNT))
-        self.me.set_value(
-            self.world_state._full_crate_count, FloatValue(FULL_CRATE_COUNT),
-        )
+            self.world_state.not_seen_picking(picker).tv = self.kb.TRUE
+        if PICKER_CRATE_POSSESSION_PERCEPTION:
+            if HAS_CRATE:
+                rospy.loginfo("BDI: {} has a crate".format(picker.name))
+                self.world_state.has_crate(picker).tv = self.kb.TRUE
+            else:
+                rospy.loginfo("BDI: {} has no crate".format(picker.name))
+                self.world_state.not_has_crate(picker).tv = self.kb.TRUE
+        if PICKER_CRATE_FILL_PERCEPTION:
+            if CRATE_FULL:
+                rospy.loginfo("BDI: {}'s crate is full".format(picker.name))
+                self.world_state.crate_full(picker).tv = self.kb.TRUE
+            else:
+                rospy.loginfo("BDI: {}'s crate is empty".format(picker.name))
+                self.world_state.not_crate_full(picker).tv = self.kb.TRUE
+        if ROBOT_CRATE_POSSESSION_PERCEPTION:
+            rospy.loginfo("BDI: Setting empty crate count of '{}' to {:d}."
+                          .format(self.me.name, EMPTY_CRATE_COUNT))
+            self.me.set_value(
+                self.world_state._empty_crate_count,
+                FloatValue(EMPTY_CRATE_COUNT))
+            # rospy.logerr("{:} has {:} empty crates".format(
+            #     self.me.name,
+            #     self.me.get_value(self.world_state._empty_crate_count)))
+            rospy.loginfo("BDI: Setting full crate count of '{}' to {:d}."
+                          .format(self.me.name, FULL_CRATE_COUNT))
+            self.me.set_value(
+                self.world_state._full_crate_count,
+                FloatValue(FULL_CRATE_COUNT)
+            )
         # self.robco.move_to(INITIAL_WAYPOINT)
 
     def _generate_intention_candidates(self):
@@ -236,7 +255,8 @@ class BDISystem:
                     min_cost = cost
         if chosen_intention is not None:
             if chosen_intention != self.last_intention:
-                rospy.loginfo("BDI: Following {:}".format(chosen_intention))
+                if type(chosen_intention) != WaitGoal:
+                    rospy.loginfo("BDI: Following {:}".format(chosen_intention))
                 self.last_intention = chosen_intention
             chosen_intention.perform_action()
 
@@ -291,9 +311,10 @@ class BDISystem:
         index = 0
         while index < len(self.intentions):
             if self.intentions[index].is_achieved(self.world_state):
-                rospy.loginfo(
-                    "BDI: Finished following {}".format(self.intentions[index])
-                )
+                if type(self.intentions[index]) != WaitGoal:
+                    rospy.loginfo(
+                        "BDI: Finished following {}".format(self.intentions[index])
+                    )
                 # self.robco.move_to(INITIAL_WAYPOINT)
                 del self.intentions[index]
             else:

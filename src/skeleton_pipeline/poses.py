@@ -13,8 +13,10 @@ front_facing = {
 back_facing = {
     "Left:Shoulder-X": "p < Neck-X",
     "Right:Shoulder-X": "p > Neck-X",
-    "Left:Hip-X": "p < Neck-X",
-    "Right:Hip-X": "p > Neck-X",
+    # "Left:Hip-X": "p < Neck-X",
+    "Left:Hip-X": "p < Right:Hip-X",
+    # "Right:Hip-X": "p > Neck-X",
+    "Right:Hip-X": "p > Left:Hip-X",
     # "Left:Knee-X": "p < Neck-X",
     # "Right:Knee-X" "p > Neck-X",
 }
@@ -151,6 +153,15 @@ neutral.update(right_arm_down)
 neutral.update(left_arm_down)
 neutral.update(right_arm_straight)
 neutral.update(left_arm_straight)
+
+walking_away = dict()
+walking_away.update(back_facing)
+walking_away.update(arms_side_backfacing)
+
+walking_towards = dict()
+walking_towards.update(front_facing)
+walking_towards.update(arms_side_frontfacing)
+
 # rotate_right = {"Left:Shoulder-X": "a = 90.0", "Left:Elbow-X": "a = 180.0",  "Right:Shoulder-X": "a = 180.0", "Right:Elbow-X": "a = 180.0" }
 # rotate_left = {"Left:Shoulder-X": "a = 180.0", "Left:Elbow-X": "a = 180.0",  "Right:Shoulder-X": "a = 90.0", "Right:Elbow-X": "a = 180.0" }
 # standing = {"Left:Shoulder-X": "a = 90.0", "Left:Elbow-X": "a = 180.0", "Right:Shoulder-X": "a = 90.0", "Right:Elbow-X": "a = 180.0", "Left:Ankle-Y": "p = Right:Ankle-Y"}
@@ -176,7 +187,13 @@ pose_list = {"calling": gesture_call_robot,
              # "standing": standing,
              "gesture_cancel": gesture_cancel,
              "gesture_stop": gesture_stop,
-             "put_or_get_crate": put_or_get_crate,
-             "gesture_forward": gesture_forward,
-             "gesture_backward": gesture_backward,
-             "neutral": neutral}
+             # "put_or_get_crate": put_or_get_crate,
+             # "gesture_forward": gesture_forward,
+             # "gesture_backward": gesture_backward,
+             "neutral": neutral,
+             # "approaching": walking_towards,
+             # "leaving": walking_away
+             }
+
+# pose_list = {"front": front_facing,
+#              "back": back_facing}

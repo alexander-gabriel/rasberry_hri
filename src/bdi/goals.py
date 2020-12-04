@@ -488,11 +488,12 @@ class Goal(object):
             #               .format(action, succeeded))
             action_queue.insert(0, action)
         else:
-            rospy.loginfo(
-                "GOL: Performed action {}; Action queue is: {}".format(
-                    action, action_queue
+            if type(action) != WaitAction:
+                rospy.loginfo(
+                    "GOL: Performed action {}; Action queue is: {}".format(
+                        action, action_queue
+                    )
                 )
-            )
 
     def get_cost(self):
         try:
@@ -709,7 +710,7 @@ class ExchangeGoal(Goal):
 class DepositGoal(Goal):
 
     action_template = None
-    subgoal_templates = [MoveGoal, DepositCrateGoal, MoveGoal]
+    subgoal_templates = [MoveGoal, DepositCrateGoal]
 
     def __init__(self, world_state, robco, args):
         super(DepositGoal, self).__init__(world_state, robco, args)

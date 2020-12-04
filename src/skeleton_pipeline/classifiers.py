@@ -106,6 +106,6 @@ class MinimumDifferenceClassifier:
             rospy.logdebug("CLA: {:}: {:f}".format(name, error))
         classification.label = min_error[0]
         classification.error_score = min_error[1]
-        rospy.logdebug("CLA: -----------------")
-        rospy.logdebug("CLA: {:}: {:f}".format(min_error[0], min_error[1]))
+        # rospy.loginfo("CLA: -----------------")
+        # rospy.loginfo("CLA: {:}: {:f}".format(min_error[0], min_error[1]))
         return min_error, classification

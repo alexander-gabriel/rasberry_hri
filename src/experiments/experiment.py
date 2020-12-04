@@ -22,7 +22,7 @@ from rasberry_hri.msg import Action
 
 # from config import Config
 from bdi.robot_control import RobotControl
-from common.parameters import NS
+from common.parameters import NS, BEHAVIOURS
 
 import warnings
 warnings.filterwarnings(action='ignore', module='.*paramiko.*')
@@ -55,9 +55,10 @@ class Experiment:
     def __init__(self, parameters, config):
         self.parameters = parameters
         self.config = config
+        rospy.set_param("{}/experiment_id".format(NS), config.experiment_id)
         # super(Config, self).__init__()
         rospy.loginfo(
-            "EXP: Initializing Experiment: {}".format(config.experiment_id)
+            "EXP: Initializing Experiment: {}".format(config.experiment_label)
         )
         self.set_model_state = self.create_service_proxy(
             "/gazebo/set_model_state", SetModelState, local=False
@@ -73,7 +74,7 @@ class Experiment:
         state_msg.pose.position.y = y  # 4.63 #4.64
         state_msg.pose.orientation.w = 1
         state_msg.reference_frame = "map"
-        resp = self.set_model_state(state_msg)
+        self.set_model_state(state_msg)
         self.ssh_client = paramiko.SSHClient()
         self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         # self.ssh_client.get_host_keys().add('10.10.10.1', 'ssh-rsa', key)
@@ -196,7 +197,7 @@ class Experiment:
     def setup(self):
         self.set_parameters(self.parameters)
         key = "{}/{}".format(NS, "behaviours")
-        rospy.set_param(key, self.config.behaviours)
+        rospy.set_param(key, BEHAVIOURS[self.parameters["behaviour"]])
         self.launch_services()
         self.clock_sub = rospy.Subscriber("/clock", Clock, self.clock_callback)
         rospy.loginfo("EXP: Experiment setup finished")

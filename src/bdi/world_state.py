@@ -42,7 +42,8 @@ from opencog.type_constructors import (
 
 # from opencog.utilities import initialize_opencog
 
-from common.parameters import MINIMUM_DISTANCE, CRATE_CAPACITY, TIMEOUT_LENGTH
+from common.parameters import MINIMUM_DISTANCE, CRATE_CAPACITY, \
+    TIMEOUT_LENGTH, NO_BERRY_PLACES
 
 # from common.utils import atomspace
 
@@ -146,8 +147,12 @@ class WorldState(object):
 
     def update_position(self, person, place):
         self.is_at(person, place).tv = self.kb.TRUE
-        rospy.loginfo("WST: Observation: {:} is at {:}".format(person.name,
-                                                               place.name))
+        if place.name in NO_BERRY_PLACES:
+            rospy.loginfo("WST: Observation: {:} is at {:} (no berries)"
+                          .format(person.name,place.name))
+        else:
+            rospy.loginfo("WST: Observation: {:} is at {:} (berries)"
+                          .format(person.name,  place.name))
 
     def get_position(self, entity):
         return entity.get_value(self._position).to_list()
@@ -212,12 +217,23 @@ class WorldState(object):
         )
         return has_crates
 
+    def robot_not_has_crate(self, robot, crate_type):
+        # return self.state(robot, PredicateNode("has full crate"), "TRUE")
+        # has_no_crates = GreaterThanLink(
+        #     NumberNode("1"), ValueOfLink(robot, crate_type)
+        # )
+        return NotLink(self.robot_has_crate(robot, crate_type))
+
     def robot_has_crate_capacity(self, robot, crate_type):
         # return self.state(robot, PredicateNode("has full crate"), "TRUE")
         has_crate_capacity = GreaterThanLink(
             NumberNode(str(CRATE_CAPACITY)), ValueOfLink(robot, crate_type)
         )
         return has_crate_capacity
+
+    def robot_not_has_crate_capacity(self, robot, crate_type):
+        # return self.state(robot, PredicateNode("has full crate"), "TRUE")
+        return NotLink(self.robot_has_crate_capacity(robot, crate_type))
 
     # def not_has_full_crate(self, robot):
     #     return self.state(robot, PredicateNode("has full crate"), "FALSE")
@@ -230,13 +246,25 @@ class WorldState(object):
         )
         return add_crate
 
+    def robot_add_crate2(self, robot, crate_type):
+        value = robot.get_value(crate_type).to_list()[0]
+        robot.set_value(crate_type, FloatValue(value+1))
+        return robot
+
     def robot_remove_crate(self, robot, crate_type):
-        remove_crate = SetValueLink(
-            robot,
-            crate_type,
-            PlusLink(NumberNode("-1"), ValueOfLink(robot, crate_type)),
-        )
-        return remove_crate
+        value = robot.get_value(crate_type).to_list()[0]
+        robot.set_value(crate_type, FloatValue(value-1))
+        # remove_crate = SetValueLink(
+        #     robot,
+        #     crate_type,
+        #     PlusLink(NumberNode("-1"), ValueOfLink(robot, crate_type)),
+        # )
+        return robot
+
+    def robot_remove_crate2(self, robot, crate_type):
+        value = robot.get_value(crate_type).to_list()[0]
+        robot.set_value(crate_type, FloatValue(value-1))
+        return robot
 
     def robot_set_crate_count(self, robot, crate_type, count):
         link = SetValueLink(robot, crate_type, count)
@@ -403,11 +431,17 @@ class WorldState(object):
     def not_called_robot(self, picker):
         return self.state(picker, self._called, "FALSE")
 
+    def unknown_called_robot(self, picker):
+        return self.absent(self.state(picker, self._called, "TRUE"))
+
     def dismissed_robot(self, picker):
         return self.state(picker, self._dismissed, "TRUE")
 
     def not_dismissed_robot(self, picker):
         return self.state(picker, self._dismissed, "FALSE")
+
+    def unknown_dismissed_robot(self, picker):
+        return self.absent(self.state(picker, self._dismissed, "TRUE"))
 
     # add a place ConceptNode to the KB
     def add_place(self, name, x, y, truth_value=None):

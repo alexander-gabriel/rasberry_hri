@@ -37,6 +37,7 @@ class IntentionRecognition(object):
         false = "FALSE"
         true = "TRUE"
         approaching = "APPROACHING"
+        self.intentions = set()
         self.ws = world_state
         self.picker = VariableNode("picker")
         self.place = VariableNode("place")
@@ -49,12 +50,17 @@ class IntentionRecognition(object):
         # TODO: write functions that can check these things with ConceptNode input
         self.getting_crate = lambda picker: GetLink(
             self.variables1,
-            PresentLink(
-                picker,
-                self.ws.is_a(picker, ConceptNode("human")),
-                self.ws.state(picker, has_crate, false),
-                self.ws.state(picker, movement, approaching),
-            ),
+            AndLink(
+                PresentLink(
+                    picker,
+                    self.ws.is_a(picker, ConceptNode("human")),
+                    self.ws.state(picker, has_crate, false),
+                ),
+                ChoiceLink(
+                    self.ws.state(picker, movement, approaching),
+                    self.ws.state(picker, called_robot, true)
+                )
+            )
         )
 
         self.getting_crate_soon = lambda picker: GetLink(
@@ -64,9 +70,9 @@ class IntentionRecognition(object):
                 PresentLink(
                     picker,
                     self.ws.is_a(picker, ConceptNode("human")),
-                    self.ws.state(picker, has_crate, false),
-                    self.ws.state(picker, called_robot, false),
+                    self.ws.state(picker, has_crate, false)
                 ),
+                AbsentLink(self.ws.state(picker, called_robot, true))
             ),
         )
 
@@ -76,32 +82,24 @@ class IntentionRecognition(object):
                 PresentLink(picker),
                 self.ws.is_a(picker, ConceptNode("human")),
                 self.ws.state(picker, has_crate, true),
-                self.ws.state(picker, movement, approaching),
-                ChoiceLink(
-                    PresentLink(
-                        self.ws.state(picker, called_robot, false),
-                        self.ws.state(picker, crate_full, true),
-                    ),
-                    PresentLink(self.ws.state(picker, called_robot, true)),
-                ),
-            ),
+                PresentLink(self.ws.state(picker, called_robot, true))
+            )
         )
 
         self.exchanging_crate2 = lambda picker: GetLink(
             self.variables2,
             AndLink(
+                PresentLink(picker),
                 self.ws.is_a(picker, ConceptNode("human")),
+                self.ws.state(picker, has_crate, true),
+                self.ws.state(picker, movement, approaching),
+                self.ws.is_at(picker, self.place),
                 self.ws.is_a(self.place, ConceptNode("place")),
-                self.ws.has_berries(self.place),
-                PresentLink(
-                    picker,
-                    self.ws.state(picker, has_crate, true),
-                    self.ws.state(picker, movement, approaching),
-                    self.ws.state(picker, called_robot, false),
-                    self.ws.state(picker, crate_full, false),
-                    self.ws.is_at(picker, self.place),
-                ),
-            ),
+                ChoiceLink(
+                    self.ws.has_berries(self.place),
+                    PresentLink(self.ws.state(picker, crate_full, true))
+                )
+            )
         )
 
         self.exchanging_crate_soon = lambda picker: GetLink(
@@ -112,9 +110,9 @@ class IntentionRecognition(object):
                     picker,
                     self.ws.is_a(picker, ConceptNode("human")),
                     self.ws.state(picker, has_crate, true),
-                    self.ws.state(picker, crate_full, true),
-                    self.ws.state(picker, called_robot, false),
+                    self.ws.state(picker, crate_full, true)
                 ),
+                AbsentLink(self.ws.state(picker, called_robot, true))
             ),
         )
 
@@ -127,11 +125,11 @@ class IntentionRecognition(object):
                 PresentLink(
                     picker,
                     self.ws.state(picker, has_crate, true),
-                    self.ws.state(picker, crate_full, false),
                     self.ws.is_at(picker, self.place),
-                    self.ws.state(picker, called_robot, false),
                     self.ws.state(picker, movement, approaching),
                 ),
+                AbsentLink(self.ws.state(picker, called_robot, true)),
+                AbsentLink(self.ws.state(picker, crate_full, true))
             ),
         )
 
@@ -142,21 +140,10 @@ class IntentionRecognition(object):
                 PresentLink(
                     picker,
                     self.ws.state(picker, has_crate, true),
-                    self.ws.state(picker, crate_full, false),
-                    self.ws.state(picker, called_robot, false),
+                    self.ws.state(picker, crate_full, false)
                 ),
+                AbsentLink(self.ws.state(picker, called_robot, true)),
                 AbsentLink(self.ws.state(picker, movement, approaching)),
-            ),
-        )
-        self.wants_something = lambda picker: GetLink(
-            self.variables1,
-            AndLink(
-                AbsentLink(self.ws.state(picker, movement, approaching)),
-                PresentLink(
-                    picker,
-                    self.ws.is_a(picker, ConceptNode("human")),
-                    self.ws.state(picker, called_robot, true),
-                ),
             ),
         )
 
@@ -188,11 +175,11 @@ class IntentionRecognition(object):
             (self.exchanging_crate1, self.ws.wants_to_exchange_their_crate),
             (self.exchanging_crate2, self.ws.wants_to_exchange_their_crate),
             (self.passing_us, self.ws.wants_to_pass),
-            (self.wants_something, self.ws.wants_something),
             (self.no_help_needed, self.ws.wants_nothing),
         ]
 
     def run_untargeted(self):
+        intentions = set()
         for query, intention in self.human_intention_templates:
             results = self.ws.kb.execute(query(self.picker))
             pickers = []
@@ -204,7 +191,9 @@ class IntentionRecognition(object):
                         picker = listlink.get_out()[0]
                         i = intention(picker)
                         i.tv = self.ws.kb.TRUE
-                        # rospy.logwarn("{:} intention: {:}".format(picker.name, intention.__name__))
+                        intentions.add((picker.name, intention.__name__))
+                        # rospy.logwarn("{:} intention: {:}".format(
+                        #                 picker.name, intention.__name__))
                 except IndexError:
                     pass
             else:
@@ -213,10 +202,14 @@ class IntentionRecognition(object):
                     for picker in pickers:
                         i = intention(picker)
                         i.tv = self.ws.kb.TRUE
-                        # rospy.logwarn("{:} intention: {:}".format(picker.name, intention.__name__))
-                        # print(picker)
+                        # rospy.logwarn("{:} intention: {:}".format(
+                        #                 picker.name, intention.__name__))
+                        intentions.add((picker.name, intention.__name__))
                 except IndexError:
                     pass
+        if self.intentions ^ intentions:
+            rospy.loginfo("IRE: Possible intentions: {}".format(self.intentions))
+            self.intentions = intentions
 
     def run_targeted(
         self,

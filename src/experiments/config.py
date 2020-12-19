@@ -4,6 +4,7 @@ import json
 import os
 import rospy
 import rosparam
+from hashlib import sha256
 
 from common.parameters import CONFIG_DIRECTORY, STATE_DIRECTORY, \
     LOG_DIRECTORY, ACTIVE_DIRECTORY, NS
@@ -18,23 +19,9 @@ class Config():
         self.termination_time = data["termination_time"]
         self.experiment_label = "{}".format(data["experiment_label"])
 
-        try:
-            with open(os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY,
-                                   self.experiment_label + ".json"),
-                      "r") as file:
-                self.state = json.load(file)
-        except Exception as err:
-            rospy.logerr(err)
-            self.state = {
-                "config_index": 0
-            }
-        self.make_paths()
-        param_file = os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, self.experiment_label + ".param")
-        rosparam.dump_params(param_file, NS, verbose=False)
-        self.launch_files = [
-         "/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch",
-         "/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"
-        ]
+
+
+
         # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
         # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch"]
         # self.robot_pose = PoseWithCovarianceStamped()
@@ -73,16 +60,6 @@ class Config():
     # def get_next_behaviour(self):
     #     return self.behaviours[self.behaviour_times.pop(0)]
 
-    def make_paths(self):
-        for path in [
-             os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY),
-             os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY),
-             os.path.join(CONFIG_DIRECTORY, ACTIVE_DIRECTORY)]:
-            try:
-                os.makedirs(path)
-            except OSError:
-                if not os.path.isdir(path):
-                    raise
 
     def _generate_parameter_set(self):
         try:
@@ -92,6 +69,10 @@ class Config():
                 keys, values = zip(*sorted(self.parameters.items()))
                 self.parameter_set = [dict(zip(keys, v))
                                       for v in itertools.product(*values)]
+                for parameters in self.parameter_set:
+                    parameters["experiment_id"] = sha256(
+                        json.dumps(parameters, sort_keys=True)
+                    ).hexdigest()
             except ValueError:
                 self.parameter_set = [{}]
             return self.parameter_set

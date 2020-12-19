@@ -1,6 +1,8 @@
 <launch>
   <arg name="robot_speed" default="0.5"/>
   <arg name="mean_waypoint_distance" default="2.95"/>
+  <arg name="model_folder" default="/home/rasberry/git/openpose/models/"/>
+  <arg name="publish_result" default="False"/>
   <arg name="_ns" default="/thorvald_001"/>
   <group>
         <!-- <include file="$(find rasberry_hri)/launch/d415_camera.launch"/> -->
@@ -9,14 +11,34 @@
         <!-- Set to match the cameras that are launched in the include file (camera launch script) -->
         <!-- <arg name="topic_prefixes" default="rsense"/>--> <!-- Separate topic_prefixes with commas -->
 
-        <node pkg="rasberry_hri" name="experimenter_node" type="experimenter_node" ns="$(arg _ns)" output="screen">
-          <param name="/use_sim_time" value="true"/>
-          <!-- <param name="robot_speed" type="double" value="$(arg robot_speed)"/>
-          <param name="picker_speed" type="double" value="1.3"/>
-          <param name="exchange_cost" type="double" value="5"/>
-          <param name="give_cost" type="double" value="2.5"/>
+        <node pkg="rasberry_hri" name="action_recognition_node" ns="$(arg _ns)" type="action_recognition_node" output="screen">
+            <param name="/use_sim_time" value="true"/>
+        </node>
+        <node pkg="openpose_ros" name="openpose" type="openpose_ros_node" ns="$(arg _ns)" output="screen">
+            <param name="net_input_width" value="320"/>
+            <param name="net_input_height" value="240"/>
+            <param name="net_output_width" value="320"/>
+            <param name="net_output_height" value="240"/>
+            <param name="model_folder" value="$(arg model_folder)"/>
+            <param name="pose_model" value="BODY_25"/>
+            <param name="publish_result" value="$(arg publish_result)"/>
+            <param name="overlay_alpha" value="0.6"/>
+            <param name="num_scales" value="1"/>
+            <param name="scale_gap" value="0.3"/>
+            <param name="num_gpu_start" value="0"/>
+            <param name="/use_sim_time" value="true"/>
+        </node>
 
-          <param name="mean_waypoint_distance" type="double" value="$(arg mean_waypoint_distance)"/> -->
+
+
+        <node pkg="rasberry_hri" name="experimenter_node" type="experimenter_node" ns="$(arg _ns)" output="screen">
+            <param name="/use_sim_time" value="true"/>
+            <param name="robot_speed" type="double" value="$(arg robot_speed)"/>
+            <param name="picker_speed" type="double" value="1.3"/>
+            <param name="exchange_cost" type="double" value="5"/>
+            <param name="give_cost" type="double" value="2.5"/>
+
+            <param name="mean_waypoint_distance" type="double" value="$(arg mean_waypoint_distance)"/>
         </node>
 
     </group>

@@ -208,7 +208,7 @@ class IntentionRecognition(object):
                 except IndexError:
                     pass
         if self.intentions ^ intentions:
-            rospy.loginfo("IRE: Possible intentions: {}".format(self.intentions))
+            rospy.loginfo("IRE: Possible intentions: {}".format(intentions))
             self.intentions = intentions
 
     def run_targeted(

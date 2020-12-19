@@ -1,44 +1,59 @@
 import sqlite3
 import os
 
-from common.parameters import CONFIG_DIRECTORY, LOG_DIRECTORY
+from common.parameters import CONFIG_DIRECTORY, ACTIVE_DIRECTORY, \
+                              LOG_DIRECTORY, STATE_DIRECTORY
 
+def make_paths():
+    for path in [
+         os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY),
+         os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY),
+         os.path.join(CONFIG_DIRECTORY, ACTIVE_DIRECTORY)]:
+        try:
+            os.makedirs(path)
+        except OSError:
+            if not os.path.isdir(path):
+                raise
 
 class DB:
-    def __init__(self, experiment_id, picker_id, filename=os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY, 'log.db')):
+    def __init__(self, experiment_label, experiment_id, picker_id, run_id, filename=os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY, 'log.db')):
         self.experiment_id = experiment_id
         self.picker_id = picker_id
+        self.run_id = run_id
+        make_paths()
         self.db = sqlite3.connect(filename, check_same_thread=False)
         try:
             self.build_db()
         except sqlite3.OperationalError:
             pass
+        self.add_experiment(experiment_label)
 
     def build_db(self):
         cursor = self.db.cursor()
         # cursor.execute("CREATE TABLE movement_variance (experiment_id text,"
         #                "timestamp float, x float, y float, typ text,"
         #                "target text)")
+        cursor.execute("CREATE TABLE experiments (experiment_label text, experiment_id text)")
         cursor.execute("CREATE TABLE picker_behavior (experiment_id text,"
-                       "picker_id text, timestamp float, x float, y float,"
+                       "picker_id text, run_id text, timestamp float, x float, y float,"
                        "orientation float, behaviour text)")
         cursor.execute("CREATE TABLE picker_waiting (experiment_id text,"
-                       "picker_id text,timestamp float, x float, y float,"
+                       "picker_id text, run_id text,timestamp float, x float, y float,"
                        "orientation float, wait float)")
         # cursor.execute("CREATE TABLE robot_behavior (experiment_id text,"
         #                "timestamp float, x float, y float, orientation float,"
         #                "behaviour text)")
         cursor.execute("CREATE TABLE robot_actions (experiment_id text,"
-                       "picker_id text, timestamp float, duration float,"
+                       "picker_id text, run_id text, timestamp float, duration float,"
                        "start_x float, start_y float, end_x float, end_y float,"
                        "action text, info text)")
         cursor.execute("CREATE TABLE robot_goals (experiment_id text,"
-                       "picker_id text, timestamp float, duration float,"
+                       "picker_id text, run_id text, timestamp float, duration float,"
                        "start_x float, start_y float, end_x float, end_y float,"
                        "goal text)")
         cursor.execute("CREATE TABLE meetings (experiment_id text,"
-                       "picker_id text, timestamp float, x float, y float,"
-                       "distance float, speed_profile text)")
+                       "picker_id text, run_id text, timestamp float, x float, y float,"
+                       "signal_distance float, stop_distance float, speed_profile text)")
         self.db.commit()
         cursor.close()
 
@@ -53,8 +68,16 @@ class DB:
                                    orientation, behaviour):
         cursor = self.db.cursor()
         cursor.execute(
-            "INSERT INTO picker_behavior VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (self.experiment_id, self.picker_id, timestamp, x, y, orientation, behaviour))
+            "INSERT INTO picker_behavior VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (self.experiment_id, self.picker_id, self.run_id, timestamp, x, y, orientation, behaviour))
+        self.db.commit()
+        cursor.close()
+
+    def add_experiment(self, label):
+        cursor = self.db.cursor()
+        cursor.execute(
+            "INSERT INTO experiments VALUES (?, ?)",
+            (label, self.experiment_id))
         self.db.commit()
         cursor.close()
 
@@ -62,17 +85,30 @@ class DB:
                               orientation, behaviour, wait):
         cursor = self.db.cursor()
         cursor.execute(
-            "INSERT INTO picker_waiting VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (self.experiment_id, self.picker_id, timestamp, x, y, orientation, wait))
+            "INSERT INTO picker_waiting VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (self.experiment_id, self.picker_id, self.run_id, timestamp, x, y, orientation, wait))
         self.db.commit()
         cursor.close()
 
-    def add_meet_entry(self, timestamp, x, y, distance, speed_profile):
+    def add_meet_entry(self, distance, speed_profile):
         cursor = self.db.cursor()
         cursor.execute(
-            "INSERT INTO meetings VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (self.experiment_id, self.picker_id, timestamp, x, y, distance,
+            ("INSERT INTO meetings (experiment_id, picker_id, run_id, "
+             "signal_distance, speed_profile) VALUES "
+             "(?, ?, ?, ?, ?)"),
+            (self.experiment_id, self.picker_id, self.run_id, distance,
              str(speed_profile)[1:-1]))
+        self.db.commit()
+        cursor.close()
+
+    def update_meet_entry(self, timestamp, x, y, distance):
+        cursor = self.db.cursor()
+        cursor.execute(
+            ("UPDATE meetings SET timestamp = ?, x = ?, y = ?,"
+             "stop_distance = ? WHERE (experiment_id = ? AND picker_id = ? AND "
+             "run_id = ?)"),
+            (timestamp, x, y, distance, self.experiment_id,
+             self.picker_id, self.run_id, ))
         self.db.commit()
         cursor.close()
 
@@ -86,9 +122,9 @@ class DB:
     def add_action_entry(self, timestamp, x, y, action, info):
         cursor = self.db.cursor()
         cursor.execute(
-            ("INSERT INTO robot_actions (experiment_id, picker_id, timestamp, "
-             "start_x, start_y, action, info) VALUES (?, ?, ?, ?, ?, ?, ?)"),
-            (self.experiment_id, self.picker_id, timestamp, x, y, action, info))
+            ("INSERT INTO robot_actions (experiment_id, picker_id, run_id, timestamp, "
+             "start_x, start_y, action, info) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"),
+            (self.experiment_id, self.picker_id, self.run_id, timestamp, x, y, action, info))
         self.db.commit()
         cursor.close()
 
@@ -96,17 +132,17 @@ class DB:
         cursor = self.db.cursor()
         cursor.execute(
             ("UPDATE robot_actions SET end_x = ?, end_y = ?, duration = ? "
-             "WHERE (experiment_id = ? AND picker_id = ? AND timestamp = ?)"),
-            (x, y, duration, self.experiment_id, self.picker_id, timestamp))
+             "WHERE (experiment_id = ? AND picker_id = ? AND run_id = ? AND timestamp = ?)"),
+            (x, y, duration, self.experiment_id, self.picker_id, self.run_id, timestamp))
         self.db.commit()
         cursor.close()
 
     def add_goal_entry(self, timestamp, x, y, goal):
         cursor = self.db.cursor()
         cursor.execute(
-            ("INSERT INTO robot_goals (experiment_id, picker_id, timestamp, "
-             "start_x, start_y, goal) VALUES (?, ?, ?, ?, ?, ?)"),
-            (self.experiment_id, self.picker_id, timestamp, x, y, goal))
+            ("INSERT INTO robot_goals (experiment_id, picker_id, run_id, timestamp, "
+             "start_x, start_y, goal) VALUES (?, ?, ?, ?, ?, ?, ?)"),
+            (self.experiment_id, self.picker_id, self.run_id, timestamp, x, y, goal))
         self.db.commit()
         cursor.close()
 
@@ -114,8 +150,8 @@ class DB:
         cursor = self.db.cursor()
         cursor.execute(
             ("UPDATE robot_goals SET end_x = ?, end_y = ?, duration = ? "
-             "WHERE (experiment_id = ? AND picker_id = ? AND timestamp = ?)"),
-            (x, y, duration, self.experiment_id, self.picker_id, timestamp))
+             "WHERE (experiment_id = ? AND picker_id = ? AND run_id = ? AND timestamp = ?)"),
+            (x, y, duration, self.experiment_id, self.picker_id, self.run_id, timestamp))
         self.db.commit()
         cursor.close()
 

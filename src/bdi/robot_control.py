@@ -31,5 +31,5 @@ class RobotControl:
         return self.robot_control.get_result()  # A FibonacciResult
 
     def cancel_movement(self):
-        self.robot_control.cancel_goal()
+        # self.robot_control.cancel_goal()
         self.robot_control.cancel_all_goals()

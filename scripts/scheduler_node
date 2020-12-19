@@ -94,7 +94,6 @@ if __name__ == '__main__':
     robot_id = ME
     if robot_id == "":
         robot_id = "thorvald_002"
-    rospy.loginfo("SCN: Robot name is: {:}".format(robot_id))
     scheduler = Scheduler(robot_id)
     scheduler.spin()
     # rospy.spin()

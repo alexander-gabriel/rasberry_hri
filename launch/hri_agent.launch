@@ -25,9 +25,7 @@
             <param name="/use_sim_time" value="true"/>
         </node> -->
 
-        <node pkg="rasberry_hri" name="action_recognition_node" type="action_recognition_node" output="screen">
-          <param name="/use_sim_time" value="true"/>
-        </node>
+        
 
         <node pkg="rasberry_hri" name="scheduler" type="scheduler_node" ns="$(arg _ns)" output="screen">
           <param name="/use_sim_time" value="true"/>

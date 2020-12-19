@@ -22,7 +22,9 @@ def define(key, default):
 
 VERBOSE = False
 
+EXPERIMENT_LABEL = define("experiment_label", "NO ID SET")
 EXPERIMENT_ID = define("experiment_id", "NO ID SET")
+RUN_ID = define("run_id", "NO ID SET")
 
 CONFIG_DIRECTORY = define("config_folder", "/home/rasberry/hri_config")
 ACTIVE_DIRECTORY = define("active_folder", "active")
@@ -169,62 +171,66 @@ TIMEOUT_LENGTH = 60  # s
 BEHAVIOURS = {
     "deliver standard": [
         ["call robot", 3],
-        ["expect service", 0],
+        ["wait for robot to move", 0],
         ["approach without crate", 0],
-        ["get crate", 2.5],
+        ["get crate", 3],
         ["leave with crate", 0],
-        ["pick berries", 3]
+        ["pick berries", 4]
     ],
     "deliver no call": [
+        ["expect service", 0],
         ["approach without crate", 0],
-        ["get crate", 2.5],
+        ["get crate", 3],
         ["leave with crate", 0],
-        ["pick berries", 3]
+        ["pick berries", 4]
     ],
     "deliver expect robot to come": [
         ["call robot", 3],
         ["wait for robot to arrive", 0],
-        ["get crate", 2.5],
-        ["pick berries", 3]
+        ["get crate", 3],
+        ["pick berries", 4]
     ],
     "deliver expect mind read": [
+        ["expect service", 0],
         ["wait for robot to arrive", 0],
-        ["get crate", 2.5],
+        ["get crate", 3],
         ["leave with crate", 0],
-        ["pick berries", 3]
+        ["pick berries", 4]
     ],
     "exchange standard": [
-        ["pick berries", 3],
+        ["pick berries", 4],
         ["call robot", 3],
-        ["expect service", 0],
+        ["wait for robot to move", 0],
         ["approach with crate", 0],
-        ["return crate", 2.5],
-        ["get crate", 2.5],
+        ["return crate", 4],
+        ["get crate", 3],
         ["leave with crate", 0],
-        ["pick berries", 3]
+        ["pick berries", 4]
     ],
     "exchange no call": [
-        ["pick berries", 3],
+        ["pick berries", 4],
+        ["expect service", 0],
         ["approach with crate", 0],
-        ["return crate", 2.5],
-        ["get crate", 2.5],
+        ["return crate", 4],
+        ["get crate", 3],
         ["leave with crate", 0],
-        ["pick berries", 3]
+        ["pick berries", 4]
     ],
     "exchange expect robot to come": [
-        ["pick berries", 3],
+        ["pick berries", 4],
         ["call robot", 3],
         ["wait for robot to arrive", 0],
         ["return crate", 2.5],
-        ["get crate", 2.5],
-        ["pick berries", 3]
+        ["get crate", 3],
+        ["pick berries", 4]
     ],
     "exchange expect mind read": [
-        ["pick berries", 3],
+        ["pick berries", 4],
+        ["expect service", 0],
         ["wait for robot to arrive", 0],
-        ["return crate", 2.5],
-        ["get crate", 2.5],
-        ["pick berries", 3]
+        ["return crate", 4],
+        ["get crate", 3],
+        ["pick berries", 4]
     ],
     "call": [
         ["call robot", 3],

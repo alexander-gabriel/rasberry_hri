@@ -8,9 +8,9 @@ from hashlib import sha256
 
 import roslaunch
 import rospy
-from experiments.config import Config
 from experiments.experimenter import Experimenter
-from common.parameters import CONFIG_DIRECTORY, ACTIVE_DIRECTORY
+from common.parameters import CONFIG_DIRECTORY, ACTIVE_DIRECTORY, \
+                              LOG_DIRECTORY, STATE_DIRECTORY
 
 
 # x TODO: storage of rosbag action data (start, end, filename, classification)
@@ -41,48 +41,57 @@ from common.parameters import CONFIG_DIRECTORY, ACTIVE_DIRECTORY
 #                     }
 
 
-if __name__ == "__main__":
 
+def make_paths():
+    for path in [
+         os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY),
+         os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY),
+         os.path.join(CONFIG_DIRECTORY, ACTIVE_DIRECTORY)]:
+        try:
+            os.makedirs(path)
+        except OSError:
+            if not os.path.isdir(path):
+                raise
+
+
+
+if __name__ == "__main__":
     rospy.init_node("experiment_node")
     rospy.myargv(argv=sys.argv)
+    make_paths()
     while (rospy.get_time() == 0):
         time.sleep(0.01)
 
+    # run_id = roslaunch.rlutil.get_or_generate_uuid(None, True)
 
-    run_id = roslaunch.rlutil.get_or_generate_uuid(None, True)
-
-    opencog = roslaunch.parent.ROSLaunchParent(
-        run_id, ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/openpose.launch"], is_core=False
-    )
-    opencog.start()
+    # opencog = roslaunch.parent.ROSLaunchParent(
+    #     run_id, ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/openpose.launch"], is_core=False
+    # )
+    # opencog.start()
 
     e = Experimenter()
     # do 5, 7, and 9 later
-    print("EXPE: Generating Configurations")
+    rospy.loginfo("EXPE: Generating Configurations")
+
     for subdir, dirs, filenames in os.walk(os.path.join(CONFIG_DIRECTORY,
                                                         ACTIVE_DIRECTORY)):
         for filename in filenames:
             try:
                 filepath = os.path.join(subdir, filename)
                 with open(filepath, "r") as file:
-                    data = json.load(file)
-                config = Config(data)
+                    experiment_set = json.load(file)
+                e.add_experiment_set(experiment_set)
 
-                if "experiment_id" not in data:
-                    id = sha256(
-                        json.dumps(data, sort_keys=True)
-                    ).hexdigest()
-                    data["experiment_id"] = id
-                with open(filepath, "w") as file:
-                    json.dump(data, file, sort_keys=True, indent=4,
-                              separators=(',', ': '))
-                config.experiment_id = data["experiment_id"]
-                e.add_config(config)
+                # with open(filepath, "w") as file:
+                #     json.dump(data, file, sort_keys=True, indent=4,
+                #               separators=(',', ': '))
+                # e.add_config(config)
             except KeyError as err:
                 rospy.logwarn(err)
             except ValueError as err:
                 rospy.logwarn(
                     "EXPE: Could not load {}".format(filepath))
                 rospy.logwarn(err)
-    print("EXPE: Starting Experimenter")
+    rospy.loginfo("EXPE: Starting Experimenter")
     e.run()
+    rospy.loginfo("EXPE: Experiments finished")

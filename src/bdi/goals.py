@@ -316,7 +316,7 @@ class Goal(object):
                 # rospy.logwarn("GOL: incl. variable results:\n{}".format(results))
                 for result in results.get_out():
                     if result.tv == world_state.kb.TRUE:
-                        rospy.logwarn(
+                        rospy.loginfo(
                             "GOL: Found a target for goal: {}".format(
                                 cls.__name__
                             )
@@ -334,7 +334,7 @@ class Goal(object):
                 # rospy.logwarn("GOL: excl. variable results:\n{}".format(results))
                 for result in results.get_out():
                     if result.tv == world_state.kb.TRUE:
-                        rospy.logwarn(
+                        rospy.loginfo(
                             "GOL: Found a target for goal: {}".format(
                                 cls.__name__
                             )

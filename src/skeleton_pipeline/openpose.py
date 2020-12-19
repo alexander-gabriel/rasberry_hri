@@ -31,13 +31,12 @@ class Openpose(threading.Thread):
         self.latest_thermal = deque(maxlen=5)
         signal.signal(signal.SIGINT, self.signal_handler)
 
-
     def signal_handler(self, sig, frame):
+        rospy.logwarn("OPN: received SIGINT, dying")
         self.died = True
 
-
     def run(self):
-        while rosgraph.is_master_online() and not self.died:
+        while not rospy.core.is_shutdown() and not self.died:
             try:
                 #self.last_processed = not self.last_processed
                 if self.last_processed == Openpose.RGB and self.latest_rgb:
@@ -52,12 +51,15 @@ class Openpose(threading.Thread):
                 else:
                     pass
                     # sleep(0.025)
-
             except rospy.ServiceException as exc:
                 self.died = True
+                rospy.logwarn("OPN: ServiceException")
                 rospy.logwarn("OPN: Service did not process request: " + str(exc))
+        rospy.logwarn("OPN: reached end of while loop")
+        self.shutdown()
 
-
+    def shutdown(self):
+        rospy.loginfo("OPN: Shutting down")
     # def send_message(self, response, category, timestamp):
     #     msg = Recognitions()
     #     msg.recognitions = response.recognitions

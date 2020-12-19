@@ -142,9 +142,16 @@ class Scheduler:
                 #     bdi.start()
                 self.bdi.loop()
                 rospy.sleep(1.0 / REASONING_LOOP_FREQUENCY)
+            rospy.loginfo("SCH: at end of spin")
         except KeyboardInterrupt:
-            rospy.logdebug("keyboard interrupt, shutting down")
-            rospy.core.signal_shutdown("keyboard interrupt")
+            rospy.logwarn("SCH: keyboard interrupt")
+        except rospy.ROSInterruptException:
+            rospy.logwarn("SCH: remote interrupt")
+        finally:
+            self.shutdown()
+
+    def shutdown(self):
+        rospy.loginfo("SCH: Shutting down")
 
     def add_position_noise(self, pose, old_pose):
         if old_pose is not None:
@@ -312,24 +319,16 @@ class Scheduler:
                 MINIMUM_DISTANCE,
                 self.bdi.world_state.get_optimum_distance(person)
             )
-            if distance <= minimum_distance + 0.35:
+            if distance <= minimum_distance + 0.3:
                 if not self.bdi.world_state.too_close:
-                    rospy.logwarn(
+                    rospy.loginfo(
                         "BDI: Robot has met picker. Halting at {:.2f}."
                         .format(distance))
                     self.bdi.world_state.too_close = True
                     self.bdi.robco.cancel_movement()
                     x, y, _ = self.bdi.world_state.get_position(
                         self.bdi.me)[-1].to_list()
-                    db.add_meet_entry(rospy.get_time(), x, y,
-                                      distance, self.speed)
-                # elif distance < minimum_distance + 0.35:
-                    # rospy.logwarn(
-                    #     ("BDI: Picker is too close. " "Distance: {}").format(
-                    #         distance
-                    #     )
-                    # )
-                # elif abs(distance - self.last_distance) < 0.04:
+                    db.add_meet_entry(distance, self.speed)
             elif self.bdi.world_state.too_close:
                 rospy.loginfo("BDI: Robot has left picker.")
                 self.bdi.world_state.too_close = False
@@ -337,7 +336,7 @@ class Scheduler:
                and self.has_reached_100cm[person.name] \
                and not self.has_reached_50cm[person.name]:
                 self.has_reached_50cm[person.name] = True
-                rospy.logwarn("Distance to {:} is 50cm: {:.2f}"
+                rospy.loginfo("Distance to {:} is 50cm: {:.2f}"
                               .format(person.name, distance))
                 # save half meter distance speed
                 speed = self.get_speed(
@@ -348,7 +347,7 @@ class Scheduler:
                   and self.has_reached_150cm[person.name]
                   and not self.has_reached_100cm[person.name]):
                 self.has_reached_100cm[person.name] = True
-                rospy.logwarn("Distance to {:} is 100cm: {:.2f}"
+                rospy.loginfo("Distance to {:} is 100cm: {:.2f}"
                               .format(person.name, distance))
                 # save one meter distance speed
                 speed = self.get_speed(
@@ -358,7 +357,7 @@ class Scheduler:
                   and self.has_reached_200cm[person.name]
                   and not self.has_reached_150cm[person.name]):
                 self.has_reached_150cm[person.name] = True
-                rospy.logwarn("Distance to {:} is 150cm: {:.2f}"
+                rospy.loginfo("Distance to {:} is 150cm: {:.2f}"
                               .format(person.name, distance))
                 # save two meter distance spe.ed
                 speed = self.get_speed(
@@ -367,7 +366,7 @@ class Scheduler:
             elif (distance <= 2.0
                   and not self.has_reached_200cm[person.name]):
                 self.has_reached_200cm[person.name] = True
-                rospy.logwarn("Distance to {:} is 200cm: {:.2f}"
+                rospy.loginfo("Distance to {:} is 200cm: {:.2f}"
                               .format(person.name, distance))
                 # save two meter distance speed
                 speed = self.get_speed(
@@ -407,30 +406,31 @@ class Scheduler:
             t = qsrlib_response_message.qsrs.get_sorted_timestamps()[-1]
             for k, v in qsrlib_response_message.qsrs.trace[t].qsrs.items():
                 picker = ConceptNode(k.split(",")[1])
-                direction = v.qsr.get("qtcbs").split(",")[1]
+                directions = v.qsr.get("qtcbs").split(",")
+                picker_direction = directions[1]
                 try:
-                    if (self.directions[picker.name] != direction):
-                        self.directions[picker.name] = direction
-                        self._handle_direction_change(picker, direction)
+                    if (self.directions[picker.name] != picker_direction):
+                        self.directions[picker.name] = picker_direction
+                        self._handle_direction_change(picker, picker_direction)
                 except KeyError:
-                    self.directions[picker.name] = direction
-                    self._handle_direction_change(picker, direction)
+                    self.directions[picker.name] = picker_direction
+                    self._handle_direction_change(picker, picker_direction)
         except (ValueError) as err:
             pass
         except IndexError as err:
-            rospy.logwarn("SCH: 434 - Index error: {}".format(err))
+            rospy.logwarn("SCH: 414 - Index error: {}".format(err))
         except KeyError as err:
-            rospy.logerr("SCH: 436 - Timestamp mismatch error: {}".format(err))
+            rospy.logerr("SCH: 416 - Timestamp mismatch error: {}".format(err))
 
     def _handle_direction_change(self, picker, direction):
         if direction == "+":
             self.bdi.world_state.leaving(picker).tv = self.kb.TRUE
-            rospy.logwarn("BDI: Observation: {} is leaving"
+            rospy.loginfo("BDI: Observation: {} is leaving"
                           .format(picker.name))
         elif direction == "-":
             self.bdi.world_state.approaching(
                 picker).tv = self.kb.TRUE
-            rospy.logwarn(
+            rospy.loginfo(
                 "BDI: Observation: {} is approaching"
                 .format(picker.name)
             )
@@ -442,11 +442,17 @@ class Scheduler:
                 self.bdi.world_state.set_latest_distance(
                     picker, self.latest_distances[picker.name]
                 )
+                rospy.loginfo(
+                    "BDI: Observation: {} is stopping at {:.2f}m distance"
+                    .format(picker.name, self.latest_distances[picker.name])
+                )
+            else:
+                rospy.loginfo(
+                    "BDI: Observation: {} is standing"
+                    .format(picker.name)
+                )
             self.bdi.world_state.standing(picker).tv = self.kb.TRUE
-            rospy.logwarn(
-                "BDI: Observation: {} is standing"
-                .format(picker.name)
-            )
+
 
     def _handle_position_msgs(self, name, msg, timestamp):
         """Abstracts received position messages to the Knowledge Base"""
@@ -483,8 +489,7 @@ class Scheduler:
             pairs = [(self.robot_id, name)]
             if DIRECTION_PERCEPTION:
                 self._calculate_directions(world, pairs)
-
-
+                # if direction changed and picker close and robot stationary, consider saving new perferred distance
 
 
     # def people_tracker_callback(self, msg, id):

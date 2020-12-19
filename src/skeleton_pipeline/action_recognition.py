@@ -65,10 +65,22 @@ class ActionRecognition:
         rospy.loginfo("ACR: Initialization Complete")
 
     def run(self):
-        if self.normal_mode:
-            self.openpose.run()
-        else:
-            rospy.spin()
+        try:
+            if self.normal_mode:
+                self.openpose.run()
+                rospy.logwarn("ACR: at end of openpose")
+            else:
+                rospy.spin()
+                rospy.logwarn("ACR: at end of spin")
+        except rospy.ROSInterruptException:
+            rospy.logwarn("ACR: remote interrupt")
+        except Exception as err:
+            rospy.logwarn("ACR: unknown exception")
+            rospy.logerr(err)
+        finally:
+            rospy.logwarn("ACR: we reached finally")
+            self.shutdown()
+
 
     def openpose_callback(self, timestamp, source, response):
         if response.recognitions:
@@ -119,7 +131,7 @@ class ActionRecognition:
                         # TODO: identify picker
 
                     self.action_publisher.publish(outmsg)
-                    # rospy.loginfo("ACR: Published behavior '{}: {}'".format(outmsg.person, action))
+                    rospy.logdebug("ACR: Published behavior '{}: {}'".format(outmsg.person, action))
                     # outmsg = Command()
                     # outmsg.header.stamp = timestamp
                     # outmsg.command = action
@@ -255,3 +267,6 @@ class ActionRecognition:
 
     def callback_thermal(self, data):
         self.openpose.latest_thermal.append(data)
+
+    def shutdown(self):
+        rospy.loginfo("ACR: Shutting down")

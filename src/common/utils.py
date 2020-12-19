@@ -19,7 +19,7 @@ from opencog.utilities import initialize_opencog
 
 from experiments.log_writer import DB
 
-from common.parameters import EXPERIMENT_ID, TARGET_PICKER
+from common.parameters import EXPERIMENT_ID, TARGET_PICKER, RUN_ID, EXPERIMENT_LABEL
 
 atomspace = AtomSpace()
 initialize_opencog(atomspace)
@@ -296,4 +296,4 @@ def get_position_prototype_3d():
 def mean(liste):
     return sum(liste)/len(liste)
 
-db = DB(EXPERIMENT_ID, TARGET_PICKER)
+db = DB(EXPERIMENT_LABEL, EXPERIMENT_ID, TARGET_PICKER, RUN_ID)

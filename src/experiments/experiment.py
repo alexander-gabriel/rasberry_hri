@@ -6,6 +6,8 @@ import base64
 import paramiko
 import rospy
 import roslaunch
+import rosparam
+import rosnode
 # import dynamic_reconfigure.client
 
 from std_srvs.srv import Empty  # , Trigger
@@ -22,7 +24,7 @@ from rasberry_hri.msg import Action
 
 # from config import Config
 from bdi.robot_control import RobotControl
-from common.parameters import NS, BEHAVIOURS
+from common.parameters import NS, BEHAVIOURS, CONFIG_DIRECTORY, STATE_DIRECTORY
 
 import warnings
 warnings.filterwarnings(action='ignore', module='.*paramiko.*')
@@ -52,28 +54,34 @@ LOG_PATH = "."
 
 
 class Experiment:
-    def __init__(self, parameters, config):
-        self.parameters = parameters
+    def __init__(self, config):
         self.config = config
-        rospy.set_param("{}/experiment_id".format(NS), config.experiment_id)
+
+        # rospy.set_param("{}/experiment_id".format(NS), self.config["experiment_id"])
         # super(Config, self).__init__()
         rospy.loginfo(
-            "EXP: Initializing Experiment: {}".format(config.experiment_label)
+            "EXP: Initializing Experiment: {}".format(config["experiment_label"])
         )
+        self.launch_files = [
+            "/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch",
+            "/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch"
+        ]
         self.set_model_state = self.create_service_proxy(
             "/gazebo/set_model_state", SetModelState, local=False
         )
+        rospy.wait_for_service("/gazebo/set_model_state")
         state_msg = ModelState()
-        state_msg.model_name = self.config.robot_id
+        state_msg.model_name = self.config["robot"]
         # state_msg.pose.position.x = 11.41  # 14.12 #11.649
         # state_msg.pose.position.y = 4.6285  # 4.63 #4.64
-        x = parameters["robot_position"][0]
-        y = parameters["robot_position"][1]
-        rospy.logwarn("Setting robot to {:.2f}, {:.2f}".format(x, y))
+        x = self.config["robot_position"][0]
+        y = self.config["robot_position"][1]
+        rospy.loginfo("Setting robot to {:.2f}, {:.2f}".format(x, y))
         state_msg.pose.position.x = x  # 14.12 #11.649
         state_msg.pose.position.y = y  # 4.63 #4.64
         state_msg.pose.orientation.w = 1
         state_msg.reference_frame = "map"
+
         self.set_model_state(state_msg)
         self.ssh_client = paramiko.SSHClient()
         self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -84,12 +92,10 @@ class Experiment:
         rospy.sleep(3)
         self.is_finished = False
 
-        self.robco = RobotControl(self.config.robot_id)
-        self.last_clock = rospy.get_time()
-        self.start_clock = int(self.last_clock + 3)
+        self.robco = RobotControl(self.config["robot"])
 
         self.initial_pose_publisher = rospy.Publisher(
-            "/{:}/initialpose".format(self.config.robot_id),
+            "/{:}/initialpose".format(self.config["robot"]),
             PoseWithCovarianceStamped,
             queue_size=10,
         )
@@ -100,7 +106,7 @@ class Experiment:
             "/human_actions", Action, queue_size=10
         )
         self.robot_pose_publisher = rospy.Publisher(
-            "/{:}/set_pose".format(self.config.robot_id),
+            "/{:}/set_pose".format(self.config["robot"]),
             PoseWithCovarianceStamped,
             queue_size=10,
         )
@@ -110,12 +116,12 @@ class Experiment:
         # self.bag_paths = convert_bags(self.config)
         # self.bags = self.config.get_bag_paths()
         # self.running_bags = []
+
+
+
         rospy.loginfo("EXP: Initialization finished")
-        rospy.loginfo(
-            "EXP: Experiment starting at: {}".format(self.start_clock)
-        )
         # reconfigure robot speed
-        # client = dynamic_reconfigure.client.Client("/{:}/move_base/DWAPlannerROS".format(self.config.robot_id), timeout=4)
+        # client = dynamic_reconfigure.client.Client("/{:}/move_base/DWAPlannerROS".format(self.config["robot"]), timeout=4)
         # client.update_configuration(
         # {"max_vel_x":1.5})
         # {
@@ -126,7 +132,7 @@ class Experiment:
 
     def create_service_proxy(self, topic, type=Empty, local=True):
         if local:
-            topic = "/{:}/{:}".format(self.config.robot_id, topic)
+            topic = "/{:}/{:}".format(self.config["robot"], topic)
         rospy.loginfo("EXP: Waiting for service {}".format(topic))
         service = rospy.ServiceProxy("{:}".format(topic), type)
         rospy.wait_for_service(topic)
@@ -141,7 +147,6 @@ class Experiment:
         # scheduler = start_process(['/bin/bash', "/opt/ros/kinetic/bin/rosbag rasberry_hri scheduler"],
         # 'node', start_time_string,
         #                        dpath_logs)
-
         run_id = roslaunch.rlutil.get_or_generate_uuid(None, True)
         # roslaunch.configure_logging(run_id)
         # config = roslaunch.ROSLaunchConfig()
@@ -149,7 +154,7 @@ class Experiment:
         # # node = roslaunch.core.Node(package, executable)
         # # runner = roslaunch.ROSLaunchRunner(self.run_id, config, server_uri="http://localhost:11311")
         self.launch = roslaunch.parent.ROSLaunchParent(
-            run_id, self.config.launch_files, is_core=False
+            run_id, self.launch_files, is_core=False
         )
         self.launch.start()
 
@@ -173,21 +178,24 @@ class Experiment:
             while not rospy.core.is_shutdown() and not self.is_finished:
                 self.launch.spin_once()
                 rospy.rostime.wallsleep(0.01)
+            rospy.logwarn("EXP: at end of spin")
         except KeyboardInterrupt:
-            rospy.logdebug("keyboard interrupt, shutting down")
-            rospy.core.signal_shutdown("keyboard interrupt")
-        else:
+            rospy.logwarn("EXP: keyboard interrupt")
+        except rospy.ROSInterruptException:
+            rospy.logwarn("EXP: remote interrupt")
+        finally:
             self.shutdown()
-            # rospy.core.signal_shutdown('timeout')
 
-    def set_parameters(self, parameters):
-        for key, value in parameters.items():
+    def set_parameters(self):
+        for key, value in self.config.items():
             key = "{}/{}".format(NS, key)
             rospy.loginfo("Set parameter: {}:{}".format(key, value))
             rospy.set_param(key, value)
+        param_file = os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, self.config["run_id"] + ".param")
+        rosparam.dump_params(param_file, NS, verbose=False)
 
-    def unset_parameters(self, parameters):
-        for key in parameters.keys():
+    def unset_parameters(self):
+        for key in self.config.keys():
             try:
                 key = "{}/{}".format(NS, key)
                 rospy.delete_param(key)
@@ -195,12 +203,27 @@ class Experiment:
                 pass
 
     def setup(self):
-        self.set_parameters(self.parameters)
+        self.set_parameters()
         key = "{}/{}".format(NS, "behaviours")
-        rospy.set_param(key, BEHAVIOURS[self.parameters["behaviour"]])
+        rospy.set_param(key, BEHAVIOURS[self.config["behaviour"]])
         self.launch_services()
         self.clock_sub = rospy.Subscriber("/clock", Clock, self.clock_callback)
         rospy.loginfo("EXP: Experiment setup finished")
+
+        # TODO: wait for everything to have started
+        self.start_clock = int(rospy.get_time() + 600)
+        running_nodes = rosnode.get_node_names()
+        while ("/thorvald_001/picker_mover" not in running_nodes
+            or '/thorvald_001/action_recognition_node' not in running_nodes
+            or '/thorvald_001/scheduler' not in running_nodes
+            or '/thorvald_001/openpose' not in running_nodes):
+            rospy.sleep(1)
+            running_nodes = rosnode.get_node_names()
+        self.start_clock = int(rospy.get_time() + 3)
+        rospy.set_param("{}/start_time".format(NS), self.start_clock)
+        rospy.loginfo(
+            "EXP: Experiment starting at: {}".format(self.start_clock)
+        )
         # self.reset_simulation()
         # self.robot_pose_publisher.publish(self.robot_pose)
         # add config specific stuff to reasoning system, <- do this as defined by rosparameters inside the respective nodes instead
@@ -211,12 +234,11 @@ class Experiment:
             clock = msg.clock.to_sec()
             # rospy.loginfo("Now {:}, Start {:}, End {:}"
             #               .format(clock, self.start_clock,
-            #                       self.config.termination_time))
-            if clock >= self.config.termination_time + self.start_clock:
+            #                       self.config["termination_time"]))
+            if clock >= self.config["termination_time"] + self.start_clock:
                 if not self.is_finished:
                     rospy.loginfo("EXP: Timeout condition reached")
-                    self.shutdown()
-                self.is_finished = True
+                    self.is_finished = True
                 return
 
             # index = 0
@@ -284,11 +306,13 @@ class Experiment:
             #     rospy.logerr("EXP: clock_callback - {}".format(err))
 
     def shutdown(self):
+        rospy.loginfo("EXP: Shutting dow")
+        self.robco.cancel_movement()
+        self.launch.shutdown()
         self.clock_sub.unregister()
         # self.terminate_bags()
         # for bag in self.bags.values():
         #     bag.close()
-        self.launch.shutdown()
-        self.robco.cancel_movement()
-        self.unset_parameters(self.parameters)
+        # wait for launch to have shutdown
+        self.unset_parameters()
         rospy.loginfo("EXP: Experiment ended")

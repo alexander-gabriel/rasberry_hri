@@ -160,7 +160,7 @@ class MoveAction(Action):
                 time = rospy.get_time()
                 x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
                 self.ws.moving = False
-                rospy.logwarn("ACT: Reached my destination.")
+                rospy.loginfo("ACT: Reached my destination.")
                 db.update_action_entry(self.start_time, float(x), float(y),
                                             time - self.start_time)
                 return True
@@ -202,7 +202,7 @@ class MoveToAction(Action):
         super(MoveToAction, self).perform()
         if self.position == self.destination:
             time = rospy.get_time()
-            rospy.logwarn(
+            rospy.loginfo(
                 "ACT: Reached my destination: {}".format(self.destination)
             )
             x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
@@ -225,7 +225,7 @@ class MoveToAction(Action):
                 if result or self.ws.too_close:
                     self.ws.moving = False
 
-                    rospy.logwarn(
+                    rospy.loginfo(
                         "ACT: Reached my destination"
                     )
                     return True
@@ -293,7 +293,7 @@ class EvadeAction(Action):
         try:
             success = self.robco.get_result().success
             self.ws.moving = False
-            rospy.logwarn("ACT: Movement success is: {}".format(success))
+            rospy.loginfo("ACT: Movement success is: {}".format(success))
             time = rospy.get_time()
             x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
             db.update_action_entry(self.start_time, float(x), float(y),
@@ -586,7 +586,7 @@ class ApproachAction(Action):
     def perform(self):
         super(ApproachAction, self).perform()
         if self.position == self.destination:
-            rospy.logwarn(
+            rospy.loginfo(
                 "ACT: Reached my destination: {}".format(self.destination)
             )
             return True
@@ -606,7 +606,7 @@ class ApproachAction(Action):
                 if result:
                     time = rospy.get_time()
                     self.ws.moving = False
-                    rospy.logwarn(
+                    rospy.loginfo(
                         "ACT: Reached my destination: {}".format(
                             result.success
                         )
@@ -681,7 +681,7 @@ class CloseApproachAction(Action):
     def perform(self):
         super(CloseApproachAction, self).perform()
         if self.position == self.destination:
-            rospy.logwarn(
+            rospy.loginfo(
                 "ACT: Reached my destination: {}".format(self.destination)
             )
             return True
@@ -701,7 +701,7 @@ class CloseApproachAction(Action):
                 if result:
                     time = rospy.get_time()
                     self.ws.moving = False
-                    rospy.logwarn(
+                    rospy.loginfo(
                         "ACT: Reached my destination: {}".format(
                             result.success
                         )
@@ -849,7 +849,7 @@ class LeaveAction(Action):
             if result:
                 time = rospy.get_time()
                 self.ws.moving = False
-                rospy.logwarn("ACT: Reached my destination: {}"
+                rospy.loginfo("ACT: Reached my destination: {}"
                               .format(result.success))
                 x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
                 db.update_action_entry(self.start_time, float(x), float(y),

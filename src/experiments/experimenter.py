@@ -1,7 +1,13 @@
 #!/usr/bin/env python
-import rospy
-from experiment import Experiment
+import itertools
+from hashlib import sha256
+import json
+import os
 
+import rospy
+import rosnode
+from experiment import Experiment
+from common.parameters import CONFIG_DIRECTORY, STATE_DIRECTORY
 
 class Experimenter:
 
@@ -11,15 +17,95 @@ class Experimenter:
         self.configs = []
         self.current_config = None
 
+    def generate_id(self, thing):
+        return sha256(json.dumps(thing, sort_keys=True)).hexdigest()
+
     def run(self):
+        try:
+            with open(os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, "experiments.json"),
+                      "r") as file:
+                self.state = json.load(file)
+        except Exception as err:
+            self.state = {
+                "finished experiments": []
+            }
+        number_of_runs = 0
+        count = 0
         for config in self.configs:
-            self.current_config = config
-            for parameters in config:
-                experiment = Experiment(parameters, config)
+            if config["run_id"] not in self.state["finished experiments"]:
+                number_of_runs +=1
+        for config in self.configs:
+            id = config["run_id"]
+            if id not in self.state["finished experiments"]:
+                count += 1
+                running_nodes = rosnode.get_node_names()
+                if ("/thorvald_001/picker_mover" in running_nodes
+                    or '/thorvald_001/scheduler' in running_nodes):
+                    rospy.logwarn("EXPE: Waiting for previous experiment to stop")
+                    rospy.logwarn(running_nodes)
+                while ("/thorvald_001/picker_mover" in running_nodes
+                    or '/thorvald_001/scheduler' in running_nodes):
+                    rospy.sleep(1)
+                    running_nodes = rosnode.get_node_names()
+                rospy.logwarn("EXPE: Starting Experiment run {}".format(id))
+                experiment = Experiment(config)
                 experiment.setup()
                 experiment.spin()
-                # config.reset()
-        rospy.core.signal_shutdown('timeout')
+                rospy.loginfo("EXPE: Ending Experiment run {}".format(id))
+                self.state["finished experiments"].append(id)
+                with open(os.path.join(CONFIG_DIRECTORY,
+                                       STATE_DIRECTORY,
+                                       "experiments.json"),
+                          "w") as file:
+                    json.dump(self.state, file, sort_keys=True, indent=4,
+                              separators=(',', ': '))
+                rospy.logwarn("EXPE: {} of {} runs finished, {} remain."
+                              .format(count, number_of_runs,
+                                      number_of_runs - count))
 
-    def add_config(self, config):
-        self.configs.append(config)
+        # for config in self.configs:
+        #     self.current_config = config
+        #     for parameters in config:
+        #         experiment = Experiment(parameters, config)
+        #         experiment.setup()
+        #         experiment.spin()
+        #         # config.reset()
+
+    def _generate_set(self, config):
+        keys, values = zip(*sorted(config.items()))
+        return [dict(zip(keys, v)) for v in itertools.product(*values)]
+        # try:
+        #     return self.parameter_set
+        # except AttributeError:
+        #     try:
+        #         keys, values = zip(*sorted(self.parameters.items()))
+        #         self.parameter_set = [dict(zip(keys, v))
+        #                               for v in itertools.product(*values)]
+        #         for parameters in self.parameter_set:
+        #             parameters["experiment_id"] = sha256(
+        #                 json.dumps(parameters, sort_keys=True)
+        #             ).hexdigest()
+        #     except ValueError:
+        #         self.parameter_set = [{}]
+        #     return self.parameter_set
+
+    def _create_experiment(self, run, parameters, ):
+        return Experiment()
+
+    def add_experiment_set(self, experiment_set):
+        common = experiment_set["common"]
+        parameter_set = self._generate_set(experiment_set["parameters"])
+        run_set = self._generate_set(experiment_set["runs"])
+        for parameters in parameter_set:
+            experiment_id = self.generate_id(parameters)
+            for run in run_set:
+                config = {"experiment_id": experiment_id}
+                config.update(common)
+                config.update(parameters)
+                config.update(run)
+                run_id = self.generate_id(config)
+                config["run_id"] = run_id
+                self.configs.append(config)
+
+    # def add_config(self, config):
+    #     self.configs.append(config)

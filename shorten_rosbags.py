@@ -1,57 +1,15 @@
-#!/usr/bin/env python
-
-import sys
+#!/usr/bin/env python2
 import os
-from math import sin, cos, pi, sqrt
+import glob
 from threading import Thread
-from time import sleep
-# from time import sleep
+import traceback
 
 import rospy
 import rosbag
-from geometry_msgs.msg import Pose
-from marvelmind_nav.msg import hedge_pos_a
-from rasberry_hri.msg import Action
 
-from common.parameters import NS, PICKER_LENGTH, ROBOT_LENGTH, \
-    INITIAL_PICKER_POSITION, INITIAL_PICKER_ORIENTATION, \
-    PICKER_DISTANCE_PREFERENCE, PICKER_WIDTH, ROBOT_WIDTH, TARGET_PICKER, \
-    PICKER_UPDATE_FREQUENCY, PICKER_SPEED, EXCHANGE_COST, \
-    GIVE_COST, PICKERS, ROBOT_MODES, USE_ACTION_RECOGNITION
-from common.utils import db
+from sensor_msgs.msg import Image
 
-ROSBAG_FREQUENCY = 25  # Hz
-
-MEAN_WAYPOINT_DISTANCE = rospy.get_param(
-    "{}/mean_waypoint_distance".format(NS), 2.95)  # m
-
-PICKER_ID = int(TARGET_PICKER[-2:])
-
-EVADE_DISTANCE = 2 * MEAN_WAYPOINT_DISTANCE  # m
-EVADE_COUNTS = int(EVADE_DISTANCE / PICKER_SPEED * PICKER_UPDATE_FREQUENCY)
-
-DELIVER_DISTANCE = 1 * MEAN_WAYPOINT_DISTANCE  # m
-DELIVER_COUNTS = int(DELIVER_DISTANCE / PICKER_SPEED * PICKER_UPDATE_FREQUENCY)
-
-EXCHANGE_DISTANCE = 1 * MEAN_WAYPOINT_DISTANCE  # m
-EXCHANGE_COUNTS = int(
-    EXCHANGE_DISTANCE / PICKER_SPEED * PICKER_UPDATE_FREQUENCY)
-EXCHANGE_WAIT_COUNTS = (rospy.get_param("{}/exchange_cost".format(NS), 5)
-                        * PICKER_UPDATE_FREQUENCY)
-DELIVER_WAIT_COUNTS = (rospy.get_param("{}/give_cost".format(NS), 5)
-                       * PICKER_UPDATE_FREQUENCY)
-
-
-ANGLE = 0.0  # angle between direction of travel and X coordinate
-X_DISTANCE = cos(ANGLE) * PICKER_SPEED / PICKER_UPDATE_FREQUENCY
-Y_DISTANCE = sin(ANGLE) * PICKER_SPEED / PICKER_UPDATE_FREQUENCY
-
-
-# 102: 8.675 4.65
-# 103: 11.649 4.64
-# 104: 14.12 4.612
-# 105: 17.061 4.609 ,_ was this
-# 106: 19.997 4.568
+SLEEP=0.1 # 0.1 640x480, 0.05 320x240, 0.01 only action rec
 
 
 data = {
@@ -1276,518 +1234,99 @@ data = {
         },
     },
 }
-data["pass with crate"] = data["approach with crate"]
 
-if True:
-    topics = ["/camera/color/image_raw"]
-else:
-    topics = ["/human_actions"]
-
-behaviour_bank = {}
-for mode in ROBOT_MODES:
-    behaviour_bank[mode] = {}
-
-for action in data.keys():
-    for mode in ROBOT_MODES:
-        filename, start, duration = data[action][PICKER_ID][mode]
-        behaviour_bank[mode][action] = {
-            "start": start,
-            "duration": duration,
-            "filename": filename,
-            "topics": topics
-        }
-
-
-def do_pick_berries(self):
-    self.orientation = 1 * pi
-    if not self.play_rosbags:
-        msg = Action()
-        msg.header.stamp = rospy.get_rostime()
-        msg.action = "picking berries"
-        msg.person = TARGET_PICKER
-        self.human_action_pub.publish(msg)
-        sleep(3)
-    return True
-
-
-def do_leave_robot(self):
-    if self.x < INITIAL_PICKER_POSITION[0]:
-        self.x += X_DISTANCE
-        self.y += Y_DISTANCE
-        self.orientation = 0 * pi
-        return False
-    else:
-        # self.counter = 0
-        return True
-
-
-def do_pass_robot(self):
-    if (self.counter < EVADE_COUNTS):
-        self.x -= X_DISTANCE
-        self.y -= Y_DISTANCE
-        self.orientation = 2 * pi
-        self.counter += 1
-        # self.wait = 0
-        return False
-    else:
-        return True
-
-
-def do_call_robot(self):
-    self.orientation = 2 * pi
-    if not self.play_rosbags:
-        meta_start_wait(self)
-        msg = Action()
-        msg.header.stamp = rospy.get_rostime()
-        msg.action = "calling"
-        msg.person = TARGET_PICKER
-        self.human_action_pub.publish(msg)
-        sleep(1)
-    return True
-
-
-def meta_start_wait(self):
-    if not self.started_waiting_at:
-        self.started_waiting_at = rospy.get_time()
-        return True
-    else:
-        return False
-
-
-def meta_end_wait(self):
-    if self.started_waiting_at:
-        time = rospy.get_time()
-        wait_time = time - self.started_waiting_at
-        self.db.add_person_wait_entry(time, self.x, self.y, self.orientation,
-                                      self.behaviour, wait_time)
-        self.started_waiting_at = False
-
-
-def do_expect_service(self):
-    self.orientation = 2 * pi
-    meta_start_wait(self)
-    return True
-
-
-def do_wait_for_robot_to_move(self):
-    self.orientation = 2 * pi
-    meta_start_wait(self)
-    if self.robot_movement == "approaching":
-        meta_end_wait(self)
-        return True
-    else:
-        return False
-
-
-def do_wait_for_robot_to_arrive(self):
-    self.orientation = 2 * pi
-    if self.robot_movement == "approaching":
-        meta_end_wait(self)
-    if self.old_distance <= PICKER_DISTANCE_PREFERENCE:
-        return True
-    else:
-        return False
-
-
-def do_approach_robot(self):
-    # if self.counter < EXCHANGE_COUNTS:
-    if self.robot_movement == "approaching":
-        meta_end_wait(self)
-    if self.old_distance > PICKER_DISTANCE_PREFERENCE:
-        self.x -= X_DISTANCE
-        self.y -= Y_DISTANCE
-        self.orientation = 2 * pi
-        # self.counter += 1
-        # self.wait = 0
-        return False
-    else:
-        return True
-
-def do_return_crate(self):
-    if type(self.started_returning_crate) == float:
-        if rospy.get_time() - self.started_returning_crate >= EXCHANGE_COST:
-            self.started_returning_crate = True
-            return True
-        else:
-            return False
-    elif self.started_returning_crate:
-        return True
-    else:
-        self.orientation = 2 * pi
-        self.started_returning_crate = rospy.get_time()
-        return False
-
-
-def do_get_crate(self):
-    if type(self.started_getting_crate) == float:
-        if rospy.get_time() - self.started_getting_crate >= GIVE_COST:
-            self.started_getting_crate = True
-            return True
-        else:
-            return False
-    elif self.started_getting_crate:
-        return True
-    else:
-        self.orientation = 2 * pi
-        self.started_getting_crate = rospy.get_time()
-        return False
-
-
-def do_reset(self):
-    self.x = INITIAL_PICKER_POSITION[0]
-    self.y = INITIAL_PICKER_POSITION[1]
-    self.orientation = INITIAL_PICKER_ORIENTATION
-    for picker in PICKERS:
-        if not picker == TARGET_PICKER:
-            msg = hedge_pos_a()
-            id = int(picker[-2:])
-            msg.address = id
-            msg.x_m = 2.58 + id * MEAN_WAYPOINT_DISTANCE
-            msg.y_m = -3.31
-            msg.z_m = self.orientation
-            self.publisher.publish(msg)
-    return True
-
-
-BEHAVIOURS = {"pick berries": do_pick_berries,
-              "leave with crate": do_leave_robot,
-              "get crate": do_get_crate,
-              "approach with crate": do_approach_robot,
-              "approach without crate": do_approach_robot,
-              "pass with crate": do_pass_robot,
-              "call robot": do_call_robot,
-              "return crate": do_return_crate,
-              "get crate": do_get_crate,
-              "wait for robot to move": do_wait_for_robot_to_move,
-              "wait for robot to arrive": do_wait_for_robot_to_arrive,
-              "expect service": do_expect_service,
-              "reset": do_reset}
-
-
-def get_rosbag_from_file(filename, mode="r"):
+def get_rosbag_from_file(filename, mode='r'):
     try:
         bag = rosbag.Bag(filename, mode)
         return bag
     except Exception as e:
-        print(
-         "Failed to get rosbag topics info from file {:} with exception: '{:}'"
-         .format(filename, e)
-        )
+        print("Failed to get rosbag topics info from file {:} with exception: '{:}'".format(filename, e))
         return None
 
 
 class Player(Thread):
-    def __init__(self, filename, topics=[], start_time=None, duration=None):
+
+    def __init__(self, filename, topics, start_time, duration):
         super(Player, self).__init__()
-        start = rospy.get_time()
-        self.closing = False
-        self.filename = filename
         self.bag = get_rosbag_from_file(filename)
-        bag_start_time = self.bag.get_start_time()
         self.msgs = self.bag.read_messages(topics=topics)
-
         self.pubs = {}
-        self.duration = duration
-
-        self.start_timestamp = (
-            bag_start_time #+ start_time
-            if start_time is not None
-            else bag_start_time
-        )
-        delay = rospy.get_time() - start
-        rospy.loginfo("PMO: Loading rosbag '{}' took {:.2f}".format(self.filename, delay))
+        self.start_timestamp = start_time + self.bag.get_start_time()
+        self.end_timestamp = self.start_timestamp + duration
 
 
     def run(self):
-        try:
-            if not self.closing:
-                rospy.loginfo("PMO: Playing rosbag '{}'".format(self.filename))
-                count_sent = 0
-                count_encountered = 0
-                for topic, msg, timestamp in self.msgs:
-                    if self.closing:
-                        break
-                    count_encountered += 1
-                    # topic = "/human_actions_old"
-                    secs = timestamp.to_sec()
-                    #     if secs >= start_time and secs <= end_time:
-                    if topic not in self.pubs:
-                        self.pubs[topic] = rospy.Publisher(
-                            topic, msg.__class__, queue_size=10
-                        )
-                        rospy.sleep(0.05)
-                    if (secs >= self.start_timestamp) and (
-                        self.duration is None
-                        or secs < self.start_timestamp + self.duration
-                    ):
-                        count_sent += 1
-                        self.pubs[topic].publish(msg)
-                        rospy.sleep(1.0 / ROSBAG_FREQUENCY)
-                rospy.loginfo("PMO: Stopped playing rosbag {}. Sent {} of {} messages.".format(self.filename, count_sent, count_encountered))
-        except AttributeError:
-            rospy.loginfo("PMO: Attribute error")
-        except rospy.ROSInterruptException:
-            rospy.loginfo("PMO: Remote interrupt")
-        except rospy.ROSException:
-            rospy.loginfo("PMO: trying to publish to closed topic")
-        finally:
-            self.close()
+        for topic, msg, timestamp in self.msgs:
+            # topic = "/human_actions_old"
+            timestamp = timestamp.to_sec()
+            if topic not in self.pubs:
+                self.pubs[topic] = rospy.Publisher(topic, msg.__class__, queue_size=10)
+                rospy.sleep(1)
+            if (timestamp >= self.start_timestamp) and (timestamp <= self.end_timestamp):
+                self.pubs[topic].publish(msg)
+                rospy.sleep(SLEEP)
+    def close(self):
+        self.bag.close()
 
-            # rospy.core.signal_shutdown('remote interrupt')
+
+
+class Recorder(object):
+    def __init__(self, filename, topics, klass):
+        super(Recorder, self).__init__()
+        self.bag = get_rosbag_from_file(filename, 'w')
+        self.subs = []
+        self.topic = topics[0]
+        self.subs.append(rospy.Subscriber(self.topic, klass, self.callback))
+        print("Created recorder for {}".format(filename))
 
     def close(self):
-        if not self.closing:
-            self.closing = True
-            self.bag.close()
+        for sub in self.subs:
+            sub.unregister()
+        self.bag.flush()
+        self.bag.close()
 
-    def terminate(self):
-        # self.bag.close()
-        # rospy.sleep(1)
-        # if self.bag.poll() is None:
-        #     self.bag.kill()
-        try:
-            self.bag.close()
-        except IOError:
-            pass
+    def callback(self, msg):
+        self.bag.write(self.topic, msg, msg.header.stamp)
 
-
-def convert_bags(config):
-    out_paths = []
-    for key, behaviour in config.behaviours.items():
-        if behaviour["type"] == "rosbag":
-            for topic in behaviour["topics"]:
-                msgs = []
-                start_time = behaviour["start"]
-                end_time = start_time + behaviour["duration"]
-                with rosbag.Bag(behaviour["filename"], "r") as in_bag:
-                    bag_time = in_bag.get_start_time()
-                    for topic, msg, t in in_bag.read_messages(topics=[topic]):
-                        secs = t.to_sec() - bag_time - start_time
-                        if secs >= 0 and secs <= end_time - start_time:
-                            msg.header.stamp = rospy.Time.from_sec(secs)
-                            msgs.append(msg)
-                msgs = sorted(msgs, key=lambda msg: msg.header.seq)
-                try:
-                    os.mkdir(behaviour["filename"][:-4])
-                except Exception:
-                    pass
-                out_path = os.path.join(
-                    behaviour["filename"][:-4],
-                    "{:}-{:}.bag".format(behaviour["label"], start_time),
-                )
-                behaviour["filename"] = out_path
-                behaviour["start"] = 0
-                out_paths.append(out_path)
-                with rosbag.Bag(out_path, "w") as out_bag:
-                    for msg in msgs:
-                        out_bag.write(topic, msg, msg.header.stamp)
-            return out_paths
-
-
-class PickerSimulator(object):
-
-    def __init__(self):
-        self.shutting_down = False
-        rospy.loginfo("PMO: Starting picker simulator for picker: {}"
-                      .format(PICKER_ID))
-        self.publisher = rospy.Publisher('/hedge_pos_a',
-                                         hedge_pos_a, queue_size=10)
-        self.human_action_pub = rospy.Publisher('{}/human_actions'.format(NS),
-                                                Action, queue_size=10)
-        self.behaviours = rospy.get_param("{}/behaviours".format(NS))
-        # self.behaviour_times = sorted(self.behaviours.keys())
-        self.behaviour = do_reset
-        self.old_behaviour = do_reset
-        self.old_distance = float("inf")
-        self.counter = 0
-        # self.initial_x = 17.561 #20.639 # 17.061
-        # self.initial_y = 4.609 #4.628 # 4.609
-        do_reset(self)
-        self.wait = 0
-        self.robot_x = None
-        self.robot_y = None
-        self.robot_movement = "standing"
-        self.started_waiting_at = False
-        self.started_returning_crate = False
-        self.started_getting_crate = False
-        self.return1 = False
-        self.play_rosbags = True
-        self.play_images = USE_ACTION_RECOGNITION
-        if self.play_images:
-            self.rosbag_path = ("/data/out-video2", ".bag")
-        else:
-            self.rosbag_path = ("/data/out-new", "-joints.bag")
-        self.running_bags = []
-        self.robot_pose_sub = rospy.Subscriber(
-            "{}/robot_pose".format(NS.rstrip("/hri")),
-            Pose,
-            self.robot_position_coordinate_callback,
-        )
-        self.db = db
-        self.last_clock = rospy.get_time()
-        self.wait_time = rospy.get_param("{}/start_time".format(NS), None)
-        while self.wait_time is None:
-            rospy.sleep(0.25)
-            self.wait_time = rospy.get_param("{}/start_time".format(NS), None)
-        rospy.loginfo("PMO: Experiment starting at: {}".format(self.wait_time))
-
-    def robot_position_coordinate_callback(self, pose):
-        self.robot_x = pose.position.x
-        self.robot_y = pose.position.y
-
-    def get_distance_to_robot(self):
-        dx = self.x - self.robot_x
-        dy = self.y - self.robot_y
-        dxs = dx * dx
-        dys = dy * dy
-        if dxs > dys:
-            distance = sqrt(dxs + dys) - 0.5 * (PICKER_LENGTH + ROBOT_LENGTH)
-        else:
-            distance = sqrt(dxs + dys) - 0.5 * (PICKER_WIDTH + ROBOT_WIDTH)
-        return distance
-
-    # def get_next_behaviour(self):
-    #     return self.behaviours[self.behaviour_times.pop(0)]
-
-    # def get_next_behaviour_time(self):
-    #     try:
-    #         return self.behaviour_times[0]
-    #     except IndexError:
-    #         return float('inf')
-
-    def send_position_message(self):
-        msg = hedge_pos_a()
-        msg.address = PICKER_ID
-        msg.x_m = self.x
-        msg.y_m = self.y
-        msg.z_m = self.orientation
-        self.publisher.publish(msg)
-
-    def robot_mode(self):
-        if self.robot_movement == "standing":
-            return "standing"
-        else:
-            return "moving"
-
-    def update_robot_movement(self):
-        if self.robot_x:
-            distance = self.get_distance_to_robot()
-            diff = distance - self.old_distance
-            if diff == 0:
-                return
-            elif diff < -0.01:
-                self.robot_movement = "approaching"
-            elif diff > 0.01:
-                self.robot_movement = "leaving"
-            else:
-                if self.robot_movement != "standing" and distance < 1:
-                    rospy.logwarn("PMO: updating meet entry at {:.2}m distance".format(distance))
-                    self.db.update_meet_entry(rospy.get_time(), self.robot_x, self.robot_y, distance)
-                    self.robot_movement = "standing"
-            # rospy.logwarn("PMO: Distance to robot: {}".format(distance))
-            self.old_distance = distance
-
-    def loop(self):
-        if not self.shutting_down:
-            self.update_robot_movement()
-            done = self.behaviour(self)
-            self.send_position_message()
-            # if (self.old_behaviour != self.behaviour):
-            #    db.add_person_entry(rospy.get_time(), self.x, self.y,
-            #                        self.orientation, self.behaviour)
-            now = rospy.get_time()
-            if done and now >= self.wait_time:
-                try:
-                    behaviour_label, self.wait_time = self.behaviours.pop(0)
-                    self.wait_time += now
-                    self.switch_behaviour(behaviour_label)
-                    behaviour = \
-                        behaviour_bank[self.robot_mode()][behaviour_label]
-                    if self.play_rosbags and behaviour["filename"]:
-                        player = Player(
-                                (self.rosbag_path[0]
-                                 + behaviour["filename"]
-                                 + self.rosbag_path[1]),
-                                topics=behaviour["topics"],
-                                start_time=behaviour["start"],
-                                duration=behaviour["duration"])
-                        player.start()
-                        self.running_bags.append(player)
-                except KeyError:
-                    rospy.logwarn(
-                        "PMO: Couldn't find rosbag for behaviour: '{:}'"
-                        .format(behaviour_label))
-                    pass
-                except IndexError:
-                    rospy.loginfo("PMO: End of picker behavior reached")
-                    self.shutdown()
-
-    def switch_behaviour(self, behaviour):
-        if behaviour in BEHAVIOURS:
-            self.counter = 0
-            db.add_person_behaviour_entry(rospy.get_time(), self.x, self.y, self.orientation, behaviour)
-            self.old_behaviour = self.behaviour
-            self.behaviour = BEHAVIOURS.get(
-                behaviour, lambda: rospy.logerr("PSI: Unknown behaviour"))
-            rospy.loginfo("PMO: Switched picker behaviour to '{:}'.".format(
-                           behaviour))
-            # rospy.loginfo(("PMO: Switched to behaviour '{:}',"
-            #                " next behaviour is '{:}' at {:.2f}").format(
-            #                behaviour, self.behaviours[0][0], self.wait_time))
-        else:
-            rospy.logwarn(
-                "PMO: Received unknown behaviour '{:}', ignoring input"
-                .format(behaviour))
-
-    def spin(self):
-        """
-        Blocks until ROS node is shutdown. Yields activity to other threads.
-        @raise ROSInitException: if node is not in a properly initialized state
-        """
-
-        if not rospy.core.is_initialized():
-            raise rospy.exceptions.ROSInitException(
-                "client code must call rospy.init_node() first")
-            rospy.logdebug(
-                "node[%s, %s] entering spin(), pid[%s]",
-                rospy.core.get_caller_id(),
-                rospy.core.get_node_uri(), os.getpid())
-        try:
-            while not rospy.core.is_shutdown():
-                self.loop()
-                rospy.rostime.wallsleep(1.0 / PICKER_UPDATE_FREQUENCY)
-        except KeyboardInterrupt:
-            rospy.logwarn("PMO: Keyboard interrupt")
-        except rospy.ROSInterruptException:
-            rospy.logwarn("PMO: Remote interrupt")
-        except Exception as err:
-            rospy.logwarn("PMO: Unknown exception")
-            rospy.logerr(err)
-        finally:
-            self.shutdown()
-
-    def terminate_bags(self):
-        for player in self.running_bags:
-            player.terminate()
-            player.join()
-        self.running_bags = []
-        # for bag in self.bags.values():
-        #     bag.close()
-
-    def shutdown(self):
-        rospy.loginfo("PMO: Shutting down")
-        self.shutting_down = True
-        if self.play_rosbags:
-            self.terminate_bags()
 
 
 if __name__ == '__main__':
-    rospy.init_node("picker_mover")
-    # doesn't work before init_node
+    rospy.init_node("play_record")
+    rosbag_path = ("/data/out-video", ".bag")
+    modes = ["standing", "moving"]
+    sids = [1,2,3,4,5,6,7,8,9,10]
+    topics = ["/camera/color/image_raw"]
+    # sids = ["1"]
+    # open database
+    for behaviour_label, action in data.items():
+        for picker_id, rosbag_data in action.items():
+            outpath = os.path.join(rosbag_path[0] + "2", "subject-" + str(picker_id))
+            try:
+                os.makedirs(outpath)
+            except OSError:
+                if not os.path.isdir(outpath):
+                    raise
+            outpath = os.path.join(rosbag_path[0] + "2", "subject-" + str(picker_id)+"-moving")
+            try:
+                os.makedirs(outpath)
+            except OSError:
+                if not os.path.isdir(outpath):
+                    raise
+            for mode in modes:
+                parameters = rosbag_data[mode]
+                subpath = parameters[0]
+                start = parameters[1]
+                duration = parameters[2]
+                source_filename = rosbag_path[0] + subpath + rosbag_path[1]
+                target_filename = rosbag_path[0] + "2" + subpath + rosbag_path[1]
 
-    rospy.myargv(argv=sys.argv)
-    while (rospy.get_time() == 0):
-        sleep(0.01)
-    rospy.loginfo("PMO: Picker Mover started")
-    pm = PickerSimulator()
-    pm.spin()
+                print("starting with {}".format(source_filename))
+                recorder = Recorder(target_filename, topics, klass=Image)
+                ## TODO: readjust
+                # player = Player(os.path.join(source_folder,"{:}".format(filename)), topics=["/human_actions"], start_time=None)
+                player = Player(source_filename, topics, start, duration)
+                player.start()
+                player.join()
+                player.close()
+                rospy.sleep(1)
+                recorder.close()

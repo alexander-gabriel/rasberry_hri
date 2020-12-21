@@ -43,7 +43,7 @@ from opencog.type_constructors import (
 # from opencog.utilities import initialize_opencog
 
 from common.parameters import MINIMUM_DISTANCE, CRATE_CAPACITY, \
-    TIMEOUT_LENGTH, NO_BERRY_PLACES
+    TIMEOUT_LENGTH, NO_BERRY_PLACES, PICKER_DISTANCE_PREFERENCE
 
 # from common.utils import atomspace
 
@@ -131,7 +131,7 @@ class WorldState(object):
         try:
             distances = person.get_value(self._distance).to_list()
         except AttributeError:
-            distances = [MINIMUM_DISTANCE]
+            distances = [PICKER_DISTANCE_PREFERENCE]
         return sum(distances) / len(distances)
 
     def set_latest_distance(self, person, distance):

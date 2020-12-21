@@ -38,7 +38,8 @@ from common.parameters import (
     MOVEMENT_NOISE_ALPHA, MOVEMENT_NOISE_BETA, MOVEMENT_NOISE_GAMMA,
     MOVEMENT_NOISE_DELTA, NS, MINIMUM_DISTANCE, REASONING_LOOP_FREQUENCY,
     PICKER_WIDTH, PICKER_LENGTH, ROBOT_WIDTH, ROBOT_LENGTH, PICKER_SPEED,
-    PICKER_UPDATE_FREQUENCY, DIRECTION_PERCEPTION, PICKERS)
+    PICKER_UPDATE_FREQUENCY, DIRECTION_PERCEPTION, PICKERS,
+    ROBOT_REACTION_SAFETY_MARGIN)
 QUANTIZATION = PICKER_SPEED / PICKER_UPDATE_FREQUENCY * 0.9
 
 
@@ -319,7 +320,7 @@ class Scheduler:
                 MINIMUM_DISTANCE,
                 self.bdi.world_state.get_optimum_distance(person)
             )
-            if distance <= minimum_distance + 0.3:
+            if distance <= minimum_distance + ROBOT_REACTION_SAFETY_MARGIN:
                 if not self.bdi.world_state.too_close:
                     rospy.loginfo(
                         "BDI: Robot has met picker. Halting at {:.2f}."

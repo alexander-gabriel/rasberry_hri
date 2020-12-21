@@ -2,8 +2,9 @@
 import sqlite3
 import os
 from numpy import mean, var
+import yaml
 
-from common.parameters import CONFIG_DIRECTORY, LOG_DIRECTORY
+from common.parameters import CONFIG_DIRECTORY, LOG_DIRECTORY, STATE_DIRECTORY
 
 
 
@@ -27,11 +28,16 @@ class DB:
         cursor.execute("SELECT DISTINCT experiment_id FROM robot_actions")
         return cursor.fetchall()
 
-    def get_runs(self, experiment_id):
+    def get_runs(self, experiment_id, subject_id=None):
         cursor = self.db.cursor()
-        cursor.execute(("SELECT DISTINCT run_id FROM robot_actions "
-                        "WHERE (experiment_id = ?)"),
-                       (experiment_id,))
+        if subject_id is not None:
+            cursor.execute(("SELECT DISTINCT run_id FROM robot_actions "
+                            "WHERE (experiment_id = ? AND picker_id = ?)"),
+                           (experiment_id, subject_id))
+        else:
+            cursor.execute(("SELECT DISTINCT run_id FROM robot_actions "
+                            "WHERE (experiment_id = ?)"),
+                           (experiment_id,))
         return cursor.fetchall()
 
     def get_results(self, rows):
@@ -137,7 +143,10 @@ def get_waits(experiment_id, runs):
             waits.append(float(result[0]))
     return (mean(waits), var(waits))
 
-
+def get_behaviour(run_id):
+    with open(os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, run_id[0] + '.param'), 'r') as file:
+        parameters = yaml.full_load(file)
+        return parameters["behaviour"]
 
 def get_service(experiment_id, runs):
     success = []
@@ -163,13 +172,30 @@ if __name__ == '__main__':
     experiments = db.get_experiments()
     cursor = db.db.cursor()
     data = []
-    print("id;success;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; speed mean; speed var")
+    behaviour = {}
+    print("id;behaviour;success;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; speed mean; speed var")
     for experiment_id in map(lambda x : x[0], experiments):
-        runs = db.get_runs(experiment_id)
-
-        success, duration = get_service(experiment_id, runs)
-        signal_distances, stop_distances, speed = get_meetings(experiment_id,runs)
-        print("{}; {:.2f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f}".format(experiment_id, success, duration[0], duration[1], signal_distances[0], signal_distances[1], stop_distances[0], stop_distances[1], speed[0], speed[1]))
+        for subject_id in [
+                    "picker01",
+                    "picker02",
+                    # "picker03",
+                    # "picker04",
+                    # "picker05",
+                    # "picker06", "picker07", "picker08", "picker09", "picker10"
+                     ]:
+            runs = db.get_runs(experiment_id, subject_id)
+            if experiment_id not in behaviour:
+                behaviour[experiment_id] = get_behaviour(runs[0])
+            success, duration = get_service(experiment_id, runs)
+            signal_distances, stop_distances, speed = get_meetings(experiment_id, runs)
+            print("{}; {:.2f}; {: >20};  {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f}"
+                .format(subject_id,
+                        success,
+                        behaviour[experiment_id],
+                        duration[0], duration[1],
+                        signal_distances[0], signal_distances[1],
+                        stop_distances[0], stop_distances[1],
+                        speed[0], speed[1]))
 
         # print("{};{:.2f};{:.3f}".format(experiment_id, waits[experiment_id][0], waits[experiment_id][1]))
         # print("{};{:.2f};{:.3f};{:.2f};{:.3f};{:.2f};{:.3f};{:.2f};{:.3f};{:.2f};{:.3f}".format(experiment_id, distances[experiment_id][0], distances[experiment_id][1], speeds[experiment_id][0][0], speeds[experiment_id][0][1], speeds[experiment_id][1][0], speeds[experiment_id][1][1], speeds[experiment_id][2][0], speeds[experiment_id][2][1], speeds[experiment_id][3][0], speeds[experiment_id][3][1]))

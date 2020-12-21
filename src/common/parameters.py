@@ -6,6 +6,8 @@ ROBOT_NS = rospy.names.get_namespace()
 NS = "{}hri".format(ROBOT_NS)
 ME = ROBOT_NS.strip("/")
 
+# the navigation system doesn't stop when requested, add some buffer space
+ROBOT_REACTION_SAFETY_MARGIN = 0.5
 
 def define(key, default):
     key_path = "{}/{}".format(NS, key)

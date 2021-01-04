@@ -1305,8 +1305,9 @@ def do_pick_berries(self):
         msg.header.stamp = rospy.get_rostime()
         msg.action = "picking berries"
         msg.person = TARGET_PICKER
+        sleep(1)
         self.human_action_pub.publish(msg)
-        sleep(3)
+        sleep(2)
     return True
 
 
@@ -1335,12 +1336,13 @@ def do_pass_robot(self):
 
 def do_call_robot(self):
     self.orientation = 2 * pi
+    meta_start_wait(self)
     if not self.play_rosbags:
-        meta_start_wait(self)
         msg = Action()
         msg.header.stamp = rospy.get_rostime()
         msg.action = "calling"
         msg.person = TARGET_PICKER
+        sleep(1)
         self.human_action_pub.publish(msg)
         sleep(1)
     return True
@@ -1358,8 +1360,11 @@ def meta_end_wait(self):
     if self.started_waiting_at:
         time = rospy.get_time()
         wait_time = time - self.started_waiting_at
-        self.db.add_person_wait_entry(time, self.x, self.y, self.orientation,
+        if wait_time > 0:
+            self.db.add_person_wait_entry(time, self.x, self.y, self.orientation,
                                       self.behaviour, wait_time)
+        else:
+            rospy.logerr("PMO: Wait time is zero")
         self.started_waiting_at = False
 
 

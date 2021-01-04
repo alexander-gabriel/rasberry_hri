@@ -8,7 +8,7 @@ from image_recognition_msgs.srv import Recognize
 
 from common.parameters import NS, DETECTION_COUNT, COOLDOWN, TARGET_PICKER, \
     CAMERA_TOPIC, BEHAVIOR_PERCEPTION, GESTURE_PERCEPTION, CONFIG_DIRECTORY, \
-    LOG_DIRECTORY, USE_ACTION_RECOGNITION
+    LOG_DIRECTORY, USE_ACTION_RECOGNITION, define
 from rasberry_hri.msg import Action, Command, Joint, Classification
 from converter import Converter
 from classifiers import MinimumDifferenceClassifier
@@ -108,7 +108,7 @@ class ActionRecognition:
                     outmsg = Action()
                     outmsg.header.stamp = timestamp
                     outmsg.action = action or ""
-                    outmsg.person = self.picker
+                    outmsg.person = define("target_picker","PICKER_NAME_NOT_SET") #self.picker
                     # outmsg.header.stamp = rospy.get_rostime()
                     outmsg.joints = []
                     for key in angles.keys():
@@ -168,7 +168,7 @@ class ActionRecognition:
             outmsg = Action()
             outmsg.header.stamp = msg.header.stamp
             outmsg.action = action or ""
-            outmsg.person = self.picker
+            outmsg.person = define("target_picker","PICKER_NAME_NOT_SET") #self.picker
             # outmsg.header.stamp = rospy.get_rostime()
             outmsg.joints = []
             for key in angles.keys():

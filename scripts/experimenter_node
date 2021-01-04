@@ -95,3 +95,4 @@ if __name__ == "__main__":
     rospy.loginfo("EXPE: Starting Experimenter")
     e.run()
     rospy.loginfo("EXPE: Experiments finished")
+    rosnode.kill_nodes(["/thorvald_001/action_recognition_node", "/thorvald_001/openpose"])

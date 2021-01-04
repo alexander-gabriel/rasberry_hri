@@ -24,7 +24,7 @@ def define(key, default):
 
 VERBOSE = False
 
-EXPERIMENT_LABEL = define("experiment_label", "NO ID SET")
+EXPERIMENT_LABEL = define("experiment_label", "NO LABEL SET")
 EXPERIMENT_ID = define("experiment_id", "NO ID SET")
 RUN_ID = define("run_id", "NO ID SET")
 
@@ -120,7 +120,7 @@ ROBOT_MODES = define("robot_modes", ["standing", "moving"])
 INITIAL_WAYPOINT = define("initial_robot_waypoint", "WayPoint104")
 FULL_CRATE_COUNT = define("full_crate_count", 0)
 EMPTY_CRATE_COUNT = define("empty_crate_count", 2)
-TARGET_PICKER = define("target_picker", "picker01")
+TARGET_PICKER = define("target_picker", "NOT SET")
 
 INITIAL_PICKER_POSITION = define("picker_position",
                                  [17.561, 4.609])  # [19.997, 4.568])

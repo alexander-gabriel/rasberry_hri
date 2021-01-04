@@ -1,12 +1,27 @@
 #!/usr/bin/env python2
 import sqlite3
 import os
-from numpy import mean, var
+import argparse
+import warnings
+# from numpy import mean, var, errstate
+import numpy as np
 import yaml
 
 from common.parameters import CONFIG_DIRECTORY, LOG_DIRECTORY, STATE_DIRECTORY
 
+def mean(l):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        # warnings.filterwarnings('error')
+        try:
+            return np.nanmean(l)
+        except RuntimeWarning:
+            return np.NaN
 
+def var(l):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        return np.var(l)
 
 # datenbank datei lesen
 #
@@ -110,12 +125,14 @@ def get_meetings(experiment_id, runs):
     signal_distances = []
     stop_distances = []
     speeds = []
+    success = []
     for run_id in map(lambda x : x[0], runs):
         cursor.execute(("SELECT signal_distance, stop_distance, speed_profile FROM meetings WHERE"
                         " experiment_id = ? AND run_id = ?"),
                        (experiment_id, run_id))
         results = cursor.fetchall()
         for result in results:
+            result_success = False
             try:
                 result_speeds = map(lambda x: float(x), result[2].split(", "))
                 speeds += result_speeds
@@ -123,25 +140,35 @@ def get_meetings(experiment_id, runs):
                 result_speeds = []
             if result[0] is not None:
                 signal_distances.append(result[0])
+                result_success = True
             if result[1] is not None:
                 stop_distances.append(result[1])
+                if result_success:
+                    success.append(1.0)
+            if not result_success:
+                success.append(0.0)
             # for index, entry in enumerate(result_speeds):
             #     speeds[index].append(entry)
     # for index in range(4):
     #     speeds[index] = (mean(speeds[index]), var(speeds[index]))
-    return (mean(signal_distances), var(signal_distances)), (mean(stop_distances), var(stop_distances)), (mean(speeds), var(speeds))
+    return mean(success), (mean(signal_distances), var(signal_distances)), (mean(stop_distances), var(stop_distances)), (mean(speeds), var(speeds))
 
 
 def get_waits(experiment_id, runs):
     waits = []
+    success = []
     for run_id in map(lambda x : x[0], runs):
         cursor.execute(("SELECT wait FROM picker_waiting WHERE"
                         " experiment_id = ? AND run_id = ?"),
                        (experiment_id, run_id))
         results = cursor.fetchall()
         for result in results:
-            waits.append(float(result[0]))
-    return (mean(waits), var(waits))
+            if isinstance(result[0], float):
+                waits.append(float(result[0]))
+                success.append(1.0)
+            else:
+                success.append(0.0)
+    return mean(success), (mean(waits), var(waits))
 
 def get_behaviour(run_id):
     with open(os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, run_id[0] + '.param'), 'r') as file:
@@ -162,39 +189,53 @@ def get_service(experiment_id, runs):
                 success.append(1.0)
             else:
                 success.append(0.0)
+
     success = mean(success)
     duration = (mean(duration), var(duration))
     return success, duration
 
 
 if __name__ == '__main__':
-    db = DB()
+    CONFIG_DIRECTORY = "/home/rasberry"
+    STATE_DIRECTORY="large-state"
+    # db = DB("/home/rasberry/stop-test-log.db")
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('dbpath', metavar='N', type=str, nargs='?',
+                        help='optional db path')
+    args = parser.parse_args()
+    if args.dbpath:
+        db = DB(args.dbpath)
+    else:
+        db = DB()
     experiments = db.get_experiments()
     cursor = db.db.cursor()
     data = []
     behaviour = {}
-    print("id;behaviour;success;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; speed mean; speed var")
+    print("id;behaviour;success;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var")
     for experiment_id in map(lambda x : x[0], experiments):
         for subject_id in [
                     "picker01",
                     "picker02",
-                    # "picker03",
-                    # "picker04",
-                    # "picker05",
-                    # "picker06", "picker07", "picker08", "picker09", "picker10"
+                    "picker03",
+                    "picker04",
+                    "picker05",
+                    "picker06", "picker07", "picker08", "picker09", "picker10"
                      ]:
             runs = db.get_runs(experiment_id, subject_id)
+            # with errstate(all='ignore', divide='ignore'):
             if experiment_id not in behaviour:
                 behaviour[experiment_id] = get_behaviour(runs[0])
-            success, duration = get_service(experiment_id, runs)
-            signal_distances, stop_distances, speed = get_meetings(experiment_id, runs)
-            print("{}; {:.2f}; {: >20};  {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f}"
+            success1, duration = get_service(experiment_id, runs)
+            success2, signal_distances, stop_distances, speed = get_meetings(experiment_id, runs)
+            success3, waits = get_waits(experiment_id, runs)
+            print("{}; {}; {: >20};  {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f}"
                 .format(subject_id,
-                        success,
+                        "{:.2}, {:.2}, {:.2}".format(success1, success2, success3),
                         behaviour[experiment_id],
                         duration[0], duration[1],
                         signal_distances[0], signal_distances[1],
                         stop_distances[0], stop_distances[1],
+                        waits[0], waits[1],
                         speed[0], speed[1]))
 
         # print("{};{:.2f};{:.3f}".format(experiment_id, waits[experiment_id][0], waits[experiment_id][1]))

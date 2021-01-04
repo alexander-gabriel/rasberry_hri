@@ -777,10 +777,10 @@ class WaitAction(Action):
         picker = ConceptNode(self.picker)
         current_time = time()
         if self.timeout == -1:
-            x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
-            db.add_action_entry(self.start_time, float(x), float(y),
-                                self.__class__.__name__,
-                                "{}".format(self.position))
+            self.x, self.y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+            # db.add_action_entry(self.start_time, float(x), float(y),
+            #                     self.__class__.__name__,
+            #                     "{}".format(self.position))
             self.timeout = current_time + TIMEOUT_LENGTH
         else:
             if current_time > self.timeout:
@@ -788,6 +788,9 @@ class WaitAction(Action):
                 self.ws.dismissed_robot(picker).tv = self.kb.TRUE
                 rospy.loginfo("ACT: {} dismissed {}".format(self.picker, ME))
                 x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+                db.add_action_entry(self.start_time, float(self.x), float(self.y),
+                                    self.__class__.__name__,
+                                    "{}".format(self.position))
                 db.update_action_entry(self.start_time, float(x), float(y),
                                        current_time - self.start_time)
         return True

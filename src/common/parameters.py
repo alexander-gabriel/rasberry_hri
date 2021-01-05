@@ -9,6 +9,9 @@ ME = ROBOT_NS.strip("/")
 # the navigation system doesn't stop when requested, add some buffer space
 ROBOT_REACTION_SAFETY_MARGIN = 0.5
 
+# wait a bit before starting the experiment
+EXPERIMENT_START_DELAY = 4  # s
+
 def define(key, default):
     key_path = "{}/{}".format(NS, key)
     # rospy.set_param(key_path, default)

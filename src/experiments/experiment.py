@@ -24,7 +24,8 @@ from rasberry_hri.msg import Action
 
 # from config import Config
 from bdi.robot_control import RobotControl
-from common.parameters import NS, BEHAVIOURS, CONFIG_DIRECTORY, STATE_DIRECTORY
+from common.parameters import NS, BEHAVIOURS, CONFIG_DIRECTORY, \
+    STATE_DIRECTORY, EXPERIMENT_START_DELAY
 
 import warnings
 warnings.filterwarnings(action='ignore', module='.*paramiko.*')
@@ -69,55 +70,36 @@ class Experiment:
         self.set_model_state = self.create_service_proxy(
             "/gazebo/set_model_state", SetModelState, local=False
         )
-        rospy.wait_for_service("/gazebo/set_model_state")
-        state_msg = ModelState()
-        state_msg.model_name = self.config["robot"]
-        # state_msg.pose.position.x = 11.41  # 14.12 #11.649
-        # state_msg.pose.position.y = 4.6285  # 4.63 #4.64
-        x = self.config["robot_position"][0]
-        y = self.config["robot_position"][1]
-        rospy.loginfo("Setting robot to {:.2f}, {:.2f}".format(x, y))
-        state_msg.pose.position.x = x  # 14.12 #11.649
-        state_msg.pose.position.y = y  # 4.63 #4.64
-        state_msg.pose.orientation.w = 1
-        state_msg.reference_frame = "map"
 
-        self.set_model_state(state_msg)
-        self.ssh_client = paramiko.SSHClient()
-        self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        # self.ssh_client.get_host_keys().add('10.10.10.1', 'ssh-rsa', key)
-        self.ssh_client.connect("simulator", username="rasberry")
-        stdin, stdout, stderr = self.ssh_client.exec_command(get_command(x, y))
-        self.ssh_client.close()
-        rospy.sleep(3)
+
+        self.set_robot_position()
+
         self.is_finished = False
 
         self.robco = RobotControl(self.config["robot"])
 
-        self.initial_pose_publisher = rospy.Publisher(
-            "/{:}/initialpose".format(self.config["robot"]),
-            PoseWithCovarianceStamped,
-            queue_size=10,
-        )
-        self.picker_pose_publisher = rospy.Publisher(
-            "/picker_mover", String, queue_size=10
-        )
-        self.human_action_publisher = rospy.Publisher(
-            "/human_actions", Action, queue_size=10
-        )
-        self.robot_pose_publisher = rospy.Publisher(
-            "/{:}/set_pose".format(self.config["robot"]),
-            PoseWithCovarianceStamped,
-            queue_size=10,
-        )
+        # self.initial_pose_publisher = rospy.Publisher(
+        #     "/{:}/initialpose".format(self.config["robot"]),
+        #     PoseWithCovarianceStamped,
+        #     queue_size=10,
+        # )
+        # self.picker_pose_publisher = rospy.Publisher(
+        #     "/picker_mover", String, queue_size=10
+        # )
+        # self.human_action_publisher = rospy.Publisher(
+        #     "/human_actions", Action, queue_size=10
+        # )
+        # self.robot_pose_publisher = rospy.Publisher(
+        #     "/{:}/set_pose".format(self.config["robot"]),
+        #     PoseWithCovarianceStamped,
+        #     queue_size=10,
+        # )
         # self.camera_publisher = rospy.Publisher(
         #       "/camera/color/image_raw", Image, queue_size=10)
 
         # self.bag_paths = convert_bags(self.config)
         # self.bags = self.config.get_bag_paths()
         # self.running_bags = []
-
-
 
         rospy.loginfo("EXP: Initialization finished")
         # reconfigure robot speed
@@ -129,6 +111,33 @@ class Experiment:
         # "double_param":(1/(x+1)),
         # "str_param":str(rospy.get_rostime()),
         # "bool_param":b, "size":1})
+
+    def set_robot_position(self):
+        self.ssh_client = paramiko.SSHClient()
+        self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        x = self.config["robot_position"][0]  # 14.12 #11.649
+        y = self.config["robot_position"][1]  # 4.63 #4.64
+        rospy.wait_for_service("/gazebo/set_model_state")
+        state_msg = ModelState()
+        state_msg.model_name = self.config["robot"]
+        state_msg.pose.position.x = x
+        state_msg.pose.position.y = y
+        state_msg.pose.orientation.w = 1
+        state_msg.reference_frame = "map"
+        rospy.loginfo("Setting robot to {:.2f}, {:.2f}".format(x, y))
+        self.set_model_state(state_msg)
+        rospy.sleep(1)
+        self.ssh_client.connect("simulator", username="rasberry")
+        stdin, stdout, stderr = self.ssh_client.exec_command(get_command(x, y))
+        self.ssh_client.close()
+        # running_nodes = rosnode.get_node_names()
+        # while ("/thorvald_001/picker_mover" not in running_nodes
+        #     or '/thorvald_001/action_recognition_node' not in running_nodes
+        #     or '/thorvald_001/scheduler' not in running_nodes
+        #     or '/thorvald_001/openpose' not in running_nodes):
+        #     rospy.sleep(1)
+        rospy.sleep(3)
+
 
     def create_service_proxy(self, topic, type=Empty, local=True):
         if local:
@@ -195,6 +204,7 @@ class Experiment:
         rosparam.dump_params(param_file, NS, verbose=False)
 
     def unset_parameters(self):
+        rospy.delete_param("{}/start_time".format(NS))
         for key in self.config.keys():
             try:
                 key = "{}/{}".format(NS, key)
@@ -203,6 +213,10 @@ class Experiment:
                 pass
 
     def setup(self):
+        try:
+            rospy.delete_param("{}/start_time".format(NS))
+        except KeyError:
+            pass
         self.set_parameters()
         key = "{}/{}".format(NS, "behaviours")
         rospy.set_param(key, BEHAVIOURS[self.config["behaviour"]])
@@ -219,7 +233,7 @@ class Experiment:
             or '/thorvald_001/openpose' not in running_nodes):
             rospy.sleep(1)
             running_nodes = rosnode.get_node_names()
-        self.start_clock = int(rospy.get_time() + 3)
+        self.start_clock = int(rospy.get_time() + EXPERIMENT_START_DELAY)
         rospy.set_param("{}/start_time".format(NS), self.start_clock)
         rospy.loginfo(
             "EXP: Experiment starting at: {}".format(self.start_clock)

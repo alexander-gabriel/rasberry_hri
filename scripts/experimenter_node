@@ -8,6 +8,7 @@ from hashlib import sha256
 
 import roslaunch
 import rospy
+import rosnode
 from experiments.experimenter import Experimenter
 from common.parameters import CONFIG_DIRECTORY, ACTIVE_DIRECTORY, \
                               LOG_DIRECTORY, STATE_DIRECTORY

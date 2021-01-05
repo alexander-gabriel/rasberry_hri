@@ -196,8 +196,8 @@ def get_service(experiment_id, runs):
 
 
 if __name__ == '__main__':
-    CONFIG_DIRECTORY = "/home/rasberry"
-    STATE_DIRECTORY="large-state"
+    # CONFIG_DIRECTORY = "/home/rasberry"
+    # STATE_DIRECTORY="large-state"
     # db = DB("/home/rasberry/stop-test-log.db")
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('dbpath', metavar='N', type=str, nargs='?',
@@ -221,22 +221,28 @@ if __name__ == '__main__':
                     "picker05",
                     "picker06", "picker07", "picker08", "picker09", "picker10"
                      ]:
-            runs = db.get_runs(experiment_id, subject_id)
-            # with errstate(all='ignore', divide='ignore'):
-            if experiment_id not in behaviour:
-                behaviour[experiment_id] = get_behaviour(runs[0])
-            success1, duration = get_service(experiment_id, runs)
-            success2, signal_distances, stop_distances, speed = get_meetings(experiment_id, runs)
-            success3, waits = get_waits(experiment_id, runs)
-            print("{}; {}; {: >20};  {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f}"
-                .format(subject_id,
-                        "{:.2}, {:.2}, {:.2}".format(success1, success2, success3),
-                        behaviour[experiment_id],
-                        duration[0], duration[1],
-                        signal_distances[0], signal_distances[1],
-                        stop_distances[0], stop_distances[1],
-                        waits[0], waits[1],
-                        speed[0], speed[1]))
+            try:
+                runs = db.get_runs(experiment_id, subject_id)
+                if not runs:
+                    raise IndexError()
+                # with errstate(all='ignore', divide='ignore'):
+                if experiment_id not in behaviour:
+                    behaviour[experiment_id] = get_behaviour(runs[0])
+                success1, duration = get_service(experiment_id, runs)
+                success2, signal_distances, stop_distances, speed = get_meetings(experiment_id, runs)
+                success3, waits = get_waits(experiment_id, runs)
+                print("{}; {}; {: >20};  {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f}"
+                    .format(subject_id,
+                            "{:.2}, {:.2}, {:.2}".format(success1, success2, success3),
+                            behaviour[experiment_id],
+                            duration[0], duration[1],
+                            signal_distances[0], signal_distances[1],
+                            stop_distances[0], stop_distances[1],
+                            waits[0], waits[1],
+                            speed[0], speed[1]))
+            except IndexError:
+                pass
+                # print("No runs for {}".format(subject_id))
 
         # print("{};{:.2f};{:.3f}".format(experiment_id, waits[experiment_id][0], waits[experiment_id][1]))
         # print("{};{:.2f};{:.3f};{:.2f};{:.3f};{:.2f};{:.3f};{:.2f};{:.3f};{:.2f};{:.3f}".format(experiment_id, distances[experiment_id][0], distances[experiment_id][1], speeds[experiment_id][0][0], speeds[experiment_id][0][1], speeds[experiment_id][1][0], speeds[experiment_id][1][1], speeds[experiment_id][2][0], speeds[experiment_id][2][1], speeds[experiment_id][3][0], speeds[experiment_id][3][1]))

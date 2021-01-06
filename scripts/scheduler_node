@@ -90,11 +90,15 @@ if __name__ == '__main__':
     rospy.init_node("scheduler")
     while (rospy.get_time() == 0):
         sleep(0.01)
-    from common.parameters import ME  # doesn't work before init_node
+    from common.parameters import ME,NS  # doesn't work before init_node
     robot_id = ME
     if robot_id == "":
         robot_id = "thorvald_002"
     scheduler = Scheduler(robot_id)
+    wait_time = rospy.get_param("{}/start_time".format(NS), None)
+    while wait_time is None:
+        rospy.sleep(0.25)
+        wait_time = rospy.get_param("{}/start_time".format(NS), None)
     scheduler.spin()
     # rospy.spin()
     # scheduler.save()

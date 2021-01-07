@@ -86,7 +86,7 @@ class BDISystem:
             self.last_behaviours = {}
             self.desires = []
             self.desires.append(WaitGoal)
-            # self.desires.append(LeaveGoal)
+            self.desires.append(LeaveGoal)
             self.desires.append(ApproachGoal)
             self.desires.append(CloseApproachGoal)
             self.desires.append(DeliverGoal)

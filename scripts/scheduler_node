@@ -96,9 +96,11 @@ if __name__ == '__main__':
         robot_id = "thorvald_002"
     scheduler = Scheduler(robot_id)
     wait_time = rospy.get_param("{}/start_time".format(NS), None)
+    rospy.loginfo("SCH: Experiment starting at: {}".format(wait_time))
     while wait_time is None:
         rospy.sleep(0.25)
         wait_time = rospy.get_param("{}/start_time".format(NS), None)
+    rospy.loginfo("SCH: Starting Scheduler")
     scheduler.spin()
     # rospy.spin()
     # scheduler.save()

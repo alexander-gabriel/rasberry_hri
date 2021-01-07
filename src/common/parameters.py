@@ -175,7 +175,7 @@ TIMEOUT_LENGTH = 60  # s
 
 BEHAVIOURS = {
     "deliver standard": [
-        ["call robot", 3],
+        ["call robot", 0],
         ["wait for robot to move", 0],
         ["approach without crate", 0],
         ["get crate", 3],
@@ -190,7 +190,7 @@ BEHAVIOURS = {
         ["pick berries", 4]
     ],
     "deliver expect robot to come": [
-        ["call robot", 3],
+        ["call robot", 0],
         ["wait for robot to arrive", 0],
         ["get crate", 3],
         ["pick berries", 4]
@@ -204,7 +204,7 @@ BEHAVIOURS = {
     ],
     "exchange standard": [
         ["pick berries", 4],
-        ["call robot", 3],
+        ["call robot", 0],
         ["wait for robot to move", 0],
         ["approach with crate", 0],
         ["return crate", 4],
@@ -223,7 +223,7 @@ BEHAVIOURS = {
     ],
     "exchange expect robot to come": [
         ["pick berries", 4],
-        ["call robot", 3],
+        ["call robot", 0],
         ["wait for robot to arrive", 0],
         ["return crate", 2.5],
         ["get crate", 3],
@@ -238,12 +238,12 @@ BEHAVIOURS = {
         ["pick berries", 4]
     ],
     "call": [
-        ["call robot", 3],
+        ["call robot", 0],
         ["expect service", 0]
     ],
     "do nothing": [["expect service", 0]],
     "wait": [["wait for robot to arrive", 10]],
-    "picking berries": [["pick berries", 3]],
-    "evade standard": [["pick berries", 3],
+    "picking berries": [["pick berries", 4]],
+    "evade standard": [["pick berries", 4],
                    ["pass with crate", 0],
-                   ["pick berries", 3]]}
+                   ["pick berries", 4]]}

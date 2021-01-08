@@ -69,7 +69,7 @@ class Experimenter:
                 count += 1
                 remaining_runs -= 1
                 try:
-                    average_duration = (average_duration/old_count + duration)/count
+                    average_duration = (average_duration*old_count + duration)/count
                 except ZeroDivisionError:
                     average_duration = duration
 

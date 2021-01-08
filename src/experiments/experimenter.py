@@ -77,8 +77,8 @@ class Experimenter:
                                "      Took {}s, Average: {}s, Remaining: {}")
                               .format(
                                 count, number_of_runs, remaining_runs,
-                                duration, average,
-                                timedelta(seconds=remaining_runs * average)))
+                                duration, average_duration,
+                                timedelta(seconds=remaining_runs * average_duration)))
 
 
         # for config in self.configs:

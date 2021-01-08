@@ -151,10 +151,8 @@ class BDISystem:
         #     self.world_state.called_robot(picker).tv = self.kb.TRUE
         # else:
         #     self.world_state.not_called_robot(picker).tv = self.kb.TRUE
-        # if DISMISSED_ROBOT:
-        #     self.world_state.dismissed_robot(picker).tv = self.kb.TRUE
-        # else:
-        #     self.world_state.not_dismissed_robot(picker).tv = self.kb.TRUE
+        if DISMISSED_ROBOT:
+            self.world_state.dismissed_robot(picker).tv = self.kb.TRUE
         if SEEN_PICKING:
             self.world_state.seen_picking(picker).tv = self.kb.TRUE
         else:

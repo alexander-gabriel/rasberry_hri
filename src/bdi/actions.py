@@ -365,8 +365,10 @@ class GiveCrateAction(Action):
         rospy.loginfo("ACT: {} received a crate".format(self.picker))
         rospy.loginfo("ACT: {} dismissed {}".format(self.picker, ME))
         me = ConceptNode(ME)
-        full_count = me.get_value(self.ws._full_crate_count).to_list()[0]
-        empty_count = me.get_value(self.ws._empty_crate_count).to_list()[0]
+        full_count = world_state.robot_get_crate_count(
+            me, world_state._full_crate_count)
+        empty_count = world_state.robot_get_crate_count(
+            me, world_state._empty_crate_count)
         rospy.loginfo("ACT: New robot crate state: Full/Empty {}/{}".format(full_count, empty_count))
         time = rospy.get_time()
         x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
@@ -477,19 +479,30 @@ class DepositCrateAction(Action):
     def __init__(self, world_state, robco, args):
         super(DepositCrateAction, self).__init__(world_state, args)
         self.robco = robco
-        self.full_crate_count = ConceptNode(ME).get_value(world_state._full_crate_count).to_list()[0]
-        self.empty_crate_count = ConceptNode(ME).get_value(world_state._empty_crate_count).to_list()[0]
+        me = ConceptNode(ME)
+        self.full_crate_count = world_state.robot_get_crate_count(
+            me, world_state._full_crate_count)
+        self.empty_crate_count = world_state.robot_get_crate_count(
+            me, world_state._empty_crate_count)
+
         self.position = args["my_destination"]
         self.gain = DEPOSIT_GAIN
 
     def get_cost(self):
-        return DEPOSIT_COST * (self.full_crate_count + self.empty_crate_count)
+        try:
+            return DEPOSIT_COST * (self.full_crate_count + self.empty_crate_count)
+        except:
+            return MAX_COST
 
     def get_gain(self):
-        return DEPOSIT_GAIN * (
-            max(self.full_crate_count, CRATE_CAPACITY - self.empty_crate_count)
-            / CRATE_CAPACITY
-        )
+        try:
+            return DEPOSIT_GAIN * (
+                max(self.full_crate_count,
+                    CRATE_CAPACITY - self.empty_crate_count)
+                / CRATE_CAPACITY
+            )
+        except:
+            return MIN_GAIN
 
     def perform(self):
         super(DepositCrateAction, self).perform()
@@ -502,8 +515,10 @@ class DepositCrateAction(Action):
             # rospy.loginfo("Entering consequence: {}".format(consequence))
             consequence.tv = TruthValue(1, 1)
         me = ConceptNode(ME)
-        full_count = me.get_value(self.ws._full_crate_count).to_list()[0]
-        empty_count = me.get_value(self.ws._empty_crate_count).to_list()[0]
+        full_count = world_state.robot_get_crate_count(
+            me, world_state._full_crate_count)
+        empty_count = world_state.robot_get_crate_count(
+            me, world_state._empty_crate_count)
         rospy.loginfo("ACT: New robot crate state: Full/Empty {}/{}".format(full_count, empty_count))
         time = rospy.get_time()
         x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()

@@ -224,6 +224,12 @@ class WorldState(object):
         # )
         return NotLink(self.robot_has_crate(robot, crate_type))
 
+    def robot_get_crate_count(self, robot, crate_type):
+        try:
+            return robot.get_value(crate_type).to_list()[0]
+        except AttributeError:
+            return "unknown"
+
     def robot_has_crate_capacity(self, robot, crate_type):
         # return self.state(robot, PredicateNode("has full crate"), "TRUE")
         has_crate_capacity = GreaterThanLink(

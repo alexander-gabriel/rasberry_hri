@@ -1797,4 +1797,6 @@ if __name__ == '__main__':
         sleep(0.01)
     rospy.loginfo("PMO: Picker Mover started")
     pm = PickerSimulator()
+    while rospy.get_time() < pm.wait_time:
+        rospy.sleep(0.25)
     pm.spin()

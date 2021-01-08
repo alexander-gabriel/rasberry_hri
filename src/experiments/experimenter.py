@@ -3,6 +3,8 @@ import itertools
 from hashlib import sha256
 import json
 import os
+from time import time
+from datetime import timedelta
 
 import rospy
 import rosnode
@@ -31,13 +33,15 @@ class Experimenter:
             }
         number_of_runs = 0
         count = 0
+        durations = []
+        average_duration = 0
         for config in self.configs:
             if config["run_id"] not in self.state["finished experiments"]:
                 number_of_runs +=1
+        remaining_runs = number_of_runs
         for config in self.configs:
             id = config["run_id"]
             if id not in self.state["finished experiments"]:
-                count += 1
                 running_nodes = rosnode.get_node_names()
                 if ("/thorvald_001/picker_mover" in running_nodes
                     or '/thorvald_001/scheduler' in running_nodes):
@@ -48,6 +52,7 @@ class Experimenter:
                     rospy.sleep(1)
                     running_nodes = rosnode.get_node_names()
                 rospy.logwarn("EXPE: Starting Experiment run {}".format(id))
+                start = time()
                 experiment = Experiment(config)
                 experiment.setup()
                 experiment.spin()
@@ -59,9 +64,22 @@ class Experimenter:
                           "w") as file:
                     json.dump(self.state, file, sort_keys=True, indent=4,
                               separators=(',', ': '))
-                rospy.logwarn("EXPE: {} of {} runs finished, {} remain."
-                              .format(count, number_of_runs,
-                                      number_of_runs - count))
+                duration = time() - start
+                old_count = count
+                count += 1
+                remaining_runs -= 1
+                try:
+                    average_duration = (average_duration/old_count + duration)/count
+                except ZeroDivisionError:
+                    pass
+
+                rospy.logwarn(("EXPE: {} of {} runs finished, {} remain.\n"
+                               "      Took {}s, Average: {}s, Remaining: {}")
+                              .format(
+                                count, number_of_runs, remaining_runs,
+                                duration, average,
+                                timedelta(seconds=remaining_runs * average)))
+
 
         # for config in self.configs:
         #     self.current_config = config

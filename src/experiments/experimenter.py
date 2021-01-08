@@ -71,7 +71,7 @@ class Experimenter:
                 try:
                     average_duration = (average_duration/old_count + duration)/count
                 except ZeroDivisionError:
-                    pass
+                    average_duration = duration
 
                 rospy.logwarn(("EXPE: {} of {} runs finished, {} remain.\n"
                                "      Took {}s, Average: {}s, Remaining: {}")

@@ -24,6 +24,16 @@ class DB:
             cursor.execute("DELETE FROM experiments WHERE experiment_id = ?", (experiment_id,))
             self.db.commit()
 
+    def delete_run(self, run_id):
+        with closing(self.db.cursor()) as cursor:
+            cursor.execute("DELETE FROM picker_behavior WHERE run_id = ?", (run_id,))
+            cursor.execute("DELETE FROM picker_waiting WHERE run_id = ?", (run_id,))
+            cursor.execute("DELETE FROM robot_actions WHERE run_id = ?", (run_id,))
+            cursor.execute("DELETE FROM robot_goals WHERE run_id = ?", (run_id,))
+            cursor.execute("DELETE FROM meetings WHERE run_id = ?", (run_id,))
+            # cursor.execute("DELETE FROM experiments WHERE run_id = ?", (run_id,))
+            self.db.commit()
+
     def get_experiments(self, experiment_label):
         with closing(self.db.cursor()) as cursor:
             cursor.execute("SELECT experiment_id FROM experiments WHERE experiment_label = ?", (experiment_label,))
@@ -62,18 +72,25 @@ def delete_state(run_ids):
     with open(path, "w") as file:
         json.dump(state, file)
 
+[INFO] [1610353901.114879, 65084.765000]: Set parameter: /thorvald_001/hri/experiment_id:814643aa3665608be1fc681e94d3e09b9e7e0437070384810d7fe6719c6a5b58
+[INFO] [1610353901.116170, 65084.765000]: Set parameter: /thorvald_001/hri/run_id:14c2baf10fa5243dd86d6b0cb2121b4a22196855b241c90af945571c09b58f50
+
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--id', action='store', type=str, help='experiment to delete')
     parser.add_argument('--label', action='store', type=str, help='scenario to delete')
+    parser.add_argument('--run', action='store', type=str, help='run to delete')
     parser.add_argument('--dbpath', action='store', type=str, help='optional db path')
     args = parser.parse_args()
     if args.dbpath:
         db = DB(args.dbpath)
     else:
         db = DB()
+    if args.run:
+        delete_state(args.run)
+        db.delete_run(args.run)
     if args.id:
         run_ids = db.get_runs(args.id):
         delete_state(run_ids)

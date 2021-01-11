@@ -87,7 +87,7 @@ if __name__ == '__main__':
         delete_state(args.run)
         db.delete_run(args.run)
     if args.id:
-        run_ids = db.get_runs(args.id):
+        run_ids = db.get_runs(args.id)
         delete_state(run_ids)
         db.delete_experiment(args.id)
     if args.label:

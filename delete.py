@@ -35,7 +35,7 @@ class DB:
             cursor.execute("DELETE FROM robot_actions WHERE run_id = ?", (run_id,))
             cursor.execute("DELETE FROM robot_goals WHERE run_id = ?", (run_id,))
             cursor.execute("DELETE FROM meetings WHERE run_id = ?", (run_id,))
-            # cursor.execute("DELETE FROM experiments WHERE run_id = ?", (run_id,))
+            cursor.execute("DELETE FROM runs WHERE run_id = ?", (run_id,))
             self.db.commit()
 
     def get_experiments(self, experiment_label):

@@ -106,7 +106,7 @@ class DB:
                                 "UNION "
                                 "SELECT DISTINCT run_id, experiment_id, picker_id FROM meetings) a "
                             "INNER JOIN experiments b ON a.experiment_id = b.experiment_id;")
-            return cursor.fetchall():
+            return cursor.fetchall()
 
     def close(self):
         self.db.commit()

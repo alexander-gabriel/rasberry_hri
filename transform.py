@@ -86,7 +86,7 @@ class DB:
 
     def get_picker_waiting(self):
         with closing(self.db.cursor()) as cursor:
-            cursor.execute("SELECT run_id, timestamp, duration, x, y, orientation, "
+            cursor.execute("SELECT run_id, timestamp, x, y, orientation, "
                            "wait FROM picker_waiting")
             return cursor.fetchall()
 

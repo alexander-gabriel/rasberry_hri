@@ -32,12 +32,26 @@ class DB:
                 ids.append(result[0])
             return ids
 
+    def get_runs(self, experiment_id):
+        with closing(self.db.cursor()) as cursor:
+            cursor.execute("SELECT DISTINCT run_id FROM picker_behavior WHERE experiment_id = ? "
+                           "UNION "
+                           "SELECT DISTINCT run_id FROM picker_waiting WHERE experiment_id = ? "
+                           "UNION "
+                           "SELECT DISTINCT run_id FROM robot_goals WHERE experiment_id = ? "
+                           "UNION "
+                           "SELECT DISTINCT run_id FROM robot_actions WHERE experiment_id = ? "
+                           "UNION "
+                           "SELECT DISTINCT run_id FROM meetings WHERE experiment_id = ?")
+            return cursor.fetchall()
+
 def delete_state(id):
     path = os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, id + ".param")
     try:
         os.remove(path)
     except:
         pass
+
 
 
 if __name__ == '__main__':
@@ -51,12 +65,13 @@ if __name__ == '__main__':
     else:
         db = DB()
     if args.id:
+        for run_id in db.get_runs(args.id):
+            delete_state(run_id)
         db.delete_experiment(args.id)
-        delete_state(args.id)
     if args.label:
         ids = db.get_experiments(args.label)
         for id in ids:
+            for run_id in db.get_runs(id):
+                delete_state(run_id)
             db.delete_experiment(id)
-            delete_state(id)
-
     db.close()

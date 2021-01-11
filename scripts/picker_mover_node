@@ -1547,12 +1547,13 @@ class Player(Thread):
             self.bag.close()
 
     def terminate(self):
+
         # self.bag.close()
         # rospy.sleep(1)
         # if self.bag.poll() is None:
         #     self.bag.kill()
         try:
-            self.bag.close()
+            self.close()
         except IOError:
             pass
 
@@ -1795,7 +1796,7 @@ class PickerSimulator(object):
 
 
 if __name__ == '__main__':
-    rospy.init_node("picker_mover")
+    rospy.init_node("picker_mover", anonymous=True)
     # doesn't work before init_node
 
     rospy.myargv(argv=sys.argv)

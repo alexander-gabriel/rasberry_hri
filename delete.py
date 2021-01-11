@@ -64,7 +64,10 @@ def delete_state(run_ids):
     with open(path, "r") as file:
         state = json.load(file)
     for id in run_ids:
-        state["finished experiments"].remove(id)
+        try:
+            state["finished experiments"].remove(id)
+        except ValueError:
+            pass
         path = os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, id + ".param")
         try:
             os.remove(path)

@@ -49,7 +49,7 @@ class DB:
                            "end_x float, end_y float, goal text, "
                            "FOREIGN KEY (run_id) REFERENCES runs (run_id))")
             cursor.execute("CREATE TABLE meetings (run_id text, timestamp float, "
-                           "x float, y float, distance float, speed_profile text, "
+                           "x float, y float, signal_distance float, stop_distance float, speed_profile text, "
                            "FOREIGN KEY (run_id) REFERENCES runs (run_id))")
 
             # cursor.execute("CREATE TABLE experiments (experiment_label text, experiment_id text)")
@@ -57,7 +57,7 @@ class DB:
             #                "picker_id text, run_id text, timestamp float, x float, y float,"
             #                "orientation float, behaviour text)")
             # cursor.execute("CREATE TABLE picker_waiting (experiment_id text,"
-            #                "picker_id text, run_id text,timestamp float, x float, y float,"
+            #                "picker_id text, run_id text, timestamp float, x float, y float,"
             #                "orientation float, wait float)")
             # cursor.execute("CREATE TABLE robot_actions (experiment_id text,"
             #                "picker_id text, run_id text, timestamp float, duration float,"

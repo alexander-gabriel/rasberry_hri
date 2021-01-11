@@ -80,7 +80,7 @@ class DB:
 
     def get_picker_behavior(self):
         with closing(self.db.cursor()) as cursor:
-            cursor.execute("SELECT run_id, timestamp, duration, x, y, orientation, "
+            cursor.execute("SELECT run_id, timestamp, x, y, orientation, "
                            "behaviour FROM picker_behavior")
             return cursor.fetchall()
 

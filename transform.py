@@ -35,7 +35,7 @@ class DB:
                            "end_x float, end_y float, goal text, "
                            "FOREIGN KEY (run_id) REFERENCES runs (run_id))")
             cursor.execute("CREATE TABLE meetings (run_id text, timestamp float, "
-                           "x float, y float, distance float, speed_profile text, "
+                           "x float, y float, signal_distance float, stop_distance float, speed_profile text "
                            "FOREIGN KEY (run_id) REFERENCES runs (run_id))")
 
     def add_run(self, run_id, experiment_id, experiment_label, picker_id):
@@ -56,7 +56,7 @@ class DB:
 
     def add_meeting(self, entry):
         with closing(self.db.cursor()) as cursor:
-            cursor.execute("INSERT INTO meetings VALUES (?, ?, ?, ?, ?, ?)", entry)
+            cursor.execute("INSERT INTO meetings VALUES (?, ?, ?, ?, ?, ?, ?)", entry)
 
     def add_robot_goal(self, entry):
         with closing(self.db.cursor()) as cursor:
@@ -92,7 +92,7 @@ class DB:
 
     def get_meetings(self):
         with closing(self.db.cursor()) as cursor:
-            cursor.execute("SELECT run_id, timestamp, x, y, distance, speed_profile "
+            cursor.execute("SELECT run_id, timestamp, x, y, signal_distance, stop_distance, speed_profile "
                            "FROM meetings")
             return cursor.fetchall()
 

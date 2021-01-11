@@ -18,8 +18,6 @@ def make_paths():
 
 class DB:
     def __init__(self, experiment_label, experiment_id, picker_id, run_id, filename=os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY, 'log.db')):
-        self.experiment_id = experiment_id
-        self.picker_id = picker_id
         self.run_id = run_id
         make_paths()
         self.db = sqlite3.connect(filename, check_same_thread=False)
@@ -27,7 +25,7 @@ class DB:
             self.build_db()
         except sqlite3.OperationalError:
             pass
-        self.add_experiment(experiment_label)
+        self.add_experiment(experiment_label, experiment_id, picker_id)
 
     def build_db(self):
         with closing(self.db.cursor()) as cursor:
@@ -87,14 +85,14 @@ class DB:
                 (self.run_id, timestamp, x, y, orientation, behaviour))
             self.db.commit()
 
-    def add_experiment(self, label, picker_id):
+    def add_experiment(self, experiment_label, experiment_id, picker_id):
         with closing(self.db.cursor()) as cursor:
             cursor.execute(
                 "INSERT INTO runs VALUES (?, ?, ?)",
-                (self.run_id, self.experiment_id, picker_id))
+                (self.run_id, experiment_id, picker_id))
             cursor.execute(
                 "INSERT INTO experiments VALUES (?, ?)",
-                (self.experiment_id, label))
+                (experiment_id, experiment_label))
             self.db.commit()
 
     def add_person_wait_entry(self, timestamp, x, y,

@@ -50,8 +50,10 @@ QUANTIZATION = PICKER_SPEED / PICKER_UPDATE_FREQUENCY * 0.9
 
 
 class Scheduler:
+
     def __init__(self, robot_id):
         rospy.loginfo("SCH: Initializing Scheduler")
+        self.rate = rospy.Rate(REASONING_LOOP_FREQUENCY)
         self.atomspace = atomspace
         initialize_opencog(self.atomspace)
         # set_type_ctor_atomspace(self.atomspace)
@@ -79,6 +81,18 @@ class Scheduler:
         # self.bdi.me = ConceptNode(robot_id)
         self.latest_robot_node = None
         self.bdi = BDISystem(self.robot_id, self.kb)
+        # self.picker01_sub = rospy.Subscriber("/picker01/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker01") )
+        for name in PICKERS:
+            self.has_reached_50cm[name] = False
+            self.has_reached_100cm[name] = False
+            self.has_reached_150cm[name] = False
+            self.has_reached_200cm[name] = False
+            rospy.loginfo("BDI: Subscribing to /{}/posestamped".format(name))
+            self.human_position_subs.append(rospy.Subscriber(
+                "/{}/posestamped".format(name),
+                PoseStamped,
+                partial(self.human_position_callback, name=name)
+            ))
         self.robot_pose_sub = rospy.Subscriber(
             "/{:}/robot_pose".format(self.robot_id),
             Pose,
@@ -93,25 +107,6 @@ class Scheduler:
             "{}/human_actions".format(NS),
             Action, self.human_action_callback
         )
-        # self.picker01_sub = rospy.Subscriber("/picker01/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker01") )
-        for name in PICKERS:
-            self.has_reached_50cm[name] = False
-            self.has_reached_100cm[name] = False
-            self.has_reached_150cm[name] = False
-            self.has_reached_200cm[name] = False
-            rospy.loginfo("BDI: Subscribing to /{}/posestamped".format(name))
-            self.human_position_subs.append(rospy.Subscriber(
-                "/{}/posestamped".format(name),
-                PoseStamped,
-                partial(self.human_position_callback, name=name)
-            ))
-        # TODO: move to multiple pickers
-        #
-        # self.people_sub = rospy.Subscriber("/people_tracker/positions", PeopleTracker, lambda msg: self.people_tracker_callback(msg, "Picker02") )
-
-        # self.qsrlib = QSRlib()
-        # self.options = sorted(self.qsrlib.qsrs_registry.keys())
-        # self.which_qsr = "tpcc"#"tpcc"
         rospy.loginfo("SCH: Initialization finished")
 
     def spin(self):
@@ -142,7 +137,7 @@ class Scheduler:
                 #     bdi = threading.Thread(target=self.bdi.loop)
                 #     bdi.start()
                 self.bdi.loop()
-                rospy.sleep(1.0 / REASONING_LOOP_FREQUENCY)
+                self.rate.sleep()
             rospy.loginfo("SCH: at end of spin")
         except KeyboardInterrupt:
             rospy.logwarn("SCH: keyboard interrupt")
@@ -153,6 +148,10 @@ class Scheduler:
 
     def shutdown(self):
         rospy.loginfo("SCH: Shutting down")
+        self.robot_pose_sub.unregister()
+        self.robot_sub.unregister()
+        self.human_action_sub.unregister()
+
 
     def add_position_noise(self, pose, old_pose):
         if old_pose is not None:

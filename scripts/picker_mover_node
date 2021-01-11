@@ -1485,6 +1485,7 @@ class Player(Thread):
     def __init__(self, filename, topics=[], start_time=None, duration=None):
         super(Player, self).__init__()
         start = rospy.get_time()
+        self.rate = rospy.Rate(ROSBAG_FREQUENCY)
         self.closing = False
         self.filename = filename
         self.bag = get_rosbag_from_file(filename)
@@ -1527,7 +1528,7 @@ class Player(Thread):
                     ):
                         count_sent += 1
                         self.pubs[topic].publish(msg)
-                        rospy.sleep(1.0 / ROSBAG_FREQUENCY)
+                        self.rate.sleep()
                 rospy.loginfo("PMO: Stopped playing rosbag {}. Sent {} of {} messages.".format(self.filename, count_sent, count_encountered))
         except AttributeError:
             rospy.loginfo("PMO: Attribute error")
@@ -1592,6 +1593,7 @@ def convert_bags(config):
 class PickerSimulator(object):
 
     def __init__(self):
+        self.rate = rospy.Rate(PICKER_UPDATE_FREQUENCY)
         self.shutting_down = False
         self.robot_hasnt_stopped_yet = True
         rospy.loginfo("PMO: Starting picker simulator for picker: {}"
@@ -1624,14 +1626,14 @@ class PickerSimulator(object):
         else:
             self.rosbag_path = ("/data/out-new", "-joints.bag")
         self.running_bags = []
+        self.db = db
+        self.last_clock = rospy.get_time()
+        self.wait_time = rospy.get_param("{}/start_time".format(NS), None)
         self.robot_pose_sub = rospy.Subscriber(
             "{}/robot_pose".format(NS.rstrip("/hri")),
             Pose,
             self.robot_position_coordinate_callback,
         )
-        self.db = db
-        self.last_clock = rospy.get_time()
-        self.wait_time = rospy.get_param("{}/start_time".format(NS), None)
         while self.wait_time is None:
             rospy.sleep(0.25)
             self.wait_time = rospy.get_param("{}/start_time".format(NS), None)
@@ -1725,8 +1727,11 @@ class PickerSimulator(object):
                         "PMO: Couldn't find rosbag for behaviour: '{:}'"
                         .format(behaviour_label))
                     pass
+                except rospy.ROSInterruptException:
+                    rospy.loginfo("PMO: Remote shutdown")
                 except IndexError:
                     rospy.loginfo("PMO: End of picker behavior reached")
+                finally:
                     self.shutdown()
 
     def switch_behaviour(self, behaviour):
@@ -1762,7 +1767,7 @@ class PickerSimulator(object):
         try:
             while not rospy.core.is_shutdown():
                 self.loop()
-                rospy.rostime.wallsleep(1.0 / PICKER_UPDATE_FREQUENCY)
+                self.rate.sleep()
         except KeyboardInterrupt:
             rospy.logwarn("PMO: Keyboard interrupt")
         except rospy.ROSInterruptException:
@@ -1784,6 +1789,7 @@ class PickerSimulator(object):
     def shutdown(self):
         rospy.loginfo("PMO: Shutting down")
         self.shutting_down = True
+        self.robot_pose_sub.unregister()
         if self.play_rosbags:
             self.terminate_bags()
 

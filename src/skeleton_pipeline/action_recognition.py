@@ -47,10 +47,10 @@ class ActionRecognition:
         self.last_detected_count = {}
         camera = CAMERA_TOPIC
         if self.normal_mode and (BEHAVIOR_PERCEPTION or GESTURE_PERCEPTION):
-            rospy.Subscriber(camera, Image, self.callback_rgb)
+            self.sub = rospy.Subscriber(camera, Image, self.callback_rgb)
             rospy.loginfo("ACR: Subscribed to {:}".format(camera))
         else:
-            rospy.Subscriber('{}/human_actions'.format(NS), Action, self.action_callback)
+            self.sub = rospy.Subscriber('{}/human_actions'.format(NS), Action, self.action_callback)
             rospy.loginfo("ACR: Subscribed to {}/human_actions".format(NS))
 
         # rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.callback_depth)
@@ -270,3 +270,4 @@ class ActionRecognition:
 
     def shutdown(self):
         rospy.loginfo("ACR: Shutting down")
+        self.sub.unregister()

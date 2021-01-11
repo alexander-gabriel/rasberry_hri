@@ -2,6 +2,7 @@
 import sqlite3
 import os
 import argparse
+import json
 from common.parameters import CONFIG_DIRECTORY, LOG_DIRECTORY, STATE_DIRECTORY
 # CONFIG_DIRECTORY="/home/MAYANNA/einalex/work/docker/volumes/rasberry-source/_data/hri_config"
 # LOG_DIRECTORY="log"

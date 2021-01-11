@@ -41,7 +41,7 @@ class DB:
     def add_run(self, run_id, experiment_id, experiment_label, picker_id):
         with closing(self.db.cursor()) as cursor:
             cursor.execute("INSERT INTO runs VALUES (?, ?, ?)", (run_id, experiment_id, picker_id))
-            cursor.execute("INSERT INTO experiments VALUES (?, ?)", (experiment_id, label))
+            cursor.execute("INSERT INTO experiments VALUES (?, ?)", (experiment_id, experiment_label))
 
     def add_picker_waiting(self, entry):
         with closing(self.db.cursor()) as cursor:

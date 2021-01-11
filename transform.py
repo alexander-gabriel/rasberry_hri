@@ -17,28 +17,31 @@ class DB:
 
     def build_db(self):
         with closing(self.db.cursor()) as cursor:
-            cursor.execute("CREATE TABLE experiments (run_id text PRIMARY KEY, experiment_id text, picker_id text)")
+            cursor.execute("CREATE TABLE runs (run_id text PRIMARY KEY, experiment_id text, picker_id text)")
+            cursor.execute("CREATE TABLE experiments (experiment_id text PRIMARY KEY, experiment_label text, "
+                           "FOREIGN KEY (experiment_id) REFERENCES runs (experiment_id))")
             cursor.execute("CREATE TABLE picker_behavior (run_id text, timestamp float, "
                            "x float, y float, orientation float, behavior text, "
-                           "FOREIGN KEY (run_id) REFERENCES experiments (run_id))")
+                           "FOREIGN KEY (run_id) REFERENCES runs (run_id))")
             cursor.execute("CREATE TABLE picker_waiting (run_id text, timestamp float, "
                            "x float, y float, orientation float, wait float, "
-                           "FOREIGN KEY (run_id) REFERENCES experiments (run_id))")
+                           "FOREIGN KEY (run_id) REFERENCES runs (run_id))")
             cursor.execute("CREATE TABLE robot_actions (run_id text, timestamp float, "
                            "duration float, start_x float, start_y float, "
                            "end_x float, end_y float, action text, info text, "
-                           "FOREIGN KEY (run_id) REFERENCES experiments (run_id))")
+                           "FOREIGN KEY (run_id) REFERENCES runs (run_id))")
             cursor.execute("CREATE TABLE robot_goals (run_id text, timestamp float, "
                            "duration float, start_x float, start_y float, "
                            "end_x float, end_y float, goal text, "
-                           "FOREIGN KEY (run_id) REFERENCES experiments (run_id))")
+                           "FOREIGN KEY (run_id) REFERENCES runs (run_id))")
             cursor.execute("CREATE TABLE meetings (run_id text, timestamp float, "
                            "x float, y float, distance float, speed_profile text, "
-                           "FOREIGN KEY (run_id) REFERENCES experiments (run_id))")
+                           "FOREIGN KEY (run_id) REFERENCES runs (run_id))")
 
-    def add_run(self, run_id, experiment_id, picker_id):
+    def add_run(self, run_id, experiment_id, experiment_label, picker_id):
         with closing(self.db.cursor()) as cursor:
-            cursor.execute("INSERT INTO experiments VALUES (?, ?, ?)", (run_id, experiment_id, picker_id))
+            cursor.execute("INSERT INTO runs VALUES (?, ?, ?)", (run_id, experiment_id, picker_id))
+            cursor.execute("INSERT INTO experiments VALUES (?, ?)", (experiment_id, label))
 
     def add_picker_waiting(self, entry):
         with closing(self.db.cursor()) as cursor:
@@ -92,15 +95,17 @@ class DB:
 
     def get_runs(self):
         with closing(self.db.cursor()) as cursor:
-            cursor.execute("SELECT DISTINCT run_id, experiment_id, picker_id FROM picker_behavior "
-                           "UNION "
-                           "SELECT DISTINCT run_id, experiment_id, picker_id FROM picker_waiting "
-                           "UNION "
-                           "SELECT DISTINCT run_id, experiment_id, picker_id FROM robot_goals "
-                           "UNION "
-                           "SELECT DISTINCT run_id, experiment_id, picker_id FROM robot_actions "
-                           "UNION "
-                           "SELECT DISTINCT run_id, experiment_id, picker_id FROM meetings ")
+            cursor.execute("SELECT DISTINCT a.run_id, a.experiment_id, b.experiment_label, a.picker_id "
+                           "FROM (SELECT DISTINCT run_id, experiment_id, picker_id FROM picker_behavior "
+                                "UNION "
+                                "SELECT DISTINCT run_id, experiment_id, picker_id FROM picker_waiting "
+                                "UNION "
+                                "SELECT DISTINCT run_id, experiment_id, picker_id FROM robot_goals "
+                                "UNION "
+                                "SELECT DISTINCT run_id, experiment_id, picker_id FROM robot_actions "
+                                "UNION "
+                                "SELECT DISTINCT run_id, experiment_id, picker_id FROM meetings) a "
+                            "INNER JOIN experiments b ON a.experiment_id = b.experiment_id;")
             return cursor.fetchall():
 
     def close(self):
@@ -126,7 +131,7 @@ if __name__ == '__main__':
     new_db.build_db()
 
     for run in db.get_runs():
-        new_db.add_run(run)
+        new_db.add_run(*run)
     for meeting in db.get_meetings():
         new_db.add_meeting(meeting)
     for behavior in db.get_picker_behavior():

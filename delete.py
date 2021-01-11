@@ -43,14 +43,24 @@ class DB:
                            "SELECT DISTINCT run_id FROM robot_actions WHERE experiment_id = ? "
                            "UNION "
                            "SELECT DISTINCT run_id FROM meetings WHERE experiment_id = ?")
-            return cursor.fetchall()
+            ids = []
+            for result in cursor.fetchall():
+                ids.append(result[0])
+            return ids
 
-def delete_state(id):
-    path = os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, id + ".param")
-    try:
-        os.remove(path)
-    except:
-        pass
+def delete_state(run_ids):
+    path = os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, "experiments.json")
+    with open(path, "r") as file:
+        state = json.load(file)
+    for id in run_ids:
+        state["finished experiments"].remove(id)
+        path = os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, id + ".param")
+        try:
+            os.remove(path)
+        except:
+            pass
+    with open(path, "w") as file:
+        json.dump(state, file)
 
 
 
@@ -65,13 +75,13 @@ if __name__ == '__main__':
     else:
         db = DB()
     if args.id:
-        for run_id in db.get_runs(args.id):
-            delete_state(run_id)
+        run_ids = db.get_runs(args.id):
+        delete_state(run_ids)
         db.delete_experiment(args.id)
     if args.label:
         ids = db.get_experiments(args.label)
         for id in ids:
-            for run_id in db.get_runs(id):
-                delete_state(run_id)
+            run_ids = db.get_runs(id):
+            delete_state(run_ids)
             db.delete_experiment(id)
     db.close()

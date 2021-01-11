@@ -35,7 +35,7 @@ class DB:
                            "end_x float, end_y float, goal text, "
                            "FOREIGN KEY (run_id) REFERENCES runs (run_id))")
             cursor.execute("CREATE TABLE meetings (run_id text, timestamp float, "
-                           "x float, y float, signal_distance float, stop_distance float, speed_profile text "
+                           "x float, y float, signal_distance float, stop_distance float, speed_profile text, "
                            "FOREIGN KEY (run_id) REFERENCES runs (run_id))")
 
     def add_run(self, run_id, experiment_id, experiment_label, picker_id):

@@ -39,75 +39,72 @@ class DB:
         self.db = sqlite3.connect(filename, check_same_thread=False)
 
     def get_experiments(self):
-        cursor = self.db.cursor()
-        cursor.execute("SELECT DISTINCT experiment_id FROM robot_actions")
-        return cursor.fetchall()
+        with closing(self.db.cursor()) as cursor:
+            cursor.execute("SELECT DISTINCT experiment_id FROM robot_actions")
+            return cursor.fetchall()
 
     def get_runs(self, experiment_id, subject_id=None):
-        cursor = self.db.cursor()
-        if subject_id is not None:
-            cursor.execute(("SELECT DISTINCT run_id FROM robot_actions "
-                            "WHERE (experiment_id = ? AND picker_id = ?)"),
-                           (experiment_id, subject_id))
-        else:
-            cursor.execute(("SELECT DISTINCT run_id FROM robot_actions "
-                            "WHERE (experiment_id = ?)"),
-                           (experiment_id,))
-        return cursor.fetchall()
+        with closing(self.db.cursor()) as cursor:
+            if subject_id is not None:
+                cursor.execute(("SELECT DISTINCT run_id FROM robot_actions "
+                                "WHERE (experiment_id = ? AND picker_id = ?)"),
+                               (experiment_id, subject_id))
+            else:
+                cursor.execute(("SELECT DISTINCT run_id FROM robot_actions "
+                                "WHERE (experiment_id = ?)"),
+                               (experiment_id,))
+            return cursor.fetchall()
 
     def get_results(self, rows):
-        for experiment_id, picker_id, run_id in rows:
-            cursor.execute(("SELECT bla FROM picker_behavior WHERE"
-                            "(experiment_id = ? AND picker_id = ?"
-                            "AND run_id = ?)"),
-                           (experiment_id, picker_id, run_id))
-            cursor.execute(("SELECT bla FROM picker_waiting WHERE"
-                            "(experiment_id = ? AND picker_id = ?"
-                            "AND run_id = ?)"),
-                           (experiment_id, picker_id, run_id))
-            cursor.execute(("SELECT bla FROM robot_actions WHERE"
-                            "(experiment_id = ? AND picker_id = ?"
-                            "AND run_id = ?)"),
-                           (experiment_id, picker_id, run_id))
-            cursor.execute(("SELECT bla FROM robot_goals WHERE"
-                            "(experiment_id = ? AND picker_id = ?"
-                            "AND run_id = ?)"),
-                           (experiment_id, picker_id, run_id))
-            cursor.execute(("SELECT bla FROM meetings WHERE"
-                            "(experiment_id = ? AND picker_id = ?"
-                            "AND run_id = ?)"),
-                           (experiment_id, picker_id, run_id))
+        with closing(self.db.cursor()) as cursor:
+            for experiment_id, picker_id, run_id in rows:
+                cursor.execute(("SELECT bla FROM picker_behavior WHERE"
+                                "(experiment_id = ? AND picker_id = ?"
+                                "AND run_id = ?)"),
+                               (experiment_id, picker_id, run_id))
+                cursor.execute(("SELECT bla FROM picker_waiting WHERE"
+                                "(experiment_id = ? AND picker_id = ?"
+                                "AND run_id = ?)"),
+                               (experiment_id, picker_id, run_id))
+                cursor.execute(("SELECT bla FROM robot_actions WHERE"
+                                "(experiment_id = ? AND picker_id = ?"
+                                "AND run_id = ?)"),
+                               (experiment_id, picker_id, run_id))
+                cursor.execute(("SELECT bla FROM robot_goals WHERE"
+                                "(experiment_id = ? AND picker_id = ?"
+                                "AND run_id = ?)"),
+                               (experiment_id, picker_id, run_id))
+                cursor.execute(("SELECT bla FROM meetings WHERE"
+                                "(experiment_id = ? AND picker_id = ?"
+                                "AND run_id = ?)"),
+                               (experiment_id, picker_id, run_id))
 
     def build_db(self):
-        cursor = self.db.cursor()
-        # cursor.execute("CREATE TABLE movement_variance (experiment_id text,"
-        #                "timestamp float, x float, y float, typ text,"
-        #                "target text)")
-        cursor.execute("CREATE TABLE experiments (experiment_label text, experiment_id text)")
-        cursor.execute("CREATE TABLE picker_behavior (experiment_id text,"
-                       "picker_id text, run_id text, timestamp float, x float, y float,"
-                       "orientation float, behaviour text)")
-        cursor.execute("CREATE TABLE picker_waiting (experiment_id text,"
-                       "picker_id text, run_id text, timestamp float, x float, y float,"
-                       "orientation float, wait float)")
-        # cursor.execute("CREATE TABLE robot_behavior (experiment_id text,"
-        #                "timestamp float, x float, y float, orientation float,"
-        #                "behaviour text)")
-        cursor.execute("CREATE TABLE robot_actions (experiment_id text,"
-                       "picker_id text, run_id text, timestamp float, duration float,"
-                       "start_x float, start_y float, end_x float, end_y float,"
-                       "action text, info text)")
-        cursor.execute("CREATE TABLE robot_goals (experiment_id text,"
-                       "picker_id text, run_id text, timestamp float, duration float,"
-                       "start_x float, start_y float, end_x float, end_y float,"
-                       "goal text)")
-        cursor.execute("CREATE TABLE meetings (experiment_id text,"
-                       "picker_id text, run_id text, timestamp float, x float, y float,"
-                       "distance float, speed_profile text)")
-        self.db.commit()
-        cursor.close()
+        with closing(self.db.cursor()) as cursor:
+            # cursor.execute("CREATE TABLE movement_variance (experiment_id text,"
+            #                "timestamp float, x float, y float, typ text,"
+            #                "target text)")
+            cursor.execute("CREATE TABLE experiments (experiment_id text PRIMARY KEY, experiment_label text)")
+            cursor.execute("CREATE TABLE runs (experiment_id text, run_id text PRIMARY KEY, picker_id text, FOREIGN KEY (experiment_id) REFERENCES experiments (experiment_id))")
+            cursor.execute("CREATE TABLE picker_behavior (run_id text, timestamp float, x float, y float,"
+                           "orientation float, behaviour text)")
+            cursor.execute("CREATE TABLE picker_waiting (run_id text, timestamp float, x float, y float,"
+                           "orientation float, wait float)")
+            # cursor.execute("CREATE TABLE robot_behavior (experiment_id text,"
+            #                "timestamp float, x float, y float, orientation float,"
+            #                "behaviour text)")
+            cursor.execute("CREATE TABLE robot_actions (run_id text, timestamp float, duration float,"
+                           "start_x float, start_y float, end_x float, end_y float,"
+                           "action text, info text)")
+            cursor.execute("CREATE TABLE robot_goals (run_id text, timestamp float, duration float,"
+                           "start_x float, start_y float, end_x float, end_y float,"
+                           "goal text)")
+            cursor.execute("CREATE TABLE meetings (run_id text, timestamp float, x float, y float,"
+                           "distance float, speed_profile text)")
+            self.db.commit()
 
     def close_db(self):
+        self.db.commit()
         self.db.close()
 
 def letter_cmp(a, b):

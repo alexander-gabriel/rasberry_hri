@@ -72,11 +72,6 @@ def delete_state(run_ids):
     with open(path, "w") as file:
         json.dump(state, file)
 
-[INFO] [1610353901.114879, 65084.765000]: Set parameter: /thorvald_001/hri/experiment_id:814643aa3665608be1fc681e94d3e09b9e7e0437070384810d7fe6719c6a5b58
-[INFO] [1610353901.116170, 65084.765000]: Set parameter: /thorvald_001/hri/run_id:14c2baf10fa5243dd86d6b0cb2121b4a22196855b241c90af945571c09b58f50
-
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--id', action='store', type=str, help='experiment to delete')

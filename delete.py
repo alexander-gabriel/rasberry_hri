@@ -93,7 +93,7 @@ if __name__ == '__main__':
     if args.label:
         ids = db.get_experiments(args.label)
         for id in ids:
-            run_ids = db.get_runs(id):
+            run_ids = db.get_runs(id)
             delete_state(run_ids)
             db.delete_experiment(id)
     db.close()

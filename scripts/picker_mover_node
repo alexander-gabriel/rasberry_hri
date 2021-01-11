@@ -1796,7 +1796,7 @@ class PickerSimulator(object):
 
 
 if __name__ == '__main__':
-    rospy.init_node("picker_mover", anonymous=True)
+    rospy.init_node("picker_mover")
     # doesn't work before init_node
 
     rospy.myargv(argv=sys.argv)

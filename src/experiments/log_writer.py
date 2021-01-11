@@ -87,12 +87,18 @@ class DB:
 
     def add_experiment(self, experiment_label, experiment_id, picker_id):
         with closing(self.db.cursor()) as cursor:
-            cursor.execute(
-                "INSERT INTO runs VALUES (?, ?, ?)",
-                (self.run_id, experiment_id, picker_id))
-            cursor.execute(
-                "INSERT INTO experiments VALUES (?, ?)",
-                (experiment_id, experiment_label))
+            try:
+                cursor.execute(
+                    "INSERT INTO runs VALUES (?, ?, ?)",
+                    (self.run_id, experiment_id, picker_id))
+            except sqlite3.IntegrityError:
+                pass
+            try:
+                cursor.execute(
+                    "INSERT INTO experiments VALUES (?, ?)",
+                    (experiment_id, experiment_label))
+            except sqlite3.IntegrityError:
+                pass
             self.db.commit()
 
     def add_person_wait_entry(self, timestamp, x, y,

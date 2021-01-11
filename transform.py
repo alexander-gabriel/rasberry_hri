@@ -6,6 +6,7 @@ import warnings
 # from numpy import mean, var, errstate
 import numpy as np
 import yaml
+from contextlib import closing
 
 from common.parameters import CONFIG_DIRECTORY, LOG_DIRECTORY, STATE_DIRECTORY
 

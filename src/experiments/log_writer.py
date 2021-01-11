@@ -1,5 +1,6 @@
 import sqlite3
 import os
+from contextlib import closing
 
 from common.parameters import CONFIG_DIRECTORY, ACTIVE_DIRECTORY, \
                               LOG_DIRECTORY, STATE_DIRECTORY

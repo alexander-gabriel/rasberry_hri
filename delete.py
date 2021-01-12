@@ -19,14 +19,15 @@ class DB:
         self.db.close()
 
     def delete_experiment(self, experiment_id):
+        runs = []
         with closing(self.db.cursor()) as cursor:
-            cursor.execute("DELETE FROM picker_behavior WHERE experiment_id = ?", (experiment_id,))
-            cursor.execute("DELETE FROM picker_waiting WHERE experiment_id = ?", (experiment_id,))
-            cursor.execute("DELETE FROM robot_actions WHERE experiment_id = ?", (experiment_id,))
-            cursor.execute("DELETE FROM robot_goals WHERE experiment_id = ?", (experiment_id,))
-            cursor.execute("DELETE FROM meetings WHERE experiment_id = ?", (experiment_id,))
+            cursor.execute("SELECT run_id FROM runs WHERE experiment_id = ?")
+            runs = list(map(lambda: x: x[0], cursor.fetchall()))
+        for run_id in runs:
+            self.delete_run(run_id)
+        with closing(self.db.cursor()) as cursor:
             cursor.execute("DELETE FROM experiments WHERE experiment_id = ?", (experiment_id,))
-            self.db.commit()
+        self.db.commit()
 
     def delete_run(self, run_id):
         with closing(self.db.cursor()) as cursor:

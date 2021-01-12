@@ -151,7 +151,7 @@ if __name__ == '__main__':
     parser.add_argument('--config', type=str, nargs='?', help='optional config directory')
     args = parser.parse_args()
     if args.config:
-        db = DB(os.path.join(args.config, LOG_DIRECTORY, "log.db")
+        db = DB(os.path.join(args.config, LOG_DIRECTORY, "log.db"))
     else:
         db = DB()
     experiments = db.get_experiments()

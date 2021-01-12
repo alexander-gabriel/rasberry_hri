@@ -30,6 +30,8 @@ from common.parameters import (
     LEAVE_GAIN,
     APPROACH_GAIN,
     READY_POINT,
+    MAX_COST,
+    MIN_GAIN
 )
 
 from common.utils import VariableCondition as V

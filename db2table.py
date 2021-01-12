@@ -147,7 +147,7 @@ if __name__ == '__main__':
     # STATE_DIRECTORY="large-state"
     # db = DB("/home/rasberry/stop-test-log.db")
     parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('-p', type=boolean, nargs='?', const=False, help='evaluate per picker')
+    parser.add_argument('-p', type=bool, nargs='?', const=False, help='evaluate per picker')
     parser.add_argument('--dbpath', type=str, nargs='?', help='optional db path')
     args = parser.parse_args()
     if args.dbpath:

@@ -48,15 +48,14 @@ class DB:
     def get_runs(self, experiment_id, subject_id=None):
         with closing(self.db.cursor()) as cursor:
             if subject_id is not None:
-                cursor.execute(("SELECT DISTINCT a.run_id, b.experiment_label FROM runs a"
+                cursor.execute(("SELECT DISTINCT run_id, b.experiment_label FROM runs"
                                 "INNER JOIN experiments b USING(experiment_id) "
-                                "WHERE (a.experiment_id = ? AND a.picker_id = ?)"),
+                                "WHERE (experiment_id = ? AND picker_id = ?)"),
                                (experiment_id, subject_id))
             else:
-                cursor.execute(("SELECT DISTINCT a.run_id, b.experiment_label FROM runs a"
+                cursor.execute(("SELECT DISTINCT run_id, b.experiment_label FROM runs"
                                 "INNER JOIN experiments b USING(experiment_id) "
-                                "WHERE (a.experiment_id = ?)"),
-                               (experiment_id,))
+                                "WHERE (experiment_id = ?)"), (experiment_id,))
             return (list(map(lambda x: x[0], cursor.fetchall())), list(map(lambda x: x[1], cursor.fetchall())))
 
     def get_meetings(self, runs):

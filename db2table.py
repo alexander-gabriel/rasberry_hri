@@ -106,8 +106,6 @@ class DB:
         return mean(success), (mean(waits), var(waits))
 
     def get_behaviour(self, run_id, config_directory=CONFIG_DIRECTORY):
-        print(run_id)
-        print(config_directory)
         with open(os.path.join(config_directory, STATE_DIRECTORY, run_id + '.param'), 'r') as file:
             parameters = yaml.full_load(file)
             return parameters["behaviour"]
@@ -155,6 +153,7 @@ if __name__ == '__main__':
     if args.config:
         db = DB(os.path.join(args.config, LOG_DIRECTORY, "log.db"))
     else:
+        args.config = CONFIG_DIRECTORY
         db = DB()
     experiments = db.get_experiments()
     data = []

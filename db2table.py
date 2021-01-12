@@ -44,19 +44,23 @@ class DB:
             cursor.execute("SELECT DISTINCT experiment_id FROM experiments")
             return list(map(lambda x: x[0], cursor.fetchall()))
 
+    def get_label(self, experiment_id):
+        with closing(self.db.cursor()) as cursor:
+            cursor.execute("SELECT DISTINCT experiment_label FROM experiments "
+                           "WHERE (experiment_id = ?)", (experiment_id,))
+            return cursor.fetchall()[0][0]
 
     def get_runs(self, experiment_id, subject_id=None):
         with closing(self.db.cursor()) as cursor:
             if subject_id is not None:
-                cursor.execute(("SELECT DISTINCT run_id, b.experiment_label FROM runs "
-                                "INNER JOIN experiments b USING(experiment_id) "
+                cursor.execute(("SELECT DISTINCT run_id FROM runs "
                                 "WHERE (experiment_id = ? AND picker_id = ?)"),
                                (experiment_id, subject_id))
             else:
-                cursor.execute(("SELECT DISTINCT run_id, b.experiment_label FROM runs "
-                                "INNER JOIN experiments b USING(experiment_id) "
-                                "WHERE (experiment_id = ?)"), (experiment_id,))
-            return (list(map(lambda x: x[0], cursor.fetchall())), list(map(lambda x: x[1], cursor.fetchall())))
+                cursor.execute(("SELECT DISTINCT run_id FROM runs "
+                                "WHERE (experiment_id = ?)"),
+                               (experiment_id,))
+            return list(map(lambda x: x[0], cursor.fetchall()))
 
     def get_meetings(self, runs):
         signal_distances = []
@@ -164,6 +168,7 @@ if __name__ == '__main__':
     else:
         print("success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var")
     for experiment_id in experiments:
+        label = db.get_label(experiment_id)
         if args.p:
             for subject_id in [
                         "picker01",
@@ -174,7 +179,7 @@ if __name__ == '__main__':
                         "picker06", "picker07", "picker08", "picker09", "picker10"
                          ]:
                 try:
-                    runs, labels = db.get_runs(experiment_id, subject_id)
+                    runs = db.get_runs(experiment_id, subject_id)
                     if not runs:
                         raise IndexError()
                     # with errstate(all='ignore', divide='ignore'):
@@ -183,8 +188,8 @@ if __name__ == '__main__':
                     success1, duration = db.get_service(experiment_id, runs)
                     success2, signal_distances, stop_distances, speed = db.get_meetings(experiment_id, runs)
                     success3, waits = db.get_waits(experiment_id, runs)
-                    print("{}; {}; {: >20};  {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f}"
-                        .format(subject_id,
+                    print("{}; {}; {}; {: >20};  {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f}"
+                        .format(label, subject_id,
                                 "{:.2}, {:.2}, {:.2}".format(success1, success2, success3),
                                 behaviour[experiment_id],
                                 duration[0], duration[1],
@@ -204,8 +209,8 @@ if __name__ == '__main__':
                 success1, duration = db.get_service(runs)
                 success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
                 success3, waits = db.get_waits(runs)
-                print("{}; {: >20};  {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f}"
-                    .format("{:.2}, {:.2}, {:.2}".format(success1, success2, success3),
+                print("{}; {}; {: >20};  {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f}"
+                    .format(label, "{:.2}, {:.2}, {:.2}".format(success1, success2, success3),
                             behaviour[experiment_id],
                             duration[0], duration[1],
                             signal_distances[0], signal_distances[1],

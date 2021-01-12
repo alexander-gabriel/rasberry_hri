@@ -105,8 +105,8 @@ class DB:
                         success.append(0.0)
         return mean(success), (mean(waits), var(waits))
 
-    def get_behaviour(self, run_id):
-        with open(os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, run_id + '.param'), 'r') as file:
+    def get_behaviour(self, run_id, config_directory=CONFIG_DIRECTORY):
+        with open(os.path.join(config_directory, STATE_DIRECTORY, run_id + '.param'), 'r') as file:
             parameters = yaml.full_load(file)
             return parameters["behaviour"]
 
@@ -148,10 +148,10 @@ if __name__ == '__main__':
     # db = DB("/home/rasberry/stop-test-log.db")
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('-p', type=bool, nargs='?', const=False, help='evaluate per picker')
-    parser.add_argument('--dbpath', type=str, nargs='?', help='optional db path')
+    parser.add_argument('--config', type=str, nargs='?', help='optional config directory')
     args = parser.parse_args()
-    if args.dbpath:
-        db = DB(args.dbpath)
+    if args.config:
+        db = DB(os.path.join(args.config, LOG_DIRECTORY, "log.db")
     else:
         db = DB()
     experiments = db.get_experiments()
@@ -174,7 +174,7 @@ if __name__ == '__main__':
                         raise IndexError()
                     # with errstate(all='ignore', divide='ignore'):
                     if experiment_id not in behaviour:
-                        behaviour[experiment_id] = db.get_behaviour(runs[0])
+                        behaviour[experiment_id] = db.get_behaviour(runs[0], args.config)
                     success1, duration = db.get_service(experiment_id, runs)
                     success2, signal_distances, stop_distances, speed = db.get_meetings(experiment_id, runs)
                     success3, waits = db.get_waits(experiment_id, runs)

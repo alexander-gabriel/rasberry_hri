@@ -207,8 +207,8 @@ if __name__ == '__main__':
                             stop_distances[0], stop_distances[1],
                             waits[0], waits[1],
                             speed[0], speed[1]))
-                except IndexError:
-                    pass
+            except IndexError:
+                pass
                 # print("No runs for {}".format(subject_id))
 
         # print("{};{:.2f};{:.3f}".format(experiment_id, waits[experiment_id][0], waits[experiment_id][1]))

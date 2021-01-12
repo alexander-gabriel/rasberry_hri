@@ -64,9 +64,9 @@ class DB:
         success = []
         for run_id in runs:
             with closing(self.db.cursor()) as cursor:
-                cursor.execute(("SELECT signal_distance, stop_distance, speed_profile FROM meetings WHERE"
-                                " experiment_id = ? AND run_id = ?"),
-                               (experiment_id, run_id))
+                cursor.execute(("SELECT signal_distance, stop_distance, speed_profile FROM meetings WHERE "
+                                "run_id = ?"),
+                               (run_id,))
                 results = cursor.fetchall()
                 for result in results:
                     result_success = False

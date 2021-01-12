@@ -28,6 +28,7 @@ class DB:
         with closing(self.db.cursor()) as cursor:
             cursor.execute("DELETE FROM experiments WHERE experiment_id = ?", (experiment_id,))
         self.db.commit()
+        return runs
 
     def delete_run(self, run_id):
         with closing(self.db.cursor()) as cursor:
@@ -42,26 +43,12 @@ class DB:
     def get_experiments(self, experiment_label):
         with closing(self.db.cursor()) as cursor:
             cursor.execute("SELECT experiment_id FROM experiments WHERE experiment_label = ?", (experiment_label,))
-            ids = []
-            for result in cursor.fetchall():
-                ids.append(result[0])
-            return ids
+            return list(map(lambda x: x[0], cursor.fetchall()))
 
     def get_runs(self, experiment_id):
         with closing(self.db.cursor()) as cursor:
-            cursor.execute("SELECT DISTINCT run_id FROM picker_behavior WHERE experiment_id = ? "
-                           "UNION "
-                           "SELECT DISTINCT run_id FROM picker_waiting WHERE experiment_id = ? "
-                           "UNION "
-                           "SELECT DISTINCT run_id FROM robot_goals WHERE experiment_id = ? "
-                           "UNION "
-                           "SELECT DISTINCT run_id FROM robot_actions WHERE experiment_id = ? "
-                           "UNION "
-                           "SELECT DISTINCT run_id FROM meetings WHERE experiment_id = ?")
-            ids = []
-            for result in cursor.fetchall():
-                ids.append(result[0])
-            return ids
+            cursor.execute("SELECT run_id FROM runs WHERE experiment_id = ?")
+            return list(map(lambda x: x[0], cursor.fetchall()))
 
 def delete_state(run_ids):
     path = os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, "experiments.json")
@@ -95,13 +82,12 @@ if __name__ == '__main__':
         delete_state(args.run)
         db.delete_run(args.run)
     if args.id:
-        run_ids = db.get_runs(args.id)
+        run_ids = db.delete_experiment(id)
         delete_state(run_ids)
-        db.delete_experiment(args.id)
     if args.label:
         ids = db.get_experiments(args.label)
         for id in ids:
-            run_ids = db.get_runs(id)
+            run_ids = db.delete_experiment(id)
             delete_state(run_ids)
-            db.delete_experiment(id)
+
     db.close()

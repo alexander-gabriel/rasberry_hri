@@ -21,7 +21,7 @@ class DB:
     def delete_experiment(self, experiment_id):
         runs = []
         with closing(self.db.cursor()) as cursor:
-            cursor.execute("SELECT run_id FROM runs WHERE experiment_id = ?")
+            cursor.execute("SELECT run_id FROM runs WHERE experiment_id = ?", (experiment_id,))
             runs = list(map(lambda x: x[0], cursor.fetchall()))
         for run_id in runs:
             self.delete_run(run_id)

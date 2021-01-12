@@ -42,7 +42,7 @@ class DB:
     def get_experiments(self):
         with closing(self.db.cursor()) as cursor:
             cursor.execute("SELECT DISTINCT experiment_id FROM experiments")
-            return list(map(cursor.fetchall(), lambda x: x[0]))
+            return list(map(lambda x: x[0], cursor.fetchall()))
 
 
     def get_runs(self, experiment_id, subject_id=None):
@@ -55,7 +55,7 @@ class DB:
                 cursor.execute(("SELECT DISTINCT run_id FROM runs "
                                 "WHERE (experiment_id = ?)"),
                                (experiment_id,))
-            return list(map(cursor.fetchall(), lambda x: x[0]))
+            return list(map(lambda x: x[0], cursor.fetchall()))
 
     def get_meetings(self, runs):
         signal_distances = []
@@ -97,7 +97,7 @@ class DB:
             with closing(self.db.cursor()) as cursor:
                 cursor.execute(("SELECT wait FROM picker_waiting WHERE "
                                 "run_id = ?"), (run_id,))
-                for result in list(map(cursor.fetchall(), lambda x: x[0])):
+                for result in list(map(lambda x: x[0], cursor.fetchall())):
                     if isinstance(result, float):
                         waits.append(float(result))
                         success.append(1.0)
@@ -117,7 +117,7 @@ class DB:
             with closing(self.db.cursor()) as cursor:
                 cursor.execute(("SELECT duration FROM robot_goals WHERE "
                                 "run_id = ?"),  (run_id,))
-                for result in list(map(cursor.fetchall(), lambda x: x[0])):
+                for result in list(map(lambda x: x[0], cursor.fetchall())):
                     if isinstance(result, float):
                         duration.append(result)
                         success.append(1.0)

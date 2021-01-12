@@ -48,14 +48,16 @@ class DB:
     def get_runs(self, experiment_id, subject_id=None):
         with closing(self.db.cursor()) as cursor:
             if subject_id is not None:
-                cursor.execute(("SELECT DISTINCT run_id FROM runs "
-                                "WHERE (experiment_id = ? AND picker_id = ?)"),
+                cursor.execute(("SELECT DISTINCT a.run_id, b.experiment_label FROM runs a"
+                                "INNER JOIN experiments b USING(experiment_id) "
+                                "WHERE (a.experiment_id = ? AND a.picker_id = ?)"),
                                (experiment_id, subject_id))
             else:
-                cursor.execute(("SELECT DISTINCT run_id FROM runs "
-                                "WHERE (experiment_id = ?)"),
+                cursor.execute(("SELECT DISTINCT a.run_id, b.experiment_label FROM runs a"
+                                "INNER JOIN experiments b USING(experiment_id) "
+                                "WHERE (a.experiment_id = ?)"),
                                (experiment_id,))
-            return list(map(lambda x: x[0], cursor.fetchall()))
+            return (list(map(lambda x: x[0], cursor.fetchall())), list(map(lambda x: x[1], cursor.fetchall())))
 
     def get_meetings(self, runs):
         signal_distances = []
@@ -173,7 +175,7 @@ if __name__ == '__main__':
                         "picker06", "picker07", "picker08", "picker09", "picker10"
                          ]:
                 try:
-                    runs = db.get_runs(experiment_id, subject_id)
+                    runs, labels = db.get_runs(experiment_id, subject_id)
                     if not runs:
                         raise IndexError()
                     # with errstate(all='ignore', divide='ignore'):

@@ -148,7 +148,7 @@ if __name__ == '__main__':
     # db = DB("/home/rasberry/stop-test-log.db")
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('-p', type=bool, nargs='?', const=False, help='evaluate per picker')
-    parser.add_argument('--config', type=str, nargs='?', help='optional config directory')
+    parser.add_argument('--config', type=str, nargs='?', const=CONFIG_DIRECTORY, help='optional config directory')
     args = parser.parse_args()
     if args.config:
         db = DB(os.path.join(args.config, LOG_DIRECTORY, "log.db"))

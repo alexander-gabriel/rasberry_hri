@@ -157,7 +157,10 @@ if __name__ == '__main__':
     experiments = db.get_experiments()
     data = []
     behaviour = {}
-    print("id;behaviour;success;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var")
+    if args.p:
+        print("id;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var")
+    else:
+        print("success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var")
     for experiment_id in experiments:
         if args.p:
             for subject_id in [

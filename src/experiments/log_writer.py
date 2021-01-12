@@ -113,7 +113,7 @@ class DB:
         with closing(self.db.cursor()) as cursor:
             cursor.execute(
                 ("INSERT INTO meetings (run_id, signal_distance, speed_profile) "
-                 "VALUES (?, ?, ?, ?, ?)"),
+                 "VALUES (?, ?, ?)"),
                 (self.run_id, distance, str(speed_profile)[1:-1]))
             self.db.commit()
 

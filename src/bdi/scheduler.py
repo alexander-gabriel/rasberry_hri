@@ -75,7 +75,7 @@ class Scheduler:
         self.latest_people_nodes = {}
         self.latest_distances = {}
         self.qsrlib = QSRlib()
-        self.speed = []
+        self.speed = [-1,-1,-1,-1]
         self.human_position_subs = []
         self.robot_id = robot_id
         # self.bdi.me = ConceptNode(robot_id)
@@ -341,8 +341,8 @@ class Scheduler:
                 # save half meter distance speed
                 speed = self.get_speed(
                     self.bdi.world_state.get_position(self.bdi.me))
-                self.speed.append(speed)
-
+                if self.speed[3] == -1:
+                    self.speed[3] = speed
             elif (distance <= 1.0
                   and self.has_reached_150cm[person.name]
                   and not self.has_reached_100cm[person.name]):
@@ -352,7 +352,8 @@ class Scheduler:
                 # save one meter distance speed
                 speed = self.get_speed(
                     self.bdi.world_state.get_position(self.bdi.me))
-                self.speed.append(speed)
+                if self.speed[2] == -1:
+                    self.speed[2] = speed
             elif (distance <= 1.5
                   and self.has_reached_200cm[person.name]
                   and not self.has_reached_150cm[person.name]):
@@ -362,7 +363,8 @@ class Scheduler:
                 # save two meter distance spe.ed
                 speed = self.get_speed(
                     self.bdi.world_state.get_position(self.bdi.me))
-                self.speed.append(speed)
+                if self.speed[1] == -1:
+                    self.speed[1] = speed
             elif (distance <= 2.0
                   and not self.has_reached_200cm[person.name]):
                 self.has_reached_200cm[person.name] = True
@@ -371,14 +373,15 @@ class Scheduler:
                 # save two meter distance speed
                 speed = self.get_speed(
                     self.bdi.world_state.get_position(self.bdi.me))
-                self.speed.append(speed)
+                if self.speed[0] == -1:
+                    self.speed[0] = speed
             elif (distance > 2.1
                   and self.has_reached_200cm[person.name]):
                 self.has_reached_50cm[person.name] = False
                 self.has_reached_100cm[person.name] = False
                 self.has_reached_150cm[person.name] = False
                 self.has_reached_200cm[person.name] = False
-                self.speed = []
+                self.speed = [-1,-1,-1,-1]
             # self.bdi.last_distance = distance
         except Exception as err:
             rospy.logerr(

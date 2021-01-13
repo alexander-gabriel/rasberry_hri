@@ -59,13 +59,13 @@ def delete_state(run_ids):
             state["finished experiments"].remove(id)
         except ValueError:
             pass
-        path = os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, id + ".param")
+        param_path = os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, id + ".param")
         try:
-            os.remove(path)
+            os.remove(param_path)
         except:
             pass
     with open(path, "w") as file:
-        json.dump(state, file)
+        json.dump(state, file, indent=4)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -79,10 +79,10 @@ if __name__ == '__main__':
     else:
         db = DB()
     if args.run:
-        delete_state(args.run)
+        delete_state([args.run])
         db.delete_run(args.run)
     if args.id:
-        run_ids = db.delete_experiment(id)
+        run_ids = db.delete_experiment(args.id)
         delete_state(run_ids)
     if args.label:
         ids = db.get_experiments(args.label)

@@ -38,6 +38,7 @@ def var(l):
 class DB:
     def __init__(self, filename=os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY, 'log.db')):
         self.db = sqlite3.connect(filename, check_same_thread=False)
+        self.failed_runs = []
 
     def get_experiments(self):
         with closing(self.db.cursor()) as cursor:
@@ -77,6 +78,7 @@ class DB:
                     result_success = False
                     try:
                         result_speeds = map(lambda x: float(x), result[2].split(", "))
+                        result_speeds = list(filter(lambda number: number > -1, result_speeds))
                         speeds += result_speeds
                     except ValueError:
                         result_speeds = []
@@ -89,6 +91,7 @@ class DB:
                             success.append(1.0)
                     if not result_success:
                         success.append(0.0)
+                        self.failed_runs.append(run_id)
                 # for index, entry in enumerate(result_speeds):
                 #     speeds[index].append(entry)
         # for index in range(4):
@@ -108,6 +111,7 @@ class DB:
                         success.append(1.0)
                     else:
                         success.append(0.0)
+                        self.failed_runs.append(run_id)
         return mean(success), (mean(waits), var(waits))
 
     def get_behaviour(self, run_id, config_directory=CONFIG_DIRECTORY):
@@ -128,6 +132,7 @@ class DB:
                         success.append(1.0)
                     else:
                         success.append(0.0)
+                        self.failed_runs.append(run_id)
         success = mean(success)
         duration = (mean(duration), var(duration))
         return success, duration
@@ -164,9 +169,9 @@ if __name__ == '__main__':
     data = []
     behaviour = {}
     if args.p:
-        print("id;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var")
+        print("label;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var")
     else:
-        print("success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var")
+        print("label;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var")
     for experiment_id in experiments:
         label = db.get_label(experiment_id)
         if args.p:
@@ -224,6 +229,7 @@ if __name__ == '__main__':
                             experiment_id))
             except IndexError:
                 pass
+    print("{}".format(db.failed_runs))
                 # print("No runs for {}".format(subject_id))
 
         # print("{};{:.2f};{:.3f}".format(experiment_id, waits[experiment_id][0], waits[experiment_id][1]))

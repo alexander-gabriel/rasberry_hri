@@ -188,7 +188,7 @@ if __name__ == '__main__':
                     success1, duration = db.get_service(experiment_id, runs)
                     success2, signal_distances, stop_distances, speed = db.get_meetings(experiment_id, runs)
                     success3, waits = db.get_waits(experiment_id, runs)
-                    print("{}; {}; {}; {: >20};  {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f}"
+                    print("{}; {}; {}; {: >20};  {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {}"
                         .format(label, subject_id,
                                 "{:.2}, {:.2}, {:.2}".format(success1, success2, success3),
                                 behaviour[experiment_id],
@@ -196,7 +196,8 @@ if __name__ == '__main__':
                                 signal_distances[0], signal_distances[1],
                                 stop_distances[0], stop_distances[1],
                                 waits[0], waits[1],
-                                speed[0], speed[1]))
+                                speed[0], speed[1],
+                                experiment_id))
                 except IndexError:
                     pass
         else:
@@ -209,14 +210,15 @@ if __name__ == '__main__':
                 success1, duration = db.get_service(runs)
                 success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
                 success3, waits = db.get_waits(runs)
-                print("{}; {}; {: >20};  {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f}"
+                print("{}; {}; {: >20};  {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {}"
                     .format(label, "{:.2}, {:.2}, {:.2}".format(success1, success2, success3),
                             behaviour[experiment_id],
                             duration[0], duration[1],
                             signal_distances[0], signal_distances[1],
                             stop_distances[0], stop_distances[1],
                             waits[0], waits[1],
-                            speed[0], speed[1]))
+                            speed[0], speed[1],
+                            experiment_id))
             except IndexError:
                 pass
                 # print("No runs for {}".format(subject_id))

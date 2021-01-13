@@ -153,7 +153,7 @@ GIVE_COST = define("give_cost", 3.5)  # s
 EXCHANGE_GAIN = define("exchange_gain", 240)
 EXCHANGE_COST = define("exchange_cost", 5)  # s
 
-DEPOSIT_GAIN = define("deposit_gain", 480)
+DEPOSIT_GAIN = define("deposit_gain", 360)
 DEPOSIT_COST = define("deposit_cost", 2.5)  # s
 
 EVADE_GAIN = define("evade_gain", 200)

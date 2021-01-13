@@ -499,8 +499,7 @@ class DepositCrateAction(Action):
     def get_gain(self):
         try:
             return DEPOSIT_GAIN * (
-                max(self.full_crate_count,
-                    CRATE_CAPACITY - self.empty_crate_count)
+                max(self.full_crate_count, CRATE_CAPACITY - self.empty_crate_count)
                 / CRATE_CAPACITY
             )
         except:

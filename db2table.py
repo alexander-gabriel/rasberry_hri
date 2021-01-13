@@ -229,7 +229,7 @@ if __name__ == '__main__':
                             experiment_id))
             except IndexError:
                 pass
-    print("{}".format(db.failed_runs))
+    print("{}".format(set(db.failed_runs))
                 # print("No runs for {}".format(subject_id))
 
         # print("{};{:.2f};{:.3f}".format(experiment_id, waits[experiment_id][0], waits[experiment_id][1]))

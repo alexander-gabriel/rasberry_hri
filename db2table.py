@@ -206,7 +206,10 @@ if __name__ == '__main__':
                 if not runs:
                     raise IndexError()
                 if experiment_id not in behaviour:
-                    behaviour[experiment_id] = db.get_behaviour(runs[0], args.config)
+                    try:
+                        behaviour[experiment_id] = db.get_behaviour(runs[0], args.config)
+                    except IOError:
+                        behaviour[experiment_id] = "No run ID"
                 success1, duration = db.get_service(runs)
                 success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
                 success3, waits = db.get_waits(runs)

@@ -80,7 +80,7 @@ TARGET = "target"
 
 # BDI
 
-MAX_COST = define("max_cost", 240)
+MAX_COST = define("max_cost", 600)
 MIN_GAIN = define("min_gain", 0)
 
 # ACTION RECOGNITION

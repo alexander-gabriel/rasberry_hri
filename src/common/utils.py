@@ -14,7 +14,7 @@ from opencog.atomspace import AtomSpace
 
 from opencog.type_constructors import VariableNode, ConceptNode, \
                                       TypedVariableLink, TypeNode, \
-                                      PredicateNode, NumberNode
+                                      PredicateNode, NumberNode, FloatValue
 from opencog.utilities import initialize_opencog
 
 from experiments.log_writer import DB
@@ -95,12 +95,12 @@ class PredicateCondition(Condition):
 class NumberCondition(Condition):
 
     def __init__(self, label):
-        super(NumberCondition, self).__init__(label, NumberNode)
+        super(NumberCondition, self).__init__(label, FloatValue)
 
     def get_typed_variable(self):
         try:
-            return TypedVariableLink(VariableNode(self.label),
-                                     TypeNode(self.typ.__name__))
+            return TypedVariableLink(VariableNode(str(self.label)),
+                                     TypeNode("NumberNode"))
         except Exception as err:
             rospy.logerr(
                 ("Couldn't create TypedVariableLink(VariableNode({:}), {:})"
@@ -153,6 +153,53 @@ class OrderedConsistentSet(object):
     def __iadd__(self, other):
         for item in other:
             self.append(item)
+        return self
+
+    def __contains__(self, key):
+        return key in self.items
+
+    def __str__(self):
+        return self.items.__str__()
+
+    def __iter__(self):
+        return self.items.__iter__()
+
+    def __len__(self):
+        return self.items.__len__()
+
+    def __getitem__(self, key):
+        return self.items.__getitem__(key)
+
+    def __delitem__(self, key):
+        return self.items.__delitem__(key)
+
+
+class SortedConsistentSet(object):
+
+    def __init__(self, reversed=False):
+        self.reversed = reversed
+        self.items = []
+
+    def add(self, item):
+        if item not in self.items:
+            try:
+                index = 0
+                if self.reversed:
+                    while self.items[index] > item:
+                        index += 1
+                else:
+                    while self.items[index] < item:
+                        index += 1
+                self.items.insert(index, item)
+            except:
+                self.items.append(item)
+            return True
+        else:
+            return False
+
+    def __iadd__(self, other):
+        for item in other:
+            self.add(item)
         return self
 
     def __contains__(self, key):

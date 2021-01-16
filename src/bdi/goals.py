@@ -28,7 +28,7 @@ from actions import (
     WaitAction,
     ApproachAction,
     CloseApproachAction,
-    LeaveAction,
+    StandByAction,
 )
 from opencog.atomspace import types
 
@@ -86,7 +86,7 @@ class Goal(object):
             )
         return False
 
-    def __neq__(self, other):
+    def __ne__(self, other):
         """Override the default Equals behavior"""
         if isinstance(other, self.__class__):
             # for subgoal in self.subgoal_templates:
@@ -100,6 +100,19 @@ class Goal(object):
                 and self.subgoal_templates == other.subgoal_templates
             )
         return True
+
+    def __gt__(self, other):
+        return self.get_gain()/self.get_cost() > other.get_gain()/other.get_cost()
+
+    def __lt__(self, other):
+        return self.get_gain()/self.get_cost() < other.get_gain()/other.get_cost()
+
+    def __ge__(self, other):
+        return (self > other) or (self == other)
+
+    def __le__(self, other):
+        return (self < other) or (self == other)
+
 
     @classmethod
     def get_condition_templates(cls):
@@ -607,16 +620,16 @@ class WaitGoal(Goal):
         )
 
 
-class LeaveGoal(Goal):
+class StandByGoal(Goal):
 
-    action_template = LeaveAction
+    action_template = StandByAction
 
     def __init__(self, world_state, robco, args):
-        super(LeaveGoal, self).__init__(world_state, robco, args)
+        super(StandByGoal, self).__init__(world_state, robco, args)
         self.picker = args["picker"]
 
     def __repr__(self):
-        return "<Goal:Leave {:} ({}, {})>".format(
+        return "<Goal:StandBy {:} ({}, {})>".format(
             self.picker, self.get_gain(), self.get_cost()
         )
 

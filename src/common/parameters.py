@@ -147,23 +147,27 @@ READY_POINT = define("ready_waypoint", "WayPoint133")
 
 # ROBOT ACTION PARAMETERS
 
-GIVE_GAIN = define("give_gain", 240)
-GIVE_COST = define("give_cost", 3.5)  # s
-
-EXCHANGE_GAIN = define("exchange_gain", 240)
-EXCHANGE_COST = define("exchange_cost", 5)  # s
-
 DEPOSIT_GAIN = define("deposit_gain", 360)
 DEPOSIT_COST = define("deposit_cost", 2.5)  # s
 
-EVADE_GAIN = define("evade_gain", 200)
+GIVE_GAIN = define("give_gain", 70)
+GIVE_COST = define("give_cost", 3.5)  # s
 
-LEAVE_GAIN = define("leave_gain", 240)
+EXCHANGE_GAIN = define("exchange_gain", 60)
+EXCHANGE_COST = define("exchange_cost", 5)  # s
 
-WAIT_GAIN = define("wait_gain", 100)
+APPROACH_GAIN = define("approach_gain", 50)
+
+# deposit gain at half capacity: 40
+
+EVADE_GAIN = define("evade_gain", 30)
+
+STANDBY_GAIN = define("standby_gain", 20)
+
+WAIT_GAIN = define("wait_gain", 10)
 WAIT_TIME = define("wait_time", 0.5)  # s
 
-APPROACH_GAIN = define("move_gain", 180)
+# deposit gain at full capacity: 0
 
 MOVE_GAIN = define("move_gain", 0)
 
@@ -239,9 +243,10 @@ BEHAVIOURS = {
     ],
     "call": [
         ["call robot", 0],
-        ["expect service", 0]
+        ["expect service", 0],
+        ["wait for robot to arrive", 0]
     ],
-    "do nothing": [["expect service", 0]],
+    "do nothing": [["wait for robot to arrive", 0]],
     "wait": [["wait for robot to arrive", 10]],
     "picking berries": [["pick berries", 4]],
     "evade standard": [["pick berries", 4],

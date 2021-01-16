@@ -96,7 +96,7 @@ class DB:
                 #     speeds[index].append(entry)
         # for index in range(4):
         #     speeds[index] = (mean(speeds[index]), var(speeds[index]))
-        return mean(success), (mean(signal_distances), var(signal_distances)), (mean(stop_distances), var(stop_distances)), (mean(speeds), var(speeds))
+        return success, signal_distances, stop_distances, speeds
 
     def get_waits(self, runs):
         waits = []
@@ -112,7 +112,7 @@ class DB:
                     else:
                         success.append(0.0)
                         self.failed_runs.append(run_id)
-        return mean(success), (mean(waits), var(waits))
+        return success, waits
 
     def get_behaviour(self, run_id, config_directory=CONFIG_DIRECTORY):
         with open(os.path.join(config_directory, STATE_DIRECTORY, run_id + '.param'), 'r') as file:
@@ -133,9 +133,10 @@ class DB:
                     else:
                         success.append(0.0)
                         self.failed_runs.append(run_id)
-        success = mean(success)
-        duration = (mean(duration), var(duration))
         return success, duration
+
+    def calculate_statistics(self, list):
+        return mean(list), var(list)
 
     def close(self):
         self.db.close()
@@ -172,6 +173,7 @@ if __name__ == '__main__':
         print("label;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var")
     else:
         print("label;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var")
+    speeds = []
     for experiment_id in experiments:
         label = db.get_label(experiment_id)
         if args.p:
@@ -192,16 +194,17 @@ if __name__ == '__main__':
                         behaviour[experiment_id] = db.get_behaviour(runs[0], args.config)
                     success1, duration = db.get_service(experiment_id, runs)
                     success2, signal_distances, stop_distances, speed = db.get_meetings(experiment_id, runs)
+                    speeds += speed
                     success3, waits = db.get_waits(experiment_id, runs)
                     print("{}; {}; {}; {: >20};  {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {}"
                         .format(label, subject_id,
                                 "{:.2}, {:.2}, {:.2}".format(success1, success2, success3),
                                 behaviour[experiment_id],
-                                duration[0], duration[1],
-                                signal_distances[0], signal_distances[1],
-                                stop_distances[0], stop_distances[1],
-                                waits[0], waits[1],
-                                speed[0], speed[1],
+                                db.calculate_statistics(duration),
+                                db.calculate_statistics(signal_distances),
+                                db.calculate_statistics(stop_distances),
+                                db.calculate_statistics(waits),
+                                db.calculate_statistics(speed),
                                 experiment_id))
                 except IndexError:
                     pass
@@ -217,19 +220,22 @@ if __name__ == '__main__':
                         behaviour[experiment_id] = "No run ID"
                 success1, duration = db.get_service(runs)
                 success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
+                speeds += speed
                 success3, waits = db.get_waits(runs)
-                print("{}; {}; {: >20};  {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {}"
-                    .format(label, "{:.2}, {:.2}, {:.2}".format(success1, success2, success3),
+                print("{}; {}; {}; {};  {};  {};  {};  {};  {}"
+                    .format(label,
+                            "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
                             behaviour[experiment_id],
-                            duration[0], duration[1],
-                            signal_distances[0], signal_distances[1],
-                            stop_distances[0], stop_distances[1],
-                            waits[0], waits[1],
-                            speed[0], speed[1],
+                            "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(duration)),
+                            "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(signal_distances)),
+                            "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(stop_distances)),
+                            "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(waits)),
+                            "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(speed)),
                             experiment_id))
             except IndexError:
                 pass
-    print("{}".format(set(db.failed_runs)))
+    print("Failied runs: {}".format(set(db.failed_runs)))
+    print("Speed mean: {} var: {}".format(*db.calculate_statistics(speeds)))
                 # print("No runs for {}".format(subject_id))
 
         # print("{};{:.2f};{:.3f}".format(experiment_id, waits[experiment_id][0], waits[experiment_id][1]))

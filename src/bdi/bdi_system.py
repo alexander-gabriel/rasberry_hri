@@ -44,7 +44,7 @@ from common.parameters import (
     ROBOT_POSITION
 )
 
-from common.utils import OrderedConsistentSet, suppress, db
+from common.utils import OrderedConsistentSet, suppress, db, SortedConsistentSet
 from bdi.goals import (
     ExchangeGoal,
     DeliverGoal,
@@ -53,7 +53,7 @@ from bdi.goals import (
     WrongParameterException,
     ApproachGoal,
     CloseApproachGoal,
-    LeaveGoal,
+    StandByGoal,
     WaitForGoal,
     WaitGoal,
     MoveGoal,
@@ -86,14 +86,14 @@ class BDISystem:
             self.last_behaviours = {}
             self.desires = []
             self.desires.append(WaitGoal)
-            self.desires.append(LeaveGoal)
+            self.desires.append(StandByGoal)
             self.desires.append(ApproachGoal)
             self.desires.append(CloseApproachGoal)
             self.desires.append(DeliverGoal)
             self.desires.append(ExchangeGoal)
             self.desires.append(EvadeGoal)
             self.desires.append(DepositGoal)
-            self.intentions = []
+            self.intentions = SortedConsistentSet(True)
             self.locator = TopologicalNavLoc()
             # self.links = {}
             # self.node_positions = {}
@@ -190,23 +190,24 @@ class BDISystem:
 
     def _generate_intention_candidates(self):
         rospy.logdebug("BDI: Generating Behaviour Options")
-        intention_candidates = []
+        intention_candidates = SortedConsistentSet(True)
         for goal in self.desires:
             if goal not in self.intentions:
                 args_list = goal.find_instances(self.world_state)
                 for args in args_list:
                     if len(args) > 0:
                         try:
-                            intention_candidates.append(
+                            intention_candidates.add(
                                 goal(self.world_state, self.robco, args)
                             )
                         except WrongParameterException as err:
-                            # rospy.logerr(
-                            #     "BDI: Couldn't add intention {:} because of error {:}".format(
-                            #         goal, err
-                            #     )
-                            # )
                             pass
+                        except Exception as err:
+                            rospy.logerr(
+                                "BDI: Couldn't add intention {:} because of error {:}".format(
+                                    goal, err
+                                )
+                            )
         for intention in self.intentions:
             if intention in intention_candidates and intention.is_achieved(
                 self.world_state
@@ -218,12 +219,12 @@ class BDISystem:
 
     def _filter_intention_candidates(self, intention_candidates):
         rospy.logdebug("BDI: Filtering Desires")
-        intentions = self.intentions or OrderedConsistentSet()
+        intentions = self.intentions or SortedConsistentSet(True)
         for candidate in intention_candidates:
             gain = candidate.get_gain()
             cost = candidate.get_cost()
             if gain >= MIN_GAIN and cost <= MAX_COST:
-                intentions.append(candidate)
+                intentions.add(candidate)
             else:
                 rospy.logwarn(
                     (
@@ -231,30 +232,35 @@ class BDISystem:
                         "of gain >{} and cost <{}"
                     ).format(candidate, MIN_GAIN, MAX_COST)
                 )
-        if len(self.intentions) > 0:
-            rospy.logdebug("BDI: Intentions: {}".format(self.intentions))
+        if len(intentions) > 0:
+            rospy.logdebug("BDI: Intentions: {}".format(intentions))
         return intentions
 
     def _perform_action(self):
         rospy.logdebug("BDI: Choosing Next Action")
         chosen_intention = None
-        min_cost = 999999
-        for intention in self.intentions:
-            action = intention.get_next_action()
-            with suppress(AttributeError):
-                cost = action.get_cost()
-                rospy.logdebug(
-                    ("BDI: Action option {:} " "with cost {:.2f}").format(
-                        action, cost
-                    )
-                )
-                if cost < min_cost:
-                    chosen_intention = intention
-                    min_cost = cost
+        try:
+            chosen_intention = self.intentions[0]
+        except IndexError:
+            pass
+        # for intention in self.intentions:
+        #     action = intention.get_next_action()
+        #     with suppress(AttributeError):
+        #         cost = action.get_cost()
+        #         gain = action.get_gain()
+        #         rospy.logdebug(
+        #             ("BDI: Action option {:} " "with cost {:.2f}").format(
+        #                 action, cost
+        #             )
+        #         )
+        #         if cost < min_cost:
+        #             chosen_intention = intention
+        #             min_cost = cost
         if chosen_intention is not None:
             if chosen_intention != self.last_intention:
                 if type(chosen_intention) != WaitGoal:
                     rospy.loginfo("BDI: Following {:}".format(chosen_intention))
+                    rospy.loginfo("BDI: Intention Queue: {}".format(self.intentions))
                 self.last_intention = chosen_intention
             chosen_intention.perform_action()
 

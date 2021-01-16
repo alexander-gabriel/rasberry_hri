@@ -27,7 +27,7 @@ from common.parameters import (
     WAIT_GAIN,
     WAIT_TIME,
     TIMEOUT_LENGTH,
-    LEAVE_GAIN,
+    STANDBY_GAIN,
     APPROACH_GAIN,
     READY_POINT,
     MAX_COST,
@@ -143,6 +143,7 @@ class MoveAction(Action):
         self.robco = robco
         self.position = args["my_position"]
         self.destination = args["my_destination"]
+        self.path_length  = self.robco.get_path_length(self.position, self.destination)
         self.gain = MOVE_GAIN
         self.sent_movement_request = False
 
@@ -170,7 +171,7 @@ class MoveAction(Action):
             return False
 
     def get_cost(self):
-        return MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
+        return self.path_length * MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
 
     def __repr__(self):
         return "<Action:Move to {:}>".format(self.destination)
@@ -197,6 +198,7 @@ class MoveToAction(Action):
         self.robco = robco
         self.position = args["my_position"]
         self.destination = args["my_destination"]
+        self.path_length  = self.robco.get_path_length(self.position, self.destination)
         self.gain = MOVETO_GAIN
         self.sent_movement_request = False
 
@@ -232,11 +234,11 @@ class MoveToAction(Action):
                     )
                     return True
             except Exception as err:
-                rospy.logwarn(err)
+                rospy.logwarn("ACT: {}".format(err))
                 return False
 
     def get_cost(self):
-        return MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
+        return self.path_length * MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
 
     def __repr__(self):
         return "<Action:MoveTo {:}>".format(self.destination)
@@ -277,6 +279,7 @@ class EvadeAction(Action):
         self.position = args["my_position"]
         self.picker = args["picker"]
         self.destination = args["my_destination"]
+        self.path_length  = self.robco.get_path_length(self.position, self.destination)
         self.gain = EVADE_GAIN
         self.sent_movement_request = False
 
@@ -305,7 +308,7 @@ class EvadeAction(Action):
             return False
 
     def get_cost(self):
-        return MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
+        return self.path_length * MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
 
     def __repr__(self):
         return "<Action:Evade {:} by moving to {:}>".format(
@@ -441,8 +444,8 @@ class ExchangeCrateAction(Action):
             consequence.tv = TruthValue(1, 1)
         rospy.loginfo("ACT: {} dismissed {}".format(self.picker, ME))
         me = ConceptNode(ME)
-        full_count = me.get_value(self.ws._full_crate_count).to_list()[0]
-        empty_count = me.get_value(self.ws._empty_crate_count).to_list()[0]
+        full_count = self.ws.robot_get_crate_count(me, self.ws._full_crate_count)
+        empty_count = self.ws.robot_get_crate_count(me, self.ws._empty_crate_count)
         rospy.loginfo("ACT: New robot crate state: Full/Empty {}/{}".format(full_count, empty_count))
         time = rospy.get_time()
         x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
@@ -460,7 +463,7 @@ class ExchangeCrateAction(Action):
 class DepositCrateAction(Action):
 
     condition_templates = [
-        [ws.unknown_dismissed_robot, [V("picker", ConceptNode)]],
+        # [ws.unknown_dismissed_robot, [V("picker", ConceptNode)]],
         [ws.robot_not_has_crate_capacity, [C(ME), P(ws._full_crate_count.name)]],
         [ws.robot_not_has_crate, [C(ME), P(ws._empty_crate_count.name)]],
         [ws.same, [V("my_destination", ConceptNode), C(DEPOT)]],
@@ -469,11 +472,11 @@ class DepositCrateAction(Action):
     consequence_templates = [
         [
             ws.robot_set_crate_count2,
-            [C(ME), P(ws._full_crate_count.name), N("0")],
+            [C(ME), P(ws._full_crate_count.name), N(0)],
         ],
         [
             ws.robot_set_crate_count2,
-            [C(ME), P(ws._empty_crate_count.name), N(str(CRATE_CAPACITY))],
+            [C(ME), P(ws._empty_crate_count.name), N(CRATE_CAPACITY)],
         ],
     ]
     placeholders = [ME, DEPOT, "my_destination"]
@@ -486,7 +489,6 @@ class DepositCrateAction(Action):
             me, self.ws._full_crate_count)
         self.empty_crate_count = self.ws.robot_get_crate_count(
             me, self.ws._empty_crate_count)
-
         self.position = args["my_destination"]
         self.gain = DEPOSIT_GAIN
 
@@ -494,16 +496,16 @@ class DepositCrateAction(Action):
         try:
             return DEPOSIT_COST * (self.full_crate_count + CRATE_CAPACITY - self.empty_crate_count)
         except:
-            return DEPOSIT_COST * 2 * CRATE_CAPACITY
+            return DEPOSIT_COST * CRATE_CAPACITY
 
     def get_gain(self):
         try:
-            return DEPOSIT_GAIN * (
+            gain = DEPOSIT_GAIN * (
                 max(self.full_crate_count, CRATE_CAPACITY - self.empty_crate_count)
                 / CRATE_CAPACITY
             )
         except:
-            return MIN_GAIN
+            return DEPOSIT_GAIN / 2
 
     def perform(self):
         super(DepositCrateAction, self).perform()
@@ -540,7 +542,7 @@ class ApproachAction(Action):
         [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
         [ws.is_a, [V("picker", ConceptNode), C("human")]],
         [ws.needs_help_soon, [V("picker", ConceptNode)]],
-        [ws.unknown_dismissed_robot, [V("picker", ConceptNode)]],
+        # [ws.unknown_dismissed_robot, [V("picker", ConceptNode)]],
         [ws.robot_has_crate, [C(ME), P(ws._empty_crate_count.name)]],
         [ws.robot_has_crate_capacity, [C(ME), P(ws._full_crate_count.name)]],
         [
@@ -596,6 +598,7 @@ class ApproachAction(Action):
         self.picker = args["picker"]
         self.position = args["my_position"]
         self.destination = args["my_destination"]
+        self.path_length  = self.robco.get_path_length(self.position, self.destination)
         self.gain = APPROACH_GAIN
         self.sent_movement_request = False
 
@@ -637,7 +640,7 @@ class ApproachAction(Action):
                 return False
 
     def get_cost(self):
-        return 0
+        return self.path_length * MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
 
     def __repr__(self):
         return "<Action:Approach {:} at {:}>".format(
@@ -691,6 +694,7 @@ class CloseApproachAction(Action):
         self.picker = args["picker"]
         self.position = args["my_position"]
         self.destination = args["my_destination"]
+        self.path_length  = self.robco.get_path_length(self.position, self.destination)
         self.gain = APPROACH_GAIN
         self.sent_movement_request = False
 
@@ -732,7 +736,7 @@ class CloseApproachAction(Action):
                 return False
 
     def get_cost(self):
-        return 0
+        return self.path_length * MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
 
     def __repr__(self):
         return "<Action:CloseApproach {:} at {:}>".format(
@@ -820,7 +824,7 @@ class WaitAction(Action):
         )
 
 
-class LeaveAction(Action):
+class StandByAction(Action):
 
     condition_templates = [
         [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
@@ -844,16 +848,17 @@ class LeaveAction(Action):
     placeholders = [ME, "picker", "my_position"]
 
     def __init__(self, world_state, robco, args):
-        super(LeaveAction, self).__init__(world_state, args)
+        super(StandByAction, self).__init__(world_state, args)
         self.robco = robco
         self.picker = args["picker"]
         self.position = args["my_position"]
         self.destination = READY_POINT
-        self.gain = LEAVE_GAIN
+        self.path_length  = self.robco.get_path_length(self.position, self.destination)
+        self.gain = STANDBY_GAIN
         self.sent_movement_request = False
 
     def perform(self):
-        super(LeaveAction, self).perform()
+        super(StandByAction, self).perform()
         if not self.sent_movement_request:
             x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
             db.add_action_entry(self.start_time, float(x), float(y),
@@ -883,9 +888,9 @@ class LeaveAction(Action):
             return False
 
     def get_cost(self):
-        return 0
+        return self.path_length * MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
 
     def __repr__(self):
-        return "<Action:Leave {:} to {:}>".format(
+        return "<Action:StandBy {:} to {:}>".format(
             self.picker, self.destination
         )

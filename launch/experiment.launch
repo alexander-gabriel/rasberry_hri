@@ -1,6 +1,4 @@
 <launch>
-  <arg name="robot_speed" default="0.5"/>
-  <arg name="mean_waypoint_distance" default="2.95"/>
   <arg name="model_folder" default="/home/rasberry/git/openpose/models/"/>
   <arg name="publish_result" default="False"/>
   <arg name="_ns" default="/thorvald_001"/>
@@ -33,12 +31,6 @@
 
         <node pkg="rasberry_hri" name="experimenter_node" type="experimenter_node" ns="$(arg _ns)" output="screen">
             <param name="/use_sim_time" value="true"/>
-            <param name="robot_speed" type="double" value="$(arg robot_speed)"/>
-            <param name="picker_speed" type="double" value="1.3"/>
-            <param name="exchange_cost" type="double" value="5"/>
-            <param name="give_cost" type="double" value="2.5"/>
-
-            <param name="mean_waypoint_distance" type="double" value="$(arg mean_waypoint_distance)"/>
         </node>
 
     </group>

@@ -272,8 +272,8 @@ class WorldState(object):
 
     def robot_set_crate_count2(self, robot, crate_type, count):
         robot.set_value(crate_type, count)
-        link = SetValueLink(robot, crate_type, count)
-        return link
+        # link = SetValueLink(robot, crate_type, count)
+        return robot
 
     # def robot_get_crate_count(self, robot, crate_type, result):
     #     link = EqualLink(result, ValueOfLink(robot, crate_type))
@@ -282,7 +282,12 @@ class WorldState(object):
     def robot_get_crate_count(self, robot, crate_type):
         try:
             return robot.get_value(crate_type).to_list()[0]
-        except AttributeError:
+        except AttributeError as err:
+            rospy.logerr("WS: robot_get_crate_count AttributeError {}".format(err))
+            return "unknown"
+        except TypeError as err:
+            rospy.logerr("WS: robot_get_crate_count TypeError {}".format(err))
+            rospy.logwarn("WS: {}".format(robot.get_value(crate_type)))
             return "unknown"
 
     def crate_full(self, picker):

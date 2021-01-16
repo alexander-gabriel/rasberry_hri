@@ -88,11 +88,11 @@ if __name__ == "__main__":
                 #               separators=(',', ': '))
                 # e.add_config(config)
             except KeyError as err:
-                rospy.logwarn(err)
+                rospy.logwarn("EXPE: KeyError {}".format(err))
             except ValueError as err:
                 rospy.logwarn(
                     "EXPE: Could not load {}".format(filepath))
-                rospy.logwarn(err)
+                rospy.logwarn("EXPE: ValueError {}".format(err))
     rospy.loginfo("EXPE: Starting Experimenter")
     e.run()
     rospy.loginfo("EXPE: Experiments finished")

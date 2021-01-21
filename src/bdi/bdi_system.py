@@ -198,7 +198,7 @@ class BDISystem:
                     if len(args) > 0:
                         try:
                             intention_candidates.add(
-                                goal(self.world_state, self.robco, args)
+                                goal(self.world_state, self.robco, args, is_root=True)
                             )
                         except WrongParameterException as err:
                             pass

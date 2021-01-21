@@ -43,8 +43,9 @@ class Goal(object):
     action_template = None
     subgoal_templates = []
 
-    def __init__(self, world_state, robco, args):
+    def __init__(self, world_state, robco, args, is_root=False):
         # list of subgoals (only if there is no action to be performed)
+        self.is_root = is_root
         self.subgoals = []
         self.world_state = world_state
         # action to be performed (only if there are no subgoals)
@@ -53,7 +54,7 @@ class Goal(object):
             world_state, robco, args
         )
         x, y, _ = self.world_state.get_position(ConceptNode(ME))[-1].to_list()
-        if self.action_template is None:
+        if self.is_root:
             db.add_goal_entry(self.start_time, float(x), float(y),
                               self.__class__.__name__)
 
@@ -422,7 +423,8 @@ class Goal(object):
             for fun, args in self.get_consequences():
                 fun(world_state, *args)
             x, y, _ = world_state.get_position(ConceptNode(ME))[-1].to_list()
-            db.update_goal_entry(self.start_time, float(x), float(y),
+            if self.is_root:
+                db.update_goal_entry(self.start_time, float(x), float(y),
                                  time - self.start_time)
             return True
         else:
@@ -537,9 +539,9 @@ class MoveGoal(Goal):
 
     action_template = MoveAction
 
-    def __init__(self, world_state, robco, args):
+    def __init__(self, world_state, robco, args, is_root=False):
         # me, origin, destination
-        super(MoveGoal, self).__init__(world_state, robco, args)
+        super(MoveGoal, self).__init__(world_state, robco, args, is_root)
 
     def __repr__(self):
         return "<Goal:Move>"
@@ -549,8 +551,8 @@ class MoveToGoal(Goal):
 
     action_template = MoveToAction
 
-    def __init__(self, world_state, robco, args):
-        super(MoveToGoal, self).__init__(world_state, robco, args)
+    def __init__(self, world_state, robco, args, is_root=False):
+        super(MoveToGoal, self).__init__(world_state, robco, args, is_root)
 
     def __repr__(self):
         return "<Goal:Move to>"
@@ -560,8 +562,8 @@ class GiveCrateGoal(Goal):
 
     action_template = GiveCrateAction
 
-    def __init__(self, world_state, robco, args):
-        super(GiveCrateGoal, self).__init__(world_state, robco, args)
+    def __init__(self, world_state, robco, args, is_root=False):
+        super(GiveCrateGoal, self).__init__(world_state, robco, args, is_root)
 
     def __repr__(self):
         return "<Goal:Give crate>"
@@ -571,8 +573,8 @@ class ExchangeCrateGoal(Goal):
 
     action_template = ExchangeCrateAction
 
-    def __init__(self, world_state, robco, args):
-        super(ExchangeCrateGoal, self).__init__(world_state, robco, args)
+    def __init__(self, world_state, robco, args, is_root=False):
+        super(ExchangeCrateGoal, self).__init__(world_state, robco, args, is_root)
 
     def __repr__(self):
         return "<Goal:Exchange crate>"
@@ -582,8 +584,8 @@ class DepositCrateGoal(Goal):
 
     action_template = DepositCrateAction
 
-    def __init__(self, world_state, robco, args):
-        super(DepositCrateGoal, self).__init__(world_state, robco, args)
+    def __init__(self, world_state, robco, args, is_root=False):
+        super(DepositCrateGoal, self).__init__(world_state, robco, args, is_root)
 
     def __repr__(self):
         return "<Goal:Deposit crate>"
@@ -593,12 +595,12 @@ class EvadeGoal(Goal):
 
     action_template = EvadeAction
 
-    def __init__(self, world_state, robco, args):
+    def __init__(self, world_state, robco, args, is_root=False):
         self.picker = args["picker"]
         self.destination = args["my_destination"]
         if self.destination == args["picker_position"]:
             raise WrongParameterException()
-        super(EvadeGoal, self).__init__(world_state, robco, args)
+        super(EvadeGoal, self).__init__(world_state, robco, args, is_root)
 
     def __repr__(self):
         return "<Goal:Evade {:} by moving to {:} ({}, {})>".format(
@@ -610,8 +612,8 @@ class WaitGoal(Goal):
 
     action_template = WaitAction
 
-    def __init__(self, world_state, robco, args):
-        super(WaitGoal, self).__init__(world_state, robco, args)
+    def __init__(self, world_state, robco, args, is_root=False):
+        super(WaitGoal, self).__init__(world_state, robco, args, is_root)
         self.picker = args["picker"]
 
     def __repr__(self):
@@ -624,8 +626,8 @@ class StandByGoal(Goal):
 
     action_template = StandByAction
 
-    def __init__(self, world_state, robco, args):
-        super(StandByGoal, self).__init__(world_state, robco, args)
+    def __init__(self, world_state, robco, args, is_root=False):
+        super(StandByGoal, self).__init__(world_state, robco, args, is_root)
         self.picker = args["picker"]
 
     def __repr__(self):
@@ -638,7 +640,7 @@ class ApproachGoal(Goal):
 
     action_template = ApproachAction
 
-    def __init__(self, world_state, robco, args):
+    def __init__(self, world_state, robco, args, is_root=False):
         d1 = world_state.get_distance(
             ConceptNode(args["my_position"]),
             ConceptNode(args["picker_position"]),
@@ -649,7 +651,7 @@ class ApproachGoal(Goal):
         )
         if (d1 < d2) or (args["my_destination"] == args["picker_position"]):
             raise WrongParameterException()
-        super(ApproachGoal, self).__init__(world_state, robco, args)
+        super(ApproachGoal, self).__init__(world_state, robco, args, is_root)
         self.picker = args["picker"]
         self.place = args["my_destination"]
 
@@ -663,7 +665,7 @@ class CloseApproachGoal(Goal):
 
     action_template = CloseApproachAction
 
-    def __init__(self, world_state, robco, args):
+    def __init__(self, world_state, robco, args, is_root=False):
         d1 = world_state.get_distance(
             ConceptNode(args["my_position"]),
             ConceptNode(args["picker_position"]),
@@ -674,7 +676,7 @@ class CloseApproachGoal(Goal):
         )
         if (d1 < d2) or (args["my_destination"] == args["picker_position"]):
             raise WrongParameterException()
-        super(CloseApproachGoal, self).__init__(world_state, robco, args)
+        super(CloseApproachGoal, self).__init__(world_state, robco, args, is_root)
         self.picker = args["picker"]
         self.place = args["my_destination"]
 
@@ -689,8 +691,8 @@ class DeliverGoal(Goal):
     action_template = None
     subgoal_templates = [MoveGoal, GiveCrateGoal]
 
-    def __init__(self, world_state, robco, args):
-        super(DeliverGoal, self).__init__(world_state, robco, args)
+    def __init__(self, world_state, robco, args, is_root=False):
+        super(DeliverGoal, self).__init__(world_state, robco, args, is_root)
         self.subgoals.append(MoveGoal(world_state, robco, args))
         self.subgoals.append(GiveCrateGoal(world_state, robco, args))
         self.picker = args["picker"]
@@ -707,8 +709,8 @@ class ExchangeGoal(Goal):
     action_template = None
     subgoal_templates = [MoveGoal, ExchangeCrateGoal] #[MoveGoal, ExchangeCrateGoal, MoveGoal]
 
-    def __init__(self, world_state, robco, args):
-        super(ExchangeGoal, self).__init__(world_state, robco, args)
+    def __init__(self, world_state, robco, args, is_root=False):
+        super(ExchangeGoal, self).__init__(world_state, robco, args, is_root)
         self.subgoals.append(MoveGoal(world_state, robco, args))
         self.subgoals.append(ExchangeCrateGoal(world_state, robco, args))
         self.picker = args["picker"]
@@ -725,8 +727,8 @@ class DepositGoal(Goal):
     action_template = None
     subgoal_templates = [MoveGoal, DepositCrateGoal]
 
-    def __init__(self, world_state, robco, args):
-        super(DepositGoal, self).__init__(world_state, robco, args)
+    def __init__(self, world_state, robco, args, is_root=False):
+        super(DepositGoal, self).__init__(world_state, robco, args, is_root)
         self.subgoals.append(MoveGoal(world_state, robco, args))
         self.subgoals.append(DepositCrateGoal(world_state, robco, args))
 
@@ -740,9 +742,8 @@ class WaitForGoal(Goal):
 
     action_template = None
 
-    def __init__(self, world_state, robco, args):
-
-        super(WaitForGoal, self).__init__(world_state, robco, args)
+    def __init__(self, world_state, robco, args, is_root=False):
+        super(WaitForGoal, self).__init__(world_state, robco, args, is_root)
         self.subgoals.append(WaitGoal(world_state, robco, args))
         self.subgoals.append(MoveGoal(world_state, robco, args))
         self.picker = args["picker"]

@@ -78,8 +78,7 @@ class DB:
                     result_success = False
                     try:
                         result_speeds = map(lambda x: float(x), result[2].split(", "))
-                        result_speeds = list(filter(lambda number: number > -1, result_speeds))
-                        speeds += result_speeds
+                        speeds += list(filter(lambda number: number > 0, result_speeds))
                     except ValueError:
                         result_speeds = []
                     if result[0] is not None:
@@ -114,25 +113,27 @@ class DB:
                         self.failed_runs.append(run_id)
         return success, waits
 
-    def get_behaviour(self, run_id, config_directory=CONFIG_DIRECTORY):
+    def get_yaml(self, run_id, config_directory=CONFIG_DIRECTORY):
         with open(os.path.join(config_directory, STATE_DIRECTORY, run_id + '.param'), 'r') as file:
             parameters = yaml.full_load(file)
-            return parameters["behaviour"]
+            return parameters
 
-    def get_service(self, runs):
+    def get_service(self, runs, expected_goal):
         success = []
         duration = []
         for run_id in runs:
+            found_expected_goal = False
             with closing(self.db.cursor()) as cursor:
-                cursor.execute(("SELECT duration FROM robot_goals WHERE "
+                cursor.execute(("SELECT goal, duration FROM robot_goals WHERE "
                                 "run_id = ?"),  (run_id,))
-                for result in list(map(lambda x: x[0], cursor.fetchall())):
-                    if isinstance(result, float):
-                        duration.append(result)
+                for result in cursor.fetchall():
+                    if isinstance(result[1], float) and result[0] == expected_goal:
+                        found_expected_goal = True
+                        duration.append(result[1])
                         success.append(1.0)
-                    else:
-                        success.append(0.0)
-                        self.failed_runs.append(run_id)
+            if not found_expected_goal:
+                success.append(0.0)
+                self.failed_runs.append(run_id)
         return success, duration
 
     def calculate_statistics(self, list):
@@ -151,7 +152,16 @@ def letter_cmp(a, b):
 from functools import cmp_to_key
 letter_cmp_key = cmp_to_key(letter_cmp)
 
-
+goal_table = {
+    "Deliver": "DeliverGoal",
+    "Evade": "EvadeGoal",
+    "Exchange": "ExchangeGoal",
+    "Resupply": "DepositGoal",
+    "Leave": "StandByGoal",
+    "Approach": "ApproachGoal"
+}
+def get_expected_goal(label):
+    return goal_table[label.split(" - ")[1]]
 
 if __name__ == '__main__':
     # CONFIG_DIRECTORY = "/home/rasberry"
@@ -170,9 +180,9 @@ if __name__ == '__main__':
     data = []
     behaviour = {}
     if args.p:
-        print("label;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var")
+        print("label;subject;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; gesture; behavior; direction; berry; robot_crate; picker_crate; picker_crate_fill; exp id")
     else:
-        print("label;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var")
+        print("label;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; gesture; behavior; direction; berry; robot_crate; picker_crate; picker_crate_fill; exp id")
     speeds = []
     for experiment_id in experiments:
         label = db.get_label(experiment_id)
@@ -190,21 +200,36 @@ if __name__ == '__main__':
                     if not runs:
                         raise IndexError()
                     # with errstate(all='ignore', divide='ignore'):
-                    if experiment_id not in behaviour:
-                        behaviour[experiment_id] = db.get_behaviour(runs[0], args.config)
-                    success1, duration = db.get_service(experiment_id, runs)
-                    success2, signal_distances, stop_distances, speed = db.get_meetings(experiment_id, runs)
+                    parameters = {}
+                    try:
+                        parameters = db.get_yaml(runs[0], args.config)
+                        if experiment_id not in behaviour:
+                            behaviour[experiment_id] = parameters["behaviour"]
+                    except IOError:
+                        print("No run id for experiment: {}".format(experiment_id))
+                        behaviour[experiment_id] = "No run ID"
+                    gesture_perception = parameters["gesture_perception"]
+                    behavior_perception = parameters["behavior_perception"]
+                    direction_perception = parameters["direction_perception"]
+                    berry_perception = parameters["berry_position_perception"]
+                    robot_crate_perception = parameters["robot_crate_possession_perception"]
+                    picker_crate_possession_perception = parameters["picker_crate_possession_perception"]
+                    picker_crate_fill_perception = parameters["picker_crate_fill_perception"]
+                    expected_goal = get_expected_goal(parameters["experiment_label"])
+                    success1, duration = db.get_service(runs, expected_goal)
+                    success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
                     speeds += speed
-                    success3, waits = db.get_waits(experiment_id, runs)
-                    print("{}; {}; {}; {: >20};  {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {:0>5.2f}; {:0>6.3f};   {}"
+                    success3, waits = db.get_waits(runs)
+                    print("{}; {}; {}; {}; {};  {};  {};  {};  {};  {}; {}"
                         .format(label, subject_id,
-                                "{:.2}, {:.2}, {:.2}".format(success1, success2, success3),
+                                "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
                                 behaviour[experiment_id],
-                                db.calculate_statistics(duration),
-                                db.calculate_statistics(signal_distances),
-                                db.calculate_statistics(stop_distances),
-                                db.calculate_statistics(waits),
-                                db.calculate_statistics(speed),
+                                "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(duration)),
+                                "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(signal_distances)),
+                                "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(stop_distances)),
+                                "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(waits)),
+                                "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(speed)),
+                                "{}; {}; {}; {}; {}; {}; {}".format(gesture_perception, behavior_perception, direction_perception, berry_perception, robot_crate_perception, picker_crate_possession_perception, picker_crate_fill_perception),
                                 experiment_id))
                 except IndexError:
                     pass
@@ -213,16 +238,27 @@ if __name__ == '__main__':
                 runs = db.get_runs(experiment_id)
                 if not runs:
                     raise IndexError()
-                if experiment_id not in behaviour:
-                    try:
-                        behaviour[experiment_id] = db.get_behaviour(runs[0], args.config)
-                    except IOError:
-                        behaviour[experiment_id] = "No run ID"
-                success1, duration = db.get_service(runs)
+                parameters = {}
+                try:
+                    parameters = db.get_yaml(runs[0], args.config)
+                    if experiment_id not in behaviour:
+                        behaviour[experiment_id] = parameters["behaviour"]
+                except IOError:
+                    print("No run id for experiment: {}".format(experiment_id))
+                    behaviour[experiment_id] = "No run ID"
+                gesture_perception = parameters["gesture_perception"]
+                behavior_perception = parameters["behavior_perception"]
+                direction_perception = parameters["direction_perception"]
+                berry_perception = parameters["berry_position_perception"]
+                robot_crate_perception = parameters["robot_crate_possession_perception"]
+                picker_crate_possession_perception = parameters["picker_crate_possession_perception"]
+                picker_crate_fill_perception = parameters["picker_crate_fill_perception"]
+                expected_goal = get_expected_goal(parameters["experiment_label"])
+                success1, duration = db.get_service(runs, expected_goal)
                 success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
                 speeds += speed
                 success3, waits = db.get_waits(runs)
-                print("{}; {}; {}; {};  {};  {};  {};  {};  {}"
+                print("{}; {}; {}; {};  {};  {};  {};  {};  {}; {}"
                     .format(label,
                             "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
                             behaviour[experiment_id],
@@ -231,11 +267,12 @@ if __name__ == '__main__':
                             "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(stop_distances)),
                             "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(waits)),
                             "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(speed)),
+                            "{}; {}; {}; {}; {}; {}; {}".format(gesture_perception, behavior_perception, direction_perception, berry_perception, robot_crate_perception, picker_crate_possession_perception, picker_crate_fill_perception),
                             experiment_id))
             except IndexError:
                 pass
-    print("Failied runs: {}".format(set(db.failed_runs)))
-    print("Speed mean: {} var: {}".format(*db.calculate_statistics(speeds)))
+    # print("Failied runs: {}".format(set(db.failed_runs)))
+    # print("Speed mean: {} var: {}".format(*db.calculate_statistics(speeds)))
                 # print("No runs for {}".format(subject_id))
 
         # print("{};{:.2f};{:.3f}".format(experiment_id, waits[experiment_id][0], waits[experiment_id][1]))

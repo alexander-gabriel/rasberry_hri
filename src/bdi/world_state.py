@@ -43,7 +43,8 @@ from opencog.type_constructors import (
 # from opencog.utilities import initialize_opencog
 
 from common.parameters import MINIMUM_DISTANCE, CRATE_CAPACITY, \
-    TIMEOUT_LENGTH, NO_BERRY_PLACES, PICKER_DISTANCE_PREFERENCE
+    TIMEOUT_LENGTH, NO_BERRY_PLACES, PICKER_DISTANCE_PREFERENCE, \
+    BEHAVIOR_PERCEPTION, GESTURE_PERCEPTION
 
 # from common.utils import atomspace
 
@@ -504,34 +505,34 @@ class WorldState(object):
     def update_action(self, person, action):
         # _as = self.kb.queryspace
         person = ConceptNode(person)
-        if action == "picking berries" or action == "picking_berries_right":
+        if (action == "picking berries" or action == "picking_berries_right") and BEHAVIOR_PERCEPTION:
             self.seen_picking(person).tv = self.kb.TRUE
             rospy.loginfo(
                 "WST: Observation: {:} is {:}".format(person.name, action)
             )
-        elif action == "calling":
+        elif action == "calling" and GESTURE_PERCEPTION:
             self.called_robot(person).tv = self.kb.TRUE
             rospy.loginfo(
                 "WST: Observation: {:} is {:}".format(person.name, action)
             )
-        elif action == "gesture_cancel":
+        elif action == "gesture_cancel" and GESTURE_PERCEPTION:
             self.dismissed_robot(ConceptNode(person)).tv = self.kb.TRUE
             rospy.loginfo(
                 "WST: Observation: {:} is {:}".format(person.name, action)
             )
-        elif action == "gesture_stop":
+        elif action == "gesture_stop" and GESTURE_PERCEPTION:
             pass
             # self.called_robot(ConceptNode(person)).tv = self.kb.TRUE
-        elif action == "gesture_forward":
+        elif action == "gesture_forward" and GESTURE_PERCEPTION:
             pass
             # self.called_robot(ConceptNode(person)).tv = self.kb.TRUE
-        elif action == "gesture_backward":
+        elif action == "gesture_backward" and GESTURE_PERCEPTION:
             pass
             # self.called_robot(ConceptNode(person)).tv = self.kb.TRUE
-        elif action == "neutral" or action == "put_or_get_crate":
+        elif action == "neutral" or action == "put_or_get_crate" and BEHAVIOR_PERCEPTION:
             pass
         else:
-            rospy.logerr("WST: Observed unknown behaviour {}".format(action))
+            rospy.logerr("WST: Did not observe gesture/behaviour {}".format(action))
         # results = self.kb.reason(self.seen_picking(VariableNode("picker")),
         #                          VariableNode("picker"))
 

@@ -1491,8 +1491,9 @@ def get_rosbag_from_file(filename, mode="r"):
 
 
 class Player(Thread):
-    def __init__(self, filename, topics=[], start_delay=None, duration=None):
+    def __init__(self, running_bags, filename, topics=[], start_delay=None, duration=None):
         super(Player, self).__init__()
+        self.running_bags = running_bags
         loading_start = rospy.get_time()
         self.rate = rospy.Rate(ROSBAG_FREQUENCY)
         self.closing = False
@@ -1509,6 +1510,7 @@ class Player(Thread):
 
     def run(self):
         try:
+            self.running_bags.append(self)
             if not self.closing:
                 rospy.loginfo("PMO: Playing rosbag '{}'".format(self.filename))
                 count_sent = 0
@@ -1539,6 +1541,7 @@ class Player(Thread):
 
     def close(self):
         if not self.closing:
+            self.running_bags.remove(self)
             self.closing = True
             self.bag.close()
 
@@ -1592,6 +1595,7 @@ class PickerSimulator(object):
     def __init__(self):
         self.rate = rospy.Rate(PICKER_UPDATE_FREQUENCY)
         self.shutting_down = False
+        self.current_behaviour_finished = False
         self.robot_hasnt_stopped_yet = True
         rospy.loginfo("PMO: Starting picker simulator for picker: {}"
                       .format(PICKER_ID))
@@ -1696,29 +1700,25 @@ class PickerSimulator(object):
     def loop(self):
         if not self.shutting_down:
             self.update_robot_movement()
-            done = self.behaviour(self)
-            self.send_position_message()
-            # if (self.old_behaviour != self.behaviour):
-            #    db.add_person_entry(rospy.get_time(), self.x, self.y,
-            #                        self.orientation, self.behaviour)
             now = rospy.get_time()
-            if done and now >= self.wait_time:
+            if self.current_behaviour_finished:
                 try:
-                    behaviour_label, self.wait_time = self.behaviours.pop(0)
-                    self.wait_time += now
-                    self.switch_behaviour(behaviour_label)
-                    behaviour = \
-                        behaviour_bank[self.robot_mode()][behaviour_label]
-                    if self.play_rosbags and behaviour["filename"]:
-                        player = Player(
-                                (self.rosbag_path[0]
-                                 + behaviour["filename"]
-                                 + self.rosbag_path[1]),
-                                topics=behaviour["topics"],
-                                start_delay=behaviour["start"],
-                                duration=behaviour["duration"])
-                        player.start()
-                        self.running_bags.append(player)
+                    if now >= self.wait_time and (not self.running_bags or self.behaviours[0][0] in  ["wait for robot to move", "expect service", "wait for robot to arrive"]):
+                        behaviour_label, self.wait_time = self.behaviours.pop(0)
+                        self.wait_time += now
+                        self.switch_behaviour(behaviour_label)
+                        behaviour = \
+                            behaviour_bank[self.robot_mode()][behaviour_label]
+                        if self.play_rosbags and behaviour["filename"]:
+                            player = Player(
+                                    self.running_bags,
+                                    (self.rosbag_path[0]
+                                     + behaviour["filename"]
+                                     + self.rosbag_path[1]),
+                                    topics=behaviour["topics"],
+                                    start_delay=behaviour["start"],
+                                    duration=behaviour["duration"])
+                            player.start()
                 except KeyError:
                     rospy.logwarn(
                         "PMO: Couldn't find rosbag for behaviour: '{:}'"
@@ -1728,6 +1728,9 @@ class PickerSimulator(object):
                     self.shutdown()
                 except Exception as err:
                     rospy.logerr("PMO: Unknown Exception: {}".format(err))
+            else:
+                self.current_behaviour_finished = self.behaviour(self)
+            self.send_position_message()
 
     def switch_behaviour(self, behaviour):
         if behaviour in BEHAVIOURS:
@@ -1738,6 +1741,7 @@ class PickerSimulator(object):
                 behaviour, lambda: rospy.logerr("PSI: Unknown behaviour"))
             rospy.loginfo("PMO: Switched picker behaviour to '{:}'.".format(
                            behaviour))
+            self.current_behaviour_finished = False
             # rospy.loginfo(("PMO: Switched to behaviour '{:}',"
             #                " next behaviour is '{:}' at {:.2f}").format(
             #                behaviour, self.behaviours[0][0], self.wait_time))

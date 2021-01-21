@@ -150,6 +150,7 @@ class MoveAction(Action):
     def perform(self):
         super(MoveAction, self).perform()
         if not self.sent_movement_request:
+            self.startint_too_close = self.ws.too_close
             # timestamp, typ, distance, x, y
             x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
             db.add_action_entry(self.start_time, float(x), float(y),
@@ -158,8 +159,9 @@ class MoveAction(Action):
             self.robco.move_to(self.destination)
             self.sent_movement_request = True
             self.ws.moving = True
+            return False
         try:
-            if self.ws.too_close or self.robco.get_result():
+            if self.robco.get_result() or (self.ws.too_close and not self.startint_too_close):
                 time = rospy.get_time()
                 x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
                 self.ws.moving = False

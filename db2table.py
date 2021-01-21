@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 import sqlite3
 import os
+import json
 import argparse
 import warnings
 # from numpy import mean, var, errstate
@@ -121,6 +122,7 @@ class DB:
     def get_service(self, runs, expected_goal):
         success = []
         duration = []
+        failed_runs = []
         for run_id in runs:
             found_expected_goal = False
             with closing(self.db.cursor()) as cursor:
@@ -133,14 +135,37 @@ class DB:
                         success.append(1.0)
             if not found_expected_goal:
                 success.append(0.0)
+                failed_runs.append(run_id)
                 self.failed_runs.append(run_id)
-        return success, duration
+        return success, duration, failed_runs
 
     def calculate_statistics(self, list):
         return mean(list), var(list)
 
     def close(self):
         self.db.close()
+
+    def delete_experiment(self, experiment_id):
+        runs = []
+        with closing(self.db.cursor()) as cursor:
+            cursor.execute("SELECT run_id FROM runs WHERE experiment_id = ?", (experiment_id,))
+            runs = list(map(lambda x: x[0], cursor.fetchall()))
+        for run_id in runs:
+            self.delete_run(run_id)
+        with closing(self.db.cursor()) as cursor:
+            cursor.execute("DELETE FROM experiments WHERE experiment_id = ?", (experiment_id,))
+        self.db.commit()
+        return runs
+
+    def delete_run(self, run_id):
+        with closing(self.db.cursor()) as cursor:
+            cursor.execute("DELETE FROM picker_behavior WHERE run_id = ?", (run_id,))
+            cursor.execute("DELETE FROM picker_waiting WHERE run_id = ?", (run_id,))
+            cursor.execute("DELETE FROM robot_actions WHERE run_id = ?", (run_id,))
+            cursor.execute("DELETE FROM robot_goals WHERE run_id = ?", (run_id,))
+            cursor.execute("DELETE FROM meetings WHERE run_id = ?", (run_id,))
+            cursor.execute("DELETE FROM runs WHERE run_id = ?", (run_id,))
+            self.db.commit()
 
 def letter_cmp(a, b):
     for index in range(4):
@@ -163,6 +188,23 @@ goal_table = {
 def get_expected_goal(label):
     return goal_table[label.split(" - ")[1]]
 
+def delete_state(run_ids):
+    path = os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, "experiments.json")
+    with open(path, "r") as file:
+        state = json.load(file)
+    for id in run_ids:
+        try:
+            state["finished experiments"].remove(id)
+        except ValueError:
+            pass
+        param_path = os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, id + ".param")
+        try:
+            os.remove(param_path)
+        except:
+            pass
+    with open(path, "w") as file:
+        json.dump(state, file, indent=4)
+
 if __name__ == '__main__':
     # CONFIG_DIRECTORY = "/home/rasberry"
     # STATE_DIRECTORY="large-state"
@@ -176,9 +218,15 @@ if __name__ == '__main__':
     else:
         args.config = CONFIG_DIRECTORY
         db = DB()
+    try:
+        run_ids = db.delete_experiment("NO ID SET")
+        delete_state(run_ids)
+    except:
+        pass
     experiments = db.get_experiments()
     data = []
     behaviour = {}
+    repeat_these_runs = []
     if args.p:
         print("label;subject;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; gesture; behavior; direction; berry; robot_crate; picker_crate; picker_crate_fill; exp id")
     else:
@@ -254,7 +302,9 @@ if __name__ == '__main__':
                 picker_crate_possession_perception = parameters["picker_crate_possession_perception"]
                 picker_crate_fill_perception = parameters["picker_crate_fill_perception"]
                 expected_goal = get_expected_goal(parameters["experiment_label"])
-                success1, duration = db.get_service(runs, expected_goal)
+                success1, duration, failed_runs = db.get_service(runs, expected_goal)
+                if len(failed_runs) in [1]:
+                    repeat_these_runs+= failed_runs
                 success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
                 speeds += speed
                 success3, waits = db.get_waits(runs)
@@ -271,7 +321,13 @@ if __name__ == '__main__':
                             experiment_id))
             except IndexError:
                 pass
-    # print("Failied runs: {}".format(set(db.failed_runs)))
+    repeat_these_runs = list(set(repeat_these_runs))
+    print("Failed runs: {}".format(repeat_these_runs))
+    delete_confirm = raw_input('Would you like to delete these runs (y/n)?\n')
+    if delete_confirm == "y":
+        delete_state(repeat_these_runs)
+        for run_id in repeat_these_runs:
+            db.delete_run(run_id)
     # print("Speed mean: {} var: {}".format(*db.calculate_statistics(speeds)))
                 # print("No runs for {}".format(subject_id))
 

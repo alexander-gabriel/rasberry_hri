@@ -303,7 +303,7 @@ if __name__ == '__main__':
                 picker_crate_fill_perception = parameters["picker_crate_fill_perception"]
                 expected_goal = get_expected_goal(parameters["experiment_label"])
                 success1, duration, failed_runs = db.get_service(runs, expected_goal)
-                if len(failed_runs) in [1]:
+                if len(failed_runs) not in [0, 10]:
                     repeat_these_runs+= failed_runs
                 success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
                 speeds += speed

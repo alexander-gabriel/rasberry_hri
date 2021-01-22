@@ -210,6 +210,7 @@ if __name__ == '__main__':
     # STATE_DIRECTORY="large-state"
     # db = DB("/home/rasberry/stop-test-log.db")
     parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('--id', action='store', type=str, help='experiment to show')
     parser.add_argument('-p', type=bool, nargs='?', const=False, help='evaluate per picker')
     parser.add_argument('--config', type=str, nargs='?', const=CONFIG_DIRECTORY, help='optional config directory')
     args = parser.parse_args()
@@ -223,7 +224,10 @@ if __name__ == '__main__':
         delete_state(run_ids)
     except:
         pass
-    experiments = db.get_experiments()
+    if args.id:
+        experiments = [args.id]
+    else:
+        experiments = db.get_experiments()
     data = []
     behaviour = {}
     repeat_these_runs = []
@@ -264,11 +268,13 @@ if __name__ == '__main__':
                     picker_crate_possession_perception = parameters["picker_crate_possession_perception"]
                     picker_crate_fill_perception = parameters["picker_crate_fill_perception"]
                     expected_goal = get_expected_goal(parameters["experiment_label"])
-                    success1, duration = db.get_service(runs, expected_goal)
+                    success1, duration, failed_runs = db.get_service(runs, expected_goal)
+                    if len(failed_runs) not in [0, len(runs)]:
+                        repeat_these_runs+= failed_runs
                     success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
                     speeds += speed
                     success3, waits = db.get_waits(runs)
-                    print("{}; {}; {}; {}; {};  {};  {};  {};  {};  {}; {}"
+                    print("{}; {}; {}; {}; {};  {};  {};  {};  {};  {}; {}; {}"
                         .format(label, subject_id,
                                 "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
                                 behaviour[experiment_id],
@@ -278,7 +284,8 @@ if __name__ == '__main__':
                                 "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(waits)),
                                 "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(speed)),
                                 "{}; {}; {}; {}; {}; {}; {}".format(gesture_perception, behavior_perception, direction_perception, berry_perception, robot_crate_perception, picker_crate_possession_perception, picker_crate_fill_perception),
-                                experiment_id))
+                                experiment_id,
+                                runs[0]))
                 except IndexError:
                     pass
         else:
@@ -323,11 +330,11 @@ if __name__ == '__main__':
                 pass
     repeat_these_runs = list(set(repeat_these_runs))
     print("Failed runs: {}".format(repeat_these_runs))
-    delete_confirm = raw_input('Would you like to delete these runs (y/n)?\n')
-    if delete_confirm == "y":
-        delete_state(repeat_these_runs)
-        for run_id in repeat_these_runs:
-            db.delete_run(run_id)
+    # delete_confirm = raw_input('Would you like to delete these runs (y/n)?\n')
+    # if delete_confirm == "y":
+    #     delete_state(repeat_these_runs)
+    #     for run_id in repeat_these_runs:
+    #         db.delete_run(run_id)
     # print("Speed mean: {} var: {}".format(*db.calculate_statistics(speeds)))
                 # print("No runs for {}".format(subject_id))
 

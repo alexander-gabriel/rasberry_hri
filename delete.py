@@ -100,5 +100,4 @@ if __name__ == '__main__':
         for id in ids:
             run_ids = db.delete_experiment(id)
             delete_state(run_ids)
-
     db.close()

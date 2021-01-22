@@ -232,9 +232,9 @@ if __name__ == '__main__':
     behaviour = {}
     repeat_these_runs = []
     if args.p:
-        print("label;subject;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; gesture; behavior; direction; berry; robot_crate; picker_crate; picker_crate_fill; exp id")
+        print("label;subject;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; picker_crate_fill; exp id")
     else:
-        print("label;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; gesture; behavior; direction; berry; robot_crate; picker_crate; picker_crate_fill; exp id")
+        print("label;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; picker_crate_fill; exp id")
     speeds = []
     for experiment_id in experiments:
         label = db.get_label(experiment_id)
@@ -264,6 +264,7 @@ if __name__ == '__main__':
                     behavior_perception = parameters["behavior_perception"]
                     direction_perception = parameters["direction_perception"]
                     berry_perception = parameters["berry_position_perception"]
+                    berry_existence = not bool(parameters["no_berry_places"])
                     robot_crate_perception = parameters["robot_crate_possession_perception"]
                     picker_crate_possession_perception = parameters["picker_crate_possession_perception"]
                     picker_crate_fill_perception = parameters["picker_crate_fill_perception"]
@@ -283,7 +284,7 @@ if __name__ == '__main__':
                                 "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(stop_distances)),
                                 "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(waits)),
                                 "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(speed)),
-                                "{}; {}; {}; {}; {}; {}; {}".format(gesture_perception, behavior_perception, direction_perception, berry_perception, robot_crate_perception, picker_crate_possession_perception, picker_crate_fill_perception),
+                                "{}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception, behavior_perception, direction_perception, berry_perception, berry_existence, robot_crate_perception, picker_crate_possession_perception, picker_crate_fill_perception),
                                 experiment_id,
                                 runs[0]))
                 except IndexError:
@@ -305,6 +306,7 @@ if __name__ == '__main__':
                 behavior_perception = parameters["behavior_perception"]
                 direction_perception = parameters["direction_perception"]
                 berry_perception = parameters["berry_position_perception"]
+                berry_existence = not bool(parameters["no_berry_places"])
                 robot_crate_perception = parameters["robot_crate_possession_perception"]
                 picker_crate_possession_perception = parameters["picker_crate_possession_perception"]
                 picker_crate_fill_perception = parameters["picker_crate_fill_perception"]
@@ -324,7 +326,7 @@ if __name__ == '__main__':
                             "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(stop_distances)),
                             "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(waits)),
                             "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(speed)),
-                            "{}; {}; {}; {}; {}; {}; {}".format(gesture_perception, behavior_perception, direction_perception, berry_perception, robot_crate_perception, picker_crate_possession_perception, picker_crate_fill_perception),
+                            "{}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception, behavior_perception, direction_perception, berry_perception, berry_existence, robot_crate_perception, picker_crate_possession_perception, picker_crate_fill_perception),
                             experiment_id))
             except IndexError:
                 pass

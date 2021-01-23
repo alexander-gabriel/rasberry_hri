@@ -10,6 +10,7 @@ from opencog.type_constructors import (
     set_type_ctor_atomspace,
     FloatValue,
     ConceptNode,
+    NumberNode
 )
 
 from std_msgs.msg import String
@@ -176,7 +177,7 @@ class BDISystem:
                           .format(self.me.name, EMPTY_CRATE_COUNT))
             self.me.set_value(
                 self.world_state._empty_crate_count,
-                FloatValue(EMPTY_CRATE_COUNT))
+                NumberNode(str(EMPTY_CRATE_COUNT)))
             # rospy.logerr("{:} has {:} empty crates".format(
             #     self.me.name,
             #     self.me.get_value(self.world_state._empty_crate_count)))
@@ -184,7 +185,7 @@ class BDISystem:
                           .format(self.me.name, FULL_CRATE_COUNT))
             self.me.set_value(
                 self.world_state._full_crate_count,
-                FloatValue(FULL_CRATE_COUNT)
+                NumberNode(str(FULL_CRATE_COUNT))
             )
         # self.robco.move_to(INITIAL_WAYPOINT)
 

@@ -129,7 +129,7 @@ class DB:
                 cursor.execute(("SELECT goal, duration FROM robot_goals WHERE "
                                 "run_id = ?"),  (run_id,))
                 for result in cursor.fetchall():
-                    if isinstance(result[1], float) and result[0] == expected_goal:
+                    if isinstance(result[1], float) and result[0] == expected_goal and not found_expected_goal:
                         found_expected_goal = True
                         duration.append(result[1])
                         success.append(1.0)
@@ -234,8 +234,9 @@ if __name__ == '__main__':
     if args.p:
         print("label;subject;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; picker_crate_fill; exp id")
     else:
-        print("label;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; picker_crate_fill; exp id")
+        print("label;gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; has_crate; picker_crate_fill; picker crate full;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; exp id")
     speeds = []
+    output = []
     for experiment_id in experiments:
         label = db.get_label(experiment_id)
         if args.p:
@@ -310,6 +311,8 @@ if __name__ == '__main__':
                 robot_crate_perception = parameters["robot_crate_possession_perception"]
                 picker_crate_possession_perception = parameters["picker_crate_possession_perception"]
                 picker_crate_fill_perception = parameters["picker_crate_fill_perception"]
+                has_crate = parameters["has_crate"]
+                crate_full = parameters["crate_full"]
                 expected_goal = get_expected_goal(parameters["experiment_label"])
                 success1, duration, failed_runs = db.get_service(runs, expected_goal)
                 if len(failed_runs) not in [0, 10]:
@@ -317,8 +320,18 @@ if __name__ == '__main__':
                 success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
                 speeds += speed
                 success3, waits = db.get_waits(runs)
-                print("{}; {}; {}; {};  {};  {};  {};  {};  {}; {}"
+                output.append("{}; {}; {}; {};  {};  {};  {};  {};  {}; {}"
                     .format(label,
+                            "{}; {}; {}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception,
+                                                                        behavior_perception,
+                                                                        direction_perception,
+                                                                        berry_perception,
+                                                                        berry_existence,
+                                                                        robot_crate_perception,
+                                                                        picker_crate_possession_perception,
+                                                                        has_crate,
+                                                                        picker_crate_fill_perception,
+                                                                        crate_full),
                             "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
                             behaviour[experiment_id],
                             "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(duration)),
@@ -326,12 +339,13 @@ if __name__ == '__main__':
                             "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(stop_distances)),
                             "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(waits)),
                             "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(speed)),
-                            "{}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception, behavior_perception, direction_perception, berry_perception, berry_existence, robot_crate_perception, picker_crate_possession_perception, picker_crate_fill_perception),
                             experiment_id))
             except IndexError:
                 pass
+    for line in sorted(output):
+        print(line)
     repeat_these_runs = list(set(repeat_these_runs))
-    print("Failed runs: {}".format(repeat_these_runs))
+    # print("Failed runs: {}".format(repeat_these_runs))
     # delete_confirm = raw_input('Would you like to delete these runs (y/n)?\n')
     # if delete_confirm == "y":
     #     delete_state(repeat_these_runs)

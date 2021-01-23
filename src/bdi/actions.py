@@ -169,6 +169,8 @@ class MoveAction(Action):
                 db.update_action_entry(self.start_time, float(x), float(y),
                                             time - self.start_time)
                 return True
+            else:
+                return False
         except AttributeError:
             return False
 
@@ -297,15 +299,17 @@ class EvadeAction(Action):
             self.robco.move_to(self.destination)
             self.sent_movement_request = True
             self.ws.moving = True
+            return False
         try:
-            success = self.robco.get_result().success
-            self.ws.moving = False
-            rospy.loginfo("ACT: Movement success is: {}".format(success))
-            time = rospy.get_time()
-            x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
-            db.update_action_entry(self.start_time, float(x), float(y),
-                                        time - self.start_time)
-            return True
+            if self.robco.get_result():
+                self.ws.moving = False
+                time = rospy.get_time()
+                x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+                db.update_action_entry(self.start_time, float(x), float(y),
+                                            time - self.start_time)
+                return True
+            else:
+                return False
         except Exception:
             return False
 
@@ -487,12 +491,15 @@ class DepositCrateAction(Action):
         super(DepositCrateAction, self).__init__(world_state, args)
         self.robco = robco
         me = ConceptNode(ME)
+        self.position = args["my_destination"]
+        self.gain = DEPOSIT_GAIN
         self.full_crate_count = self.ws.robot_get_crate_count(
             me, self.ws._full_crate_count)
         self.empty_crate_count = self.ws.robot_get_crate_count(
             me, self.ws._empty_crate_count)
-        self.position = args["my_destination"]
-        self.gain = DEPOSIT_GAIN
+        if self.full_crate_count == "unknown" or self.empty_crate_count == "unknown":
+            raise Exception()
+
 
     def get_cost(self):
         try:

@@ -220,10 +220,11 @@ class WorldState(object):
 
     def robot_not_has_crate(self, robot, crate_type):
         # return self.state(robot, PredicateNode("has full crate"), "TRUE")
-        # has_no_crates = GreaterThanLink(
-        #     NumberNode("1"), ValueOfLink(robot, crate_type)
-        # )
-        return NotLink(self.robot_has_crate(robot, crate_type))
+        has_no_crates = EqualLink(
+            ValueOfLink(robot, crate_type), NumberNode("0")
+        )
+        return has_no_crates
+        # return NotLink(self.robot_has_crate(robot, crate_type))
 
     def robot_has_crate_capacity(self, robot, crate_type):
         # return self.state(robot, PredicateNode("has full crate"), "TRUE")
@@ -234,7 +235,12 @@ class WorldState(object):
 
     def robot_not_has_crate_capacity(self, robot, crate_type):
         # return self.state(robot, PredicateNode("has full crate"), "TRUE")
-        return NotLink(self.robot_has_crate_capacity(robot, crate_type))
+        # not_has_crate_capacity = GreaterThanLink(
+        #     ValueOfLink(robot, crate_type), NumberNode(str(CRATE_CAPACITY-1)),
+        # )
+        not_has_crate_capacity = EqualLink(ValueOfLink(robot, crate_type), NumberNode(str(CRATE_CAPACITY)))
+        return not_has_crate_capacity
+        # return NotLink(self.robot_has_crate_capacity(robot, crate_type))
 
     # def not_has_full_crate(self, robot):
     #     return self.state(robot, PredicateNode("has full crate"), "FALSE")
@@ -248,13 +254,13 @@ class WorldState(object):
         return add_crate
 
     def robot_add_crate2(self, robot, crate_type):
-        value = robot.get_value(crate_type).to_list()[0]
-        robot.set_value(crate_type, FloatValue(value+1))
+        value = float(robot.get_value(crate_type).name)
+        robot.set_value(crate_type, NumberNode(str(value+1)))
         return robot
 
     def robot_remove_crate(self, robot, crate_type):
-        value = robot.get_value(crate_type).to_list()[0]
-        robot.set_value(crate_type, FloatValue(value-1))
+        value = float(robot.get_value(crate_type).name)
+        robot.set_value(crate_type, NumberNode(str(value-1)))
         # remove_crate = SetValueLink(
         #     robot,
         #     crate_type,
@@ -263,8 +269,8 @@ class WorldState(object):
         return robot
 
     def robot_remove_crate2(self, robot, crate_type):
-        value = robot.get_value(crate_type).to_list()[0]
-        robot.set_value(crate_type, FloatValue(value-1))
+        value = float(robot.get_value(crate_type).name)
+        robot.set_value(crate_type, NumberNode(str(value-1)))
         return robot
 
     def robot_set_crate_count(self, robot, crate_type, count):
@@ -282,7 +288,7 @@ class WorldState(object):
 
     def robot_get_crate_count(self, robot, crate_type):
         try:
-            return robot.get_value(crate_type).to_list()[0]
+            return float(robot.get_value(crate_type).name)
         except AttributeError as err:
             rospy.logerr("WS: robot_get_crate_count AttributeError {}".format(err))
             return "unknown"
@@ -301,7 +307,7 @@ class WorldState(object):
         picker.set_value(self._timeout, NumberNode("-1"))
 
     def timeout_counter_increase(self, picker):
-        timeout = picker.get_value(self._timeout).to_list()[0] + 1
+        timeout = float(picker.get_value(self._timeout).name) + 1
         picker.set_value(self._timeout, NumberNode(str(timeout)))
 
     def timeout_not_reached(self, picker):

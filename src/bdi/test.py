@@ -288,16 +288,41 @@ if __name__ == '__main__':
 
     p1 = VariableNode("place1")
     p2 = VariableNode("place2")
-    results = execute_atom(atomspace, ForAllLink(
-        VariableList(p1, p2),
-        ImplicationLink(
-            EvaluationLink(
-                PredicateNode("leads_to"),
-                ListLink(p1, p2)),
-            EvaluationLink(
-                PredicateNode("linked"),
-                ListLink(p1, p2)).truth_value(1,1))))
-    print("PRE: Result is: {:}".format(results))
+
+    me = ConceptNode("me")
+    thing = PredicateNode("thing")
+    me.set_value(thing, NumberNode("5"))
+    print(float(me.get_value(thing).name))
+
+    variables = []
+    vars = VariableList(p1)
+    query = AndLink(
+        EqualLink(ValueOfLink(p1, thing), NumberNode("5")),
+    )
+
+    chainer = BackwardChainer(
+            _as=atomspace, rbs=ConceptNode("deduction-rule-base"),
+            trace_as=None, control_as=None, focus_set=None,
+            target=GetLink(vars, query), vardecl=vars)
+    chainer.do_chain()
+    results = chainer.get_results()
+    for setlink in results.get_out():
+        for listlink in setlink.get_out():
+            print(listlink)
+
+    #
+    # results = execute_atom(atomspace, ForAllLink(
+    #     VariableList(p1, p2),
+    #     ImplicationLink(
+    #         EvaluationLink(
+    #             PredicateNode("leads_to"),
+    #             ListLink(p1, p2)),
+    #         EvaluationLink(
+    #             PredicateNode("linked"),
+    #             ListLink(p1, p2)).truth_value(1,1))))
+    # print("PRE: Result is: {:}".format(results))
+
+
     # p1 = VariableNode("place1")
     # p2 = VariableNode("place2")
     # p3 = VariableNode("place3")
@@ -328,10 +353,10 @@ if __name__ == '__main__':
     # results = check(EvaluationLink(PredicateNode("leads_to"), ListLink(ConceptNode("WayPoint102"), ConceptNode("WayPoint103"))))
     # results = results.get_out()[0].tv
     # results = check(InheritanceLink(ConceptNode("WayPoint102"), ConceptNode("thing")))
-    results = check(GetLink(VariableNode("bla"), InheritanceLink(ConceptNode("WayPoint102"), VariableNode("bla"))))
+    # results = check(GetLink(VariableNode("bla"), InheritanceLink(ConceptNode("WayPoint102"), VariableNode("bla"))))
     # results = results.get_out()[0].tv
     # results = check(EvaluationLink(PredicateNode("linked"), ListLink(ConceptNode("WayPoint102"), ConceptNode("WayPoint104"))))
-    results = results.get_out()[0].tv
+    # results = results.get_out()[0].tv
 
     ## doesn't work:
 
@@ -358,5 +383,5 @@ if __name__ == '__main__':
     #             TruthValueOfLink(ConceptNode("WayPoint102")))
 
     # print("\n")
-    print("POST: Result is: {:}".format(results))
+    # print("POST: Result is: {:}".format(results))
     # print("\n")

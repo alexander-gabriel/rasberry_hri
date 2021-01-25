@@ -45,14 +45,14 @@ class DB:
             cursor.execute("SELECT experiment_id FROM experiments WHERE experiment_label = ?", (experiment_label,))
             return list(map(lambda x: x[0], cursor.fetchall()))
 
-    def get_special_runs(self, experiment_label):
-        with closing(self.db.cursor()) as cursor:
-            cursor.execute("SELECT run_id FROM robot_goals WHERE goal = 'DepositGoal' INTERSECT SELECT run_id FROM runs r INNER JOIN experiments e USING(experiment_id) WHERE NOT experiment_label = 'Exp1 - Resupply'")
-            return list(map(lambda x: x[0], cursor.fetchall()))
-
     def get_runs(self, experiment_id):
         with closing(self.db.cursor()) as cursor:
-            cursor.execute("SELECT run_id FROM runs WHERE experiment_id = ?")
+            cursor.execute("SELECT run_id FROM runs WHERE experiment_id = ?", (experiment_id,))
+            return list(map(lambda x: x[0], cursor.fetchall()))
+
+    def get_picker_runs(self, picker_id):
+        with closing(self.db.cursor()) as cursor:
+            cursor.execute("SELECT run_id FROM runs WHERE picker_id = ?", (picker_id,))
             return list(map(lambda x: x[0], cursor.fetchall()))
 
 def delete_state(run_ids):
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     parser.add_argument('--label', action='store', type=str, help='scenario to delete')
     parser.add_argument('--run', action='store', type=str, help='run to delete')
     parser.add_argument('--dbpath', action='store', type=str, help='optional db path')
-    parser.add_argument('--special', action='store', type=bool, help='optional db path')
+    parser.add_argument('--picker', action='store', type=str, help='picker id to remove')
     args = parser.parse_args()
     if args.dbpath:
         db = DB(args.dbpath)
@@ -95,9 +95,9 @@ if __name__ == '__main__':
         for id in ids:
             run_ids = db.delete_experiment(id)
             delete_state(run_ids)
-    if args.special:
-        ids = db.get_special_runs()
-        for id in ids:
-            run_ids = db.delete_experiment(id)
-            delete_state(run_ids)
+    if args.picker:
+        run_ids = db.get_picker_runs(args.picker)
+        delete_state(run_ids)
+        for run_id in run_ids:
+            db.delete_run(run_id)
     db.close()

@@ -85,8 +85,8 @@ class ActionRecognition:
     def openpose_callback(self, timestamp, source, response):
         if response.recognitions:
             self.converter.create_index_map(response.recognitions)
-            angles = self.get_angles(response.recognitions)
-            positions = self.get_positions(response.recognitions)
+            angles = self.get_angles()
+            positions = self.get_positions()
             with open(os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY, "angles.log"), 'w') as f:
                 json.dump(angles, f)
             with open(os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY, "positions.log"), 'w') as f:
@@ -194,7 +194,7 @@ class ActionRecognition:
                 # rospy.logwarn("ACR: action recognition took {:.4f}s".format(time.time()-start_time))
                 self.action_publisher2.publish(outmsg)
 
-    def get_positions(self, recognitions):
+    def get_positions(self):
 
         # convert x/y offsets to values relative to some reference point (neck?)
         # adjust joint number and setup and labels
@@ -204,7 +204,7 @@ class ActionRecognition:
                 model[id] = self.converter.get_position(id)
         return model
 
-    def get_angles(self, recognitions):
+    def get_angles(self):
         model = get_angle_prototype()
         for id in ['Neck', 'Upper-Spine', 'Mid-Spine', 'Lower-Spine']:
             try:

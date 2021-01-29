@@ -35,11 +35,10 @@ from bdi_system import BDISystem
 from knowledge_base import KnowledgeBase
 
 from common.parameters import (
-    MOVEMENT_NOISE_ALPHA, MOVEMENT_NOISE_BETA, MOVEMENT_NOISE_GAMMA,
-    MOVEMENT_NOISE_DELTA, NS, MINIMUM_DISTANCE, REASONING_LOOP_FREQUENCY,
+    MOVEMENT_NOISE, NS, MINIMUM_DISTANCE, REASONING_LOOP_FREQUENCY,
     PICKER_WIDTH, PICKER_LENGTH, ROBOT_WIDTH, ROBOT_LENGTH, PICKER_SPEED,
     PICKER_UPDATE_FREQUENCY, DIRECTION_PERCEPTION, PICKERS,
-    ROBOT_REACTION_SAFETY_MARGIN)
+    ROBOT_REACTION_SAFETY_MARGIN, ADD_MOVEMENT_NOISE)
 QUANTIZATION = PICKER_SPEED / PICKER_UPDATE_FREQUENCY * 0.9
 
 
@@ -174,14 +173,14 @@ class Scheduler:
 
             # calculate standard deviations
             sd_pre_movement_rotation = (
-                MOVEMENT_NOISE_ALPHA * abs(pre_movement_rotation)
-                + MOVEMENT_NOISE_BETA * translation)
+                MOVEMENT_NOISE[0] * abs(pre_movement_rotation)
+                + MOVEMENT_NOISE[1] * translation)
             sd_post_movement_rotation = (
-                MOVEMENT_NOISE_ALPHA * abs(post_movement_rotation)
-                + MOVEMENT_NOISE_BETA * translation)
+                MOVEMENT_NOISE[0] * abs(post_movement_rotation)
+                + MOVEMENT_NOISE[1] * translation)
             sd_translation = (
-                MOVEMENT_NOISE_GAMMA * translation
-                + MOVEMENT_NOISE_DELTA * (abs(pre_movement_rotation)
+                MOVEMENT_NOISE[2] * translation
+                + MOVEMENT_NOISE[3] * (abs(pre_movement_rotation)
                                           + abs(post_movement_rotation)))
 
             translation += np.random.normal(
@@ -219,8 +218,11 @@ class Scheduler:
     def robot_position_coordinate_callback(self, pose):
         # rospy.loginfo("SCH: Robot position coordinate callback")
         # self.latest_robot_msg = pose
-        self.latest_robot_msg = self.add_position_noise(
-            pose, self.latest_actual_robot_msg)
+        if ADD_MOVEMENT_NOISE:
+            self.latest_robot_msg = self.add_position_noise(
+                pose, self.latest_actual_robot_msg)
+        else:
+            self.latest_robot_msg = pose
         self.latest_actual_robot_msg = pose
         self.bdi.world_state.set_position(
             self.bdi.me, pose.position.x, pose.position.y, rospy.get_time())

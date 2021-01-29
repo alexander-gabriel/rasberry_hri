@@ -6,6 +6,7 @@ import rospy
 
 from filter import LimbFilter, PositionFilter
 from common.utils import suppress
+from common.parameters import POSTURE_NOISE, ADD_POSTURE_NOISE
 
 class Converter:
 
@@ -24,6 +25,7 @@ class Converter:
                              'Neck' : ("REar", "LEar", "Neck")}
 
         self.position_table = {}
+        self.actual_positions = None
 
         self.label_table = {'RBigToe': 'Right:BigToe',
                                 'LBigToe': 'Left:BigToe',
@@ -54,6 +56,22 @@ class Converter:
         self.position_filter = PositionFilter()
 
 
+    def add_pose_noise(self, pose, old_pose):
+        if old_pose is not None:
+            dx = pose["X"] - old_pose["X"]
+            dy = pose["Y"] - old_pose["Y"]
+            translation = sqrt(dx*dx + dy*dy)
+            # calculate standard deviations
+            sd_direction = POSTURE_NOISE[0] + (POSTURE_NOISE[1] * translation)
+            sd_translation = POSTURE_NOISE[3] + (POSTURE_NOISE[2] * translation)
+            translation += np.random.normal(
+                0, sd_translation * sd_translation)
+            direction = np.random.normal(0, sd_direction * sd_direction)
+            pose["X"] = old_pose["X"] + translation * cos(direction)
+            pose["Y"] = old_pose["Y"] + translation * sin(direction)
+        return pose
+
+
     def create_index_map(self, recognitions):
         self.index_map = {}
         self.recognitions = recognitions
@@ -62,18 +80,28 @@ class Converter:
                 self.index_map[entry.categorical_distribution.probabilities[0].label] = index
         centerX = self.X("Neck")
         centerY = self.Y("Neck")
+        def abs2rel(pos):
+            return {"X": pos.roi.x_offset - centerX,
+                    "Y": pos.roi.y_offset - centerY,
+                    "P": pos.categorical_distribution.probabilities[0].probability}
         self.positions = {}
+        old_positions = self.actual_positions
+        self.actual_positions = {}
         for label in self.label_table.keys():
             with suppress(KeyError):
-                position = recognitions[self.index_map[label]].roi
+                # position = recognitions[self.index_map[label]].roi
                 new_label = self.label_table[label]
-                self.positions[new_label] = {}
-                self.positions[new_label]["X"] = position.x_offset - centerX
-                self.positions[new_label]["Y"] = position.y_offset - centerY
-                self.positions[new_label]["P"] = recognitions[self.index_map[label]].categorical_distribution.probabilities[0].probability
-                # old
-                # self.positions["{:}-X".format(new_label)] = position.x_offset - centerX
-                # self.positions["{:}-Y".format(new_label)] = position.y_offset - centerY
+                self.actual_positions[new_label] = abs2rel(recognitions[self.index_map[label]])
+                try:
+                    if ADD_POSTURE_NOISE:
+                        position = self.add_pose_noise(self.actual_positions[new_label], old_positions[new_label])
+                    else:
+                        self.positions[new_label] = self.actual_positions[new_label]
+                except Exception:
+                    self.positions[new_label] = self.actual_positions[new_label]
+                # self.positions[new_label]["X"] = position.x_offset - centerX
+                # self.positions[new_label]["Y"] = position.y_offset - centerY
+                # self.positions[new_label]["P"] = recognitions[self.index_map[label]].categorical_distribution.probabilities[0].probability
 
 
     def X(self, label):

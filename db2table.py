@@ -122,6 +122,7 @@ class DB:
     def get_service(self, runs, expected_goal):
         success = []
         duration = []
+        actual_followed_goals = set()
         failed_runs = []
         for run_id in runs:
             found_expected_goal = False
@@ -133,11 +134,13 @@ class DB:
                         found_expected_goal = True
                         duration.append(result[1])
                         success.append(1.0)
+                    elif not found_expected_goal:
+                        actual_followed_goals.add(result[0])
             if not found_expected_goal:
                 success.append(0.0)
                 failed_runs.append(run_id)
                 self.failed_runs.append(run_id)
-        return success, duration, failed_runs
+        return success, duration, actual_followed_goals, failed_runs
 
     def calculate_statistics(self, list):
         return mean(list), var(list)
@@ -270,13 +273,13 @@ if __name__ == '__main__':
                     picker_crate_possession_perception = parameters["picker_crate_possession_perception"]
                     picker_crate_fill_perception = parameters["picker_crate_fill_perception"]
                     expected_goal = get_expected_goal(parameters["experiment_label"])
-                    success1, duration, failed_runs = db.get_service(runs, expected_goal)
+                    success1, duration, actual_followed_goals, failed_runs = db.get_service(runs, expected_goal)
                     if len(failed_runs) not in [0, len(runs)]:
                         repeat_these_runs+= failed_runs
                     success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
                     speeds += speed
                     success3, waits = db.get_waits(runs)
-                    print("{}; {}; {}; {}; {};  {};  {};  {};  {};  {}; {}; {}"
+                    print("{}; {}; {}; {}; {};  {};  {};  {};  {};  {}; {}; {}; {}"
                         .format(label, subject_id,
                                 "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
                                 behaviour[experiment_id],
@@ -287,7 +290,8 @@ if __name__ == '__main__':
                                 "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(speed)),
                                 "{}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception, behavior_perception, direction_perception, berry_perception, berry_existence, robot_crate_perception, picker_crate_possession_perception, picker_crate_fill_perception),
                                 experiment_id,
-                                runs[0]))
+                                runs[0],
+                                ", ".join(actual_followed_goals)))
                 except IndexError:
                     pass
         else:
@@ -314,13 +318,13 @@ if __name__ == '__main__':
                 has_crate = parameters["has_crate"]
                 crate_full = parameters["crate_full"]
                 expected_goal = get_expected_goal(parameters["experiment_label"])
-                success1, duration, failed_runs = db.get_service(runs, expected_goal)
+                success1, duration, actual_followed_goals, failed_runs = db.get_service(runs, expected_goal)
                 if len(failed_runs) not in [0, 10]:
                     repeat_these_runs+= failed_runs
                 success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
                 speeds += speed
                 success3, waits = db.get_waits(runs)
-                output.append("{}; {}; {}; {};  {};  {};  {};  {};  {}; {}"
+                output.append("{}; {}; {}; {};  {};  {};  {};  {};  {}; {}; {}"
                     .format(label,
                             "{}; {}; {}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception,
                                                                         behavior_perception,
@@ -339,7 +343,8 @@ if __name__ == '__main__':
                             "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(stop_distances)),
                             "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(waits)),
                             "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(speed)),
-                            experiment_id))
+                            experiment_id,
+                            ", ".join(actual_followed_goals)))
             except IndexError:
                 pass
     for line in sorted(output):

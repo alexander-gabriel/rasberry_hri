@@ -345,7 +345,7 @@ if __name__ == '__main__':
                             "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(stop_distances)),
                             "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(waits)),
                             "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(speed)),
-                            "{}; {}".format(position_noise[0], posture_noise[0])
+                            "{}; {}".format(position_noise[0], posture_noise[0]),
                             experiment_id,
                             ", ".join(actual_followed_goals)))
             except IndexError:

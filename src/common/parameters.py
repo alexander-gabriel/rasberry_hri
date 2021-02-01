@@ -56,12 +56,12 @@ BERRY_POSITION_PERCEPTION = define("berry_position_perception", True)
 # PERCEPTION NOISE
 
 # rotation -> rotation, translation -> rotation, translation -> translation, rotation -> translation
-MOVEMENT_NOISE  = define("movement_noise", [0,0,0,0])
-ADD_MOVEMENT_NOISE = MOVEMENT_NOISE != [0,0,0,0]
+MOVEMENT_NOISE  = define("movement_noise", [0, 0])
+ADD_MOVEMENT_NOISE = MOVEMENT_NOISE != [0, 0]
 # TODO: movement noise addition?
 
-POSTURE_NOISE = define("posture_noise_alpha", [0,0,0,0])
-ADD_POSTURE_NOISE = POSTURE_NOISE != [0,0,0,0]
+POSTURE_NOISE = define("posture_noise_alpha", [0, 0])
+ADD_POSTURE_NOISE = POSTURE_NOISE != [0, 0]
 
 # REASONING
 

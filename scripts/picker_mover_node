@@ -5,7 +5,8 @@ import os
 from math import sin, cos, pi, sqrt
 from threading import Thread
 from time import sleep
-# from time import sleep
+
+import numpy as np
 
 import rospy
 import rosbag
@@ -17,7 +18,8 @@ from common.parameters import NS, PICKER_LENGTH, ROBOT_LENGTH, \
     INITIAL_PICKER_POSITION, INITIAL_PICKER_ORIENTATION, \
     PICKER_DISTANCE_PREFERENCE, PICKER_WIDTH, ROBOT_WIDTH, TARGET_PICKER, \
     PICKER_UPDATE_FREQUENCY, PICKER_SPEED, EXCHANGE_COST, \
-    GIVE_COST, PICKERS, ROBOT_MODES, USE_ACTION_RECOGNITION
+    GIVE_COST, PICKERS, ROBOT_MODES, USE_ACTION_RECOGNITION, \
+    POSITION_NOISE, ADD_POSITION_NOISE
 from common.utils import db
 
 ROSBAG_FREQUENCY = 25  # Hz
@@ -1536,7 +1538,6 @@ class Player(Thread):
             rospy.loginfo("PMO: trying to publish to closed topic")
         finally:
             self.close()
-
             # rospy.core.signal_shutdown('remote interrupt')
 
     def close(self):
@@ -1546,7 +1547,6 @@ class Player(Thread):
             self.bag.close()
 
     def terminate(self):
-
         # self.bag.close()
         # rospy.sleep(1)
         # if self.bag.poll() is None:
@@ -1555,7 +1555,6 @@ class Player(Thread):
             self.close()
         except IOError:
             pass
-
 
 def convert_bags(config):
     out_paths = []
@@ -1669,6 +1668,9 @@ class PickerSimulator(object):
         msg.address = PICKER_ID
         msg.x_m = self.x
         msg.y_m = self.y
+        if ADD_MOVEMENT_NOISE:
+            msg.x_m += np.random.normal(0, POSITION_NOISE[0])
+            msg.y_m += np.random.normal(0, POSITION_NOISE[1])
         msg.z_m = self.orientation
         self.publisher.publish(msg)
 

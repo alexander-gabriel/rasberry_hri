@@ -35,10 +35,10 @@ from bdi_system import BDISystem
 from knowledge_base import KnowledgeBase
 
 from common.parameters import (
-    MOVEMENT_NOISE, NS, MINIMUM_DISTANCE, REASONING_LOOP_FREQUENCY,
+    NS, MINIMUM_DISTANCE, REASONING_LOOP_FREQUENCY,
     PICKER_WIDTH, PICKER_LENGTH, ROBOT_WIDTH, ROBOT_LENGTH, PICKER_SPEED,
     PICKER_UPDATE_FREQUENCY, DIRECTION_PERCEPTION, PICKERS,
-    ROBOT_REACTION_SAFETY_MARGIN, ADD_MOVEMENT_NOISE)
+    ROBOT_REACTION_SAFETY_MARGIN)
 QUANTIZATION = PICKER_SPEED / PICKER_UPDATE_FREQUENCY * 0.9
 
 
@@ -218,11 +218,11 @@ class Scheduler:
     def robot_position_coordinate_callback(self, pose):
         # rospy.loginfo("SCH: Robot position coordinate callback")
         # self.latest_robot_msg = pose
-        if ADD_MOVEMENT_NOISE:
-            self.latest_robot_msg = self.add_position_noise(
-                pose, self.latest_actual_robot_msg)
-        else:
-            self.latest_robot_msg = pose
+        # if ADD_MOVEMENT_NOISE:
+        #     self.latest_robot_msg = self.add_position_noise(
+        #         pose, self.latest_actual_robot_msg)
+        # else:
+        self.latest_robot_msg = pose
         self.latest_actual_robot_msg = pose
         self.bdi.world_state.set_position(
             self.bdi.me, pose.position.x, pose.position.y, rospy.get_time())
@@ -249,8 +249,6 @@ class Scheduler:
             self.bdi.world_state.set_position(
                 person, msg.pose.position.x, msg.pose.position.y, timestamp)
             self._update_picker_node(person, msg)
-            # msg.pose = self.add_position_noise(
-            #     msg.pose, self.latest_people_msgs[name].pose)
             self.latest_people_msgs[name] = msg
             self._react_to_distance_events(person)
             self.sensory_lock1.release()

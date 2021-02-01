@@ -26,7 +26,6 @@ class Converter:
 
         self.position_table = {}
         self.actual_positions = None
-
         self.label_table = {'RBigToe': 'Right:BigToe',
                                 'LBigToe': 'Left:BigToe',
                                 'RSmallToe': 'Right:SmallToe',
@@ -55,22 +54,12 @@ class Converter:
         self.limb_filter = LimbFilter(0.5)
         self.position_filter = PositionFilter()
 
-
-    def add_pose_noise(self, pose, old_pose):
-        if old_pose is not None:
-            dx = pose["X"] - old_pose["X"]
-            dy = pose["Y"] - old_pose["Y"]
-            translation = sqrt(dx*dx + dy*dy)
-            # calculate standard deviations
-            sd_direction = POSTURE_NOISE[0] + (POSTURE_NOISE[1] * translation)
-            sd_translation = POSTURE_NOISE[3] + (POSTURE_NOISE[2] * translation)
-            translation += np.random.normal(
-                0, sd_translation * sd_translation)
-            direction = np.random.normal(0, sd_direction * sd_direction)
-            pose["X"] = old_pose["X"] + translation * cos(direction)
-            pose["Y"] = old_pose["Y"] + translation * sin(direction)
-        return pose
-
+    def add_pose_noise(self, pose):
+        return {
+            "X": pose["X"] + np.random.normal(0, POSTURE_NOISE[0]),
+            "Y": pose["Y"] + np.random.normal(0, POSTURE_NOISE[1]),
+            "P": pose["P"]
+        }
 
     def create_index_map(self, recognitions):
         self.index_map = {}
@@ -94,7 +83,7 @@ class Converter:
                 self.actual_positions[new_label] = abs2rel(recognitions[self.index_map[label]])
                 try:
                     if ADD_POSTURE_NOISE:
-                        position = self.add_pose_noise(self.actual_positions[new_label], old_positions[new_label])
+                        position = self.add_pose_noise(self.actual_positions[new_label])
                     else:
                         self.positions[new_label] = self.actual_positions[new_label]
                 except Exception:
@@ -103,30 +92,24 @@ class Converter:
                 # self.positions[new_label]["Y"] = position.y_offset - centerY
                 # self.positions[new_label]["P"] = recognitions[self.index_map[label]].categorical_distribution.probabilities[0].probability
 
-
     def X(self, label):
         return self.recognitions[self.index_map[label]].roi.x_offset
 
-
     def Y(self, label):
         return self.recognitions[self.index_map[label]].roi.y_offset
-
 
     def get_angle1(self, joint_name):
         joints = self.angle_joints[joint_name]
         v0 = np.array([self.X(joints[0]), self.Y(joints[0])]) - np.array([self.X(joints[1]), self.Y(joints[1])])
         v1 = np.array([self.X(joints[2]), self.Y(joints[2])]) - np.array([self.X(joints[1]), self.Y(joints[1])])
-
         angle = np.math.atan2(np.linalg.det([v0,v1]),np.dot(v0,v1))
         angle = np.degrees(angle)
         if angle < 0:
             angle += 360
         return angle
 
-
     def get_position(self, joint_name):
         return self.positions[joint_name]
-
 
     def get_angle2(self, joint_name):
         joints = self.angle_joints[joint_name]
@@ -141,7 +124,6 @@ class Converter:
             angle += 360
         return angle
 
-
     def get_angle3(self, joint_name):
         joints = self.angle_joints[joint_name]
         aX = self.X(joints[0]) - self.X(joints[1])
@@ -152,7 +134,6 @@ class Converter:
         cY = aY - bY
         return arctan2(-cY,cX)
 
-
     def get_angle4(self, joint_name):
         joints = self.angle_joints[joint_name]
         midX = (self.X(joints[0]) - self.X(joints[1]))/ 2.0
@@ -160,7 +141,6 @@ class Converter:
         cX = self.X(joints[2]) - midX
         cY = self.Y(joints[2]) - midY
         return arctan2(-cY,cX)
-
 
     def from_openpose(self, recognitions):
         joints = {}
@@ -177,7 +157,6 @@ class Converter:
             joints[label]['Y'] = Y
             joints[label]['Z'] = -1
         return joints
-
 
     def from_openpose_labels(self, label):
         return self.label_table[label]

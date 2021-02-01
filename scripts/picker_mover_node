@@ -1669,8 +1669,8 @@ class PickerSimulator(object):
         msg.x_m = self.x
         msg.y_m = self.y
         if ADD_MOVEMENT_NOISE:
-            msg.x_m += np.random.normal(0, POSITION_NOISE[0])
-            msg.y_m += np.random.normal(0, POSITION_NOISE[1])
+            msg.x_m += np.random.normal(0, MOVEMENT_NOISE[0])
+            msg.y_m += np.random.normal(0, MOVEMENT_NOISE[1])
         msg.z_m = self.orientation
         self.publisher.publish(msg)
 

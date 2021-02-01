@@ -83,7 +83,7 @@ class Converter:
                 self.actual_positions[new_label] = abs2rel(recognitions[self.index_map[label]])
                 try:
                     if ADD_POSTURE_NOISE:
-                        position = self.add_pose_noise(self.actual_positions[new_label])
+                        self.positions[new_label] = self.add_pose_noise(self.actual_positions[new_label])
                     else:
                         self.positions[new_label] = self.actual_positions[new_label]
                 except Exception:

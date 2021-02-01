@@ -237,7 +237,7 @@ if __name__ == '__main__':
     if args.p:
         print("label;subject;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; picker_crate_fill; exp id")
     else:
-        print("label;gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; has_crate; picker_crate_fill; picker crate full;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; exp id")
+        print("label;gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; has_crate; picker_crate_fill; picker crate full;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; position noise; posture noise;exp id")
     speeds = []
     output = []
     for experiment_id in experiments:
@@ -317,6 +317,8 @@ if __name__ == '__main__':
                 picker_crate_fill_perception = parameters["picker_crate_fill_perception"]
                 has_crate = parameters["has_crate"]
                 crate_full = parameters["crate_full"]
+                position_noise = parameters["movement_noise"] or [0]
+                posture_noise = parameters["posture_noise"] or [0]
                 expected_goal = get_expected_goal(parameters["experiment_label"])
                 success1, duration, actual_followed_goals, failed_runs = db.get_service(runs, expected_goal)
                 if len(failed_runs) not in [0, 10]:
@@ -324,7 +326,7 @@ if __name__ == '__main__':
                 success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
                 speeds += speed
                 success3, waits = db.get_waits(runs)
-                output.append("{}; {}; {}; {};  {};  {};  {};  {};  {}; {}; {}"
+                output.append("{}; {}; {}; {};  {};  {};  {};  {};  {}; {}; {}; {}"
                     .format(label,
                             "{}; {}; {}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception,
                                                                         behavior_perception,
@@ -338,11 +340,12 @@ if __name__ == '__main__':
                                                                         crate_full),
                             "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
                             behaviour[experiment_id],
-                            "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(duration)),
-                            "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(signal_distances)),
-                            "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(stop_distances)),
-                            "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(waits)),
-                            "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(speed)),
+                            "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(duration)),
+                            "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(signal_distances)),
+                            "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(stop_distances)),
+                            "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(waits)),
+                            "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(speed)),
+                            "{}; {}".format(position_noise[0], posture_noise[0])
                             experiment_id,
                             ", ".join(actual_followed_goals)))
             except IndexError:

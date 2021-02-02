@@ -1654,6 +1654,13 @@ class PickerSimulator(object):
             distance = sqrt(dxs + dys) - 0.5 * (PICKER_WIDTH + ROBOT_WIDTH)
         return distance
 
+    def get_robot_travelled(self):
+        dx = self.old_robot_x - self.robot_x
+        dy = self.old_robot_y - self.robot_y
+        dxs = dx * dx
+        dys = dy * dy
+        return sqrt(dxs + dys)
+
     # def get_next_behaviour(self):
     #     return self.behaviours[self.behaviour_times.pop(0)]
 
@@ -1682,22 +1689,22 @@ class PickerSimulator(object):
 
     def update_robot_movement(self):
         if self.robot_x:
+            robot_travelled = self.get_robot_travelled()
             distance = self.get_distance_to_robot()
             diff = distance - self.old_distance
-            if diff == 0:
-                return
+            if robot_travelled == 0 and distance < 1 and self.robot_hasnt_stopped_yet:
+                rospy.logwarn("PMO: updating meet entry at {:.2}m distance".format(distance))
+                self.db.update_meet_entry(rospy.get_time(), self.robot_x, self.robot_y, distance)
+                self.robot_movement = "standing"
+                self.robot_hasnt_stopped_yet = False
             elif diff < -0.01:
                 self.robot_movement = "approaching"
             elif diff > 0.01:
                 self.robot_movement = "leaving"
-            else:
-                if self.robot_movement != "standing" and distance < 1 and self.robot_hasnt_stopped_yet:
-                    rospy.logwarn("PMO: updating meet entry at {:.2}m distance".format(distance))
-                    self.db.update_meet_entry(rospy.get_time(), self.robot_x, self.robot_y, distance)
-                    self.robot_movement = "standing"
-                    self.robot_hasnt_stopped_yet = False
             # rospy.logwarn("PMO: Distance to robot: {}".format(distance))
             self.old_distance = distance
+            self.old_robot_x = self.robot_x
+            self.old_robot_y = self.robot_y
 
     def loop(self):
         if not self.shutting_down:

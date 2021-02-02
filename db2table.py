@@ -317,8 +317,8 @@ if __name__ == '__main__':
                 picker_crate_fill_perception = parameters["picker_crate_fill_perception"]
                 has_crate = parameters["has_crate"]
                 crate_full = parameters["crate_full"]
-                position_noise = parameters["movement_noise"] or [0]
-                posture_noise = parameters["posture_noise"] or [0]
+                position_noise = parameters["movement_noise"] or [0, 0]
+                posture_noise = parameters["posture_noise"] or [0, 0]
                 expected_goal = get_expected_goal(parameters["experiment_label"])
                 success1, duration, actual_followed_goals, failed_runs = db.get_service(runs, expected_goal)
                 if len(failed_runs) not in [0, 10]:

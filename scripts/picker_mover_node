@@ -1655,11 +1655,14 @@ class PickerSimulator(object):
         return distance
 
     def get_robot_travelled(self):
-        dx = self.old_robot_x - self.robot_x
-        dy = self.old_robot_y - self.robot_y
-        dxs = dx * dx
-        dys = dy * dy
-        return sqrt(dxs + dys)
+        try:
+            dx = self.old_robot_x - self.robot_x
+            dy = self.old_robot_y - self.robot_y
+            dxs = dx * dx
+            dys = dy * dy
+            return sqrt(dxs + dys)
+        except Exception:
+            return 0
 
     # def get_next_behaviour(self):
     #     return self.behaviours[self.behaviour_times.pop(0)]

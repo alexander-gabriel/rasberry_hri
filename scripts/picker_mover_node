@@ -1700,7 +1700,6 @@ class PickerSimulator(object):
     def update_robot_movement(self):
         if self.robot_x:
             timestamp = rospy.get_time()
-            rospy.logwarn("PMO: robot speed is {:.2}m/s".format(self.robot_speed))
             distance = self.get_distance_to_robot()
             diff = distance - self.old_distance
             if self.robot_speed < 0.01 and distance < 1 and self.robot_hasnt_stopped_yet and self.robot_is_moving:

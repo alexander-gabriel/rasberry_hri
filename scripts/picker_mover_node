@@ -5,6 +5,7 @@ import os
 from math import sin, cos, pi, sqrt
 from threading import Thread
 from time import sleep
+from collections import deque
 
 import numpy as np
 
@@ -1595,6 +1596,7 @@ class PickerSimulator(object):
         self.rate = rospy.Rate(PICKER_UPDATE_FREQUENCY)
         self.shutting_down = False
         self.current_behaviour_finished = False
+        self.robot_speed = float("nan")
         self.robot_is_moving = False
         self.robot_hasnt_stopped_yet = True
         rospy.loginfo("PMO: Starting picker simulator for picker: {}"
@@ -1657,14 +1659,21 @@ class PickerSimulator(object):
 
     def get_robot_speed(self, timestamp):
         try:
+            if self.robot_x == self.old_robot_x and self.robot_y == self.old_robot_y:
+                return self.robot_speed
             dx = self.robot_x - self.old_robot_x
             dy = self.robot_y - self.old_robot_y
             dt = timestamp - self.old_robot_timestamp
             dxs = dx * dx
             dys = dy * dy
-            return sqrt(dxs + dys) / dt
+            self.robot_speed = sqrt(dxs + dys) / dt
         except Exception:
-            return 0.02
+            pass
+        finally:
+            self.old_robot_timestamp = timestamp
+            self.old_robot_x = self.robot_x
+            self.old_robot_y = self.robot_y
+            return self.robot_speed
 
     # def get_next_behaviour(self):
     #     return self.behaviours[self.behaviour_times.pop(0)]
@@ -1712,9 +1721,6 @@ class PickerSimulator(object):
                     self.robot_movement = "leaving"
             # rospy.logwarn("PMO: Distance to robot: {}".format(distance))
             self.old_distance = distance
-            self.old_robot_x = self.robot_x
-            self.old_robot_y = self.robot_y
-            self.old_robot_timestamp = timestamp
 
     def loop(self):
         if not self.shutting_down:

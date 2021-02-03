@@ -29,6 +29,9 @@ from actions import (
     ApproachAction,
     CloseApproachAction,
     StandByAction,
+    SimpleGiveCrateAction,
+    SimpleExchangeCrateAction,
+    SimpleStandBy
 )
 from opencog.atomspace import types
 
@@ -580,6 +583,42 @@ class ExchangeCrateGoal(Goal):
         return "<Goal:Exchange crate>"
 
 
+class SimpleGiveCrateGoal(Goal):
+
+    action_template = SimpleGiveCrateAction
+
+    def __init__(self, world_state, robco, args, is_root=False):
+        super(SimpleGiveCrateGoal, self).__init__(world_state, robco, args, is_root)
+
+    def __repr__(self):
+        return "<Goal:Simple give crate>"
+
+
+class SimpleExchangeCrateGoal(Goal):
+
+    action_template = SimpleExchangeCrateAction
+
+    def __init__(self, world_state, robco, args, is_root=False):
+        super(SimpleExchangeCrateGoal, self).__init__(world_state, robco, args, is_root)
+
+    def __repr__(self):
+        return "<Goal:Simple exchange crate>"
+
+
+class SimpleStandByGoal(Goal):
+
+    action_template = SimpleStandByAction
+
+    def __init__(self, world_state, robco, args, is_root=False):
+        super(SimpleStandByGoal, self).__init__(world_state, robco, args, is_root)
+        self.picker = args["picker"]
+
+    def __repr__(self):
+        return "<Goal:SimpleStandBy {:} ({}, {})>".format(
+            self.picker, self.get_gain(), self.get_cost()
+        )
+
+
 class DepositCrateGoal(Goal):
 
     action_template = DepositCrateAction
@@ -707,7 +746,7 @@ class DeliverGoal(Goal):
 class ExchangeGoal(Goal):
 
     action_template = None
-    subgoal_templates = [MoveGoal, ExchangeCrateGoal] #[MoveGoal, ExchangeCrateGoal, MoveGoal]
+    subgoal_templates = [MoveGoal, ExchangeCrateGoal]
 
     def __init__(self, world_state, robco, args, is_root=False):
         super(ExchangeGoal, self).__init__(world_state, robco, args, is_root)
@@ -751,5 +790,42 @@ class WaitForGoal(Goal):
 
     def __repr__(self):
         return "<Goal:Wait for {:} to approach at {:} ({}, {})>".format(
+            self.picker, self.destination, self.get_gain(), self.get_cost()
+        )
+
+class SimpleDeliverGoal(Goal):
+
+    action_template = None
+    subgoal_templates = [MoveGoal, SimpleGiveCrateGoal]
+
+    def __init__(self, world_state, robco, args, is_root=False):
+        super(SimpleDeliverGoal, self).__init__(world_state, robco, args, is_root)
+        self.subgoals.append(MoveGoal(world_state, robco, args))
+        self.subgoals.append(SimpleGiveCrateGoal(world_state, robco, args))
+        self.subgoals.append(SimpleStandByGoal(world_state, robco, args))
+        self.picker = args["picker"]
+        self.destination = args["my_destination"]
+
+    def __repr__(self):
+        return "<Goal:SimpleDeliver crate to {:} at {:} ({}, {})>".format(
+            self.picker, self.destination, self.get_gain(), self.get_cost()
+        )
+
+
+class SimpleExchangeGoal(Goal):
+
+    action_template = None
+    subgoal_templates = [MoveGoal, SimpleExchangeCrateGoal]
+
+    def __init__(self, world_state, robco, args, is_root=False):
+        super(SimpleExchangeGoal, self).__init__(world_state, robco, args, is_root)
+        self.subgoals.append(MoveGoal(world_state, robco, args))
+        self.subgoals.append(SimpleExchangeCrateGoal(world_state, robco, args))
+        self.subgoals.append(SimpleStandByGoal(world_state, robco, args))
+        self.picker = args["picker"]
+        self.destination = args["my_destination"]
+
+    def __repr__(self):
+        return "<Goal:SimpleExchange crate with {:} at {:} ({}, {})>".format(
             self.picker, self.destination, self.get_gain(), self.get_cost()
         )

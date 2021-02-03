@@ -903,3 +903,187 @@ class StandByAction(Action):
         return "<Action:StandBy {:} to {:}>".format(
             self.picker, self.destination
         )
+
+
+
+class SimpleGiveCrateAction(Action):
+
+    condition_templates = [
+        [ws.robot_has_crate, [C(ME), P(ws._empty_crate_count.name)]],
+        [ws.is_a, [V("picker", ConceptNode), C("human")]],
+        [
+            ws.is_at,
+            [V("picker", ConceptNode), V("my_destination", ConceptNode)],
+        ],
+        [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
+    ]
+    consequence_templates = [
+        [ws.has_crate, [V("picker", ConceptNode)]],
+        [ws.robot_remove_crate2, [C(ME), P(ws._empty_crate_count.name)]],
+    ]
+    placeholders = [ME, "picker", "my_destination", "my_position"]
+
+    def __init__(self, world_state, robco, args):
+        super(SimpleGiveCrateAction, self).__init__(world_state, args)
+        self.robco = robco
+        self.picker = args["picker"]
+        self.position = args["my_position"]
+        self.gain = GIVE_GAIN
+        self.cost = GIVE_COST
+
+    def get_cost(self):
+        return self.cost
+
+    def perform(self):
+        super(SimpleGiveCrateAction, self).perform()
+        rospy.sleep(self.cost)
+        for fun, args in self.consequences:
+            new_args = []
+            for arg in args:
+                new_args.append(arg)
+            consequence = fun(self.ws, *new_args)
+            # rospy.loginfo("Entering consequence: {}".format(consequence))
+            consequence.tv = TruthValue(1, 1)
+        rospy.loginfo("ACT: {} received a crate".format(self.picker))
+        me = ConceptNode(ME)
+        full_count = self.ws.robot_get_crate_count(
+            me, self.ws._full_crate_count)
+        empty_count = self.ws.robot_get_crate_count(
+            me, self.ws._empty_crate_count)
+        rospy.loginfo("ACT: New robot crate state: Full/Empty {}/{}".format(full_count, empty_count))
+        time = rospy.get_time()
+        x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+        db.add_action_entry(self.start_time, float(x), float(y),
+                            self.__class__.__name__,
+                            "{}".format(self.position))
+        db.update_action_entry(self.start_time, float(x), float(y),
+                               time - self.start_time)
+        return True
+
+    def __repr__(self):
+        return "<Action:SimpleGiveCrate to {:}>".format(self.picker)
+
+
+class SimpleExchangeCrateAction(Action):
+
+    condition_templates = [
+        [ws.robot_has_crate, [C(ME), P(ws._empty_crate_count.name)]],
+        [ws.robot_has_crate_capacity, [C(ME), P(ws._full_crate_count.name)]],
+        [ws.is_a, [V("picker", ConceptNode), C("human")]],
+        [
+            ws.is_at,
+            [V("picker", ConceptNode), V("my_destination", ConceptNode)],
+        ],
+        [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
+    ]
+    consequence_templates = [
+        [ws.not_called_robot, [V("picker", ConceptNode)]],
+        [ws.robot_add_crate2, [C(ME), P(ws._full_crate_count.name)]],
+        [ws.robot_remove_crate2, [C(ME), P(ws._empty_crate_count.name)]],
+    ]
+    placeholders = [ME, "picker", "my_destination", "my_position"]
+
+    def __init__(self, world_state, robco, args):
+        # [me, picker, my_destination]
+        super(SimpleExchangeCrateAction, self).__init__(world_state, args)
+        self.robco = robco
+        self.picker = args["picker"]
+        self.position = args["my_position"]
+        self.gain = EXCHANGE_GAIN
+        self.cost = EXCHANGE_COST
+
+    def get_cost(self):
+        return self.cost
+
+    def perform(self):
+        super(SimpleExchangeCrateAction, self).perform()
+        rospy.sleep(self.cost)
+        for fun, args in self.consequences:
+            new_args = []
+            for arg in args:
+                new_args.append(arg)
+            consequence = fun(self.ws, *new_args)
+            # rospy.loginfo("Entering consequence: {}".format(consequence))
+            consequence.tv = TruthValue(1, 1)
+        rospy.loginfo("ACT: {} dismissed {}".format(self.picker, ME))
+        me = ConceptNode(ME)
+        full_count = self.ws.robot_get_crate_count(me, self.ws._full_crate_count)
+        empty_count = self.ws.robot_get_crate_count(me, self.ws._empty_crate_count)
+        rospy.loginfo("ACT: New robot crate state: Full/Empty {}/{}".format(full_count, empty_count))
+        time = rospy.get_time()
+        x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+        db.add_action_entry(self.start_time, float(x), float(y),
+                            self.__class__.__name__,
+                            "{}".format(self.position))
+        db.update_action_entry(self.start_time, float(x), float(y),
+                               time - self.start_time)
+        return True
+
+    def __repr__(self):
+        return "<Action:SimpleExchangeCrate with {:}>".format(self.picker)
+
+
+class SimpleStandByAction(Action):
+
+    condition_templates = [
+        [ws.is_at, [C(ME), V("my_position", ConceptNode)]],
+        [ws.is_a, [V("picker", ConceptNode), C("human")]],
+        # [
+        #     ws.is_at,
+        #     [V("picker", ConceptNode), V("picker_position", ConceptNode)],
+        # ],
+        # [
+        #     ws.leads_to,
+        #     [V("my_position", ConceptNode), V("picker_position", ConceptNode)],
+        # ],
+        [
+            ws.not_same,
+            [V("my_position", ConceptNode), C(READY_POINT)],
+        ],
+    ]
+    consequence_templates = []
+    placeholders = [ME, "picker", "my_position"]
+
+    def __init__(self, world_state, robco, args):
+        super(SimpleStandByAction, self).__init__(world_state, args)
+        self.robco = robco
+        self.picker = args["picker"]
+        self.position = args["my_position"]
+        self.destination = READY_POINT
+        self.path_length  = self.robco.get_path_length(self.position, self.destination)
+        self.gain = STANDBY_GAIN
+        self.sent_movement_request = False
+
+    def perform(self):
+        super(SimpleStandByAction, self).perform()
+        if not self.sent_movement_request:
+            x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+            db.add_action_entry(self.start_time, float(x), float(y),
+                                self.__class__.__name__, "{} - {}"
+                                .format(self.position, self.destination))
+            self.robco.move_to(self.destination)
+            self.sent_movement_request = True
+            self.ws.moving = True
+
+        try:
+            result = self.robco.get_result()
+            if result:
+                time = rospy.get_time()
+                self.ws.moving = False
+                rospy.loginfo("ACT: Reached my destination: {}"
+                              .format(result.success))
+                x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
+                db.update_action_entry(self.start_time, float(x), float(y),
+                                       time - self.start_time)
+                return True
+        except Exception as err:
+            rospy.logwarn(err)
+            return False
+
+    def get_cost(self):
+        return self.path_length * MEAN_WAYPOINT_DISTANCE / ROBOT_SPEED
+
+    def __repr__(self):
+        return "<Action:SimpleStandBy {:} to {:}>".format(
+            self.picker, self.destination
+        )

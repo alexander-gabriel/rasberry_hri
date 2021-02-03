@@ -124,6 +124,7 @@ class DB:
                  "stop_distance = ? WHERE (run_id = ?)"),
                 (timestamp, x, y, distance, self.run_id))
             self.db.commit()
+            rospy.logwarn("DBW: updated meet entry at {:.2}m distance".format(distance))
 
     # def add_robot_entry(self, timestamp, x, y, orientation, behaviour):
     #     cursor = self.db.cursor()

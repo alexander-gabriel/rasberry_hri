@@ -1697,13 +1697,13 @@ class PickerSimulator(object):
             distance = self.get_distance_to_robot()
             diff = distance - self.old_distance
             if robot_travelled == 0 and distance < 1 and self.robot_hasnt_stopped_yet and self.robot_is_moving:
-                rospy.logwarn("PMO: updating meet entry at {:.2}m distance".format(distance))
                 self.db.update_meet_entry(rospy.get_time(), self.robot_x, self.robot_y, distance)
                 self.robot_movement = "standing"
                 self.robot_hasnt_stopped_yet = False
             else:
-                if robot_travelled != 0:
+                if robot_travelled > 0:
                     self.robot_is_moving = True
+                    rospy.logwarn("PMO: robot is moving. distance detected {}".format(robot_travelled))
                 if diff < -0.01:
                     self.robot_movement = "approaching"
                 elif diff > 0.01:

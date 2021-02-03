@@ -1645,6 +1645,20 @@ class PickerSimulator(object):
     def robot_position_coordinate_callback(self, pose):
         self.robot_x = pose.position.x
         self.robot_y = pose.position.y
+        self.robot_timestamp = rospy.get_time()
+        try:
+            dx = self.robot_x - self.old_robot_x
+            dy = self.robot_y - self.old_robot_y
+            dt = self.robot_timestamp - self.old_robot_timestamp
+            dxs = dx * dx
+            dys = dy * dy
+            self.robot_speed = sqrt(dxs + dys) / dt
+        except Exception:
+            self.robot_speed = float("nan")
+        finally:
+            self.old_robot_timestamp = self.robot_timestamp
+            self.old_robot_x = self.robot_x
+            self.old_robot_y = self.robot_y
 
     def get_distance_to_robot(self):
         dx = self.x - self.robot_x
@@ -1656,24 +1670,6 @@ class PickerSimulator(object):
         else:
             distance = sqrt(dxs + dys) - 0.5 * (PICKER_WIDTH + ROBOT_WIDTH)
         return distance
-
-    def get_robot_speed(self, timestamp):
-        try:
-            if self.robot_x == self.old_robot_x and self.robot_y == self.old_robot_y:
-                return self.robot_speed
-            dx = self.robot_x - self.old_robot_x
-            dy = self.robot_y - self.old_robot_y
-            dt = timestamp - self.old_robot_timestamp
-            dxs = dx * dx
-            dys = dy * dy
-            self.robot_speed = sqrt(dxs + dys) / dt
-        except Exception:
-            pass
-        finally:
-            self.old_robot_timestamp = timestamp
-            self.old_robot_x = self.robot_x
-            self.old_robot_y = self.robot_y
-            return self.robot_speed
 
     # def get_next_behaviour(self):
     #     return self.behaviours[self.behaviour_times.pop(0)]
@@ -1704,16 +1700,15 @@ class PickerSimulator(object):
     def update_robot_movement(self):
         if self.robot_x:
             timestamp = rospy.get_time()
-            robot_speed = self.get_robot_speed(timestamp)
-            rospy.logwarn("PMO: robot speed is {:.2}m/s".format(robot_speed))
+            rospy.logwarn("PMO: robot speed is {:.2}m/s".format(self.robot_speed))
             distance = self.get_distance_to_robot()
             diff = distance - self.old_distance
-            if robot_speed < 0.01 and distance < 1 and self.robot_hasnt_stopped_yet and self.robot_is_moving:
+            if self.robot_speed < 0.01 and distance < 1 and self.robot_hasnt_stopped_yet and self.robot_is_moving:
                 self.db.update_meet_entry(timestamp, self.robot_x, self.robot_y, distance)
                 self.robot_movement = "standing"
                 self.robot_hasnt_stopped_yet = False
             else:
-                if robot_speed > 0.1:
+                if self.robot_speed > 0.1:
                     self.robot_is_moving = True
                 if diff < -0.01:
                     self.robot_movement = "approaching"

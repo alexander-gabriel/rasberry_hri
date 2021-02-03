@@ -31,7 +31,7 @@ from actions import (
     StandByAction,
     SimpleGiveCrateAction,
     SimpleExchangeCrateAction,
-    SimpleStandBy
+    SimpleStandByAction
 )
 from opencog.atomspace import types
 

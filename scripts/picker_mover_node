@@ -1655,15 +1655,16 @@ class PickerSimulator(object):
             distance = sqrt(dxs + dys) - 0.5 * (PICKER_WIDTH + ROBOT_WIDTH)
         return distance
 
-    def get_robot_travelled(self):
+    def get_robot_speed(self, timestamp):
         try:
-            dx = self.old_robot_x - self.robot_x
-            dy = self.old_robot_y - self.robot_y
+            dx = self.robot_x - self.old_robot_x
+            dy = self.robot_y - self.old_robot_y
+            dt = timestamp - self.old_robot_timestamp
             dxs = dx * dx
             dys = dy * dy
-            return sqrt(dxs + dys)
+            return sqrt(dxs + dys) / dt
         except Exception:
-            return 0
+            return 0.02
 
     # def get_next_behaviour(self):
     #     return self.behaviours[self.behaviour_times.pop(0)]
@@ -1693,17 +1694,18 @@ class PickerSimulator(object):
 
     def update_robot_movement(self):
         if self.robot_x:
-            robot_travelled = self.get_robot_travelled()
+            timestamp = rospy.get_time()
+            robot_speed = self.get_robot_speed(timestamp)
+            rospy.logwarn("PMO: robot speed is {:.2}m/s".format(robot_speed))
             distance = self.get_distance_to_robot()
             diff = distance - self.old_distance
-            if robot_travelled == 0 and distance < 1 and self.robot_hasnt_stopped_yet and self.robot_is_moving:
-                self.db.update_meet_entry(rospy.get_time(), self.robot_x, self.robot_y, distance)
+            if robot_speed < 0.01 and distance < 1 and self.robot_hasnt_stopped_yet and self.robot_is_moving:
+                self.db.update_meet_entry(timestamp, self.robot_x, self.robot_y, distance)
                 self.robot_movement = "standing"
                 self.robot_hasnt_stopped_yet = False
             else:
-                if robot_travelled > 0:
+                if robot_speed > 0.1:
                     self.robot_is_moving = True
-                    rospy.logwarn("PMO: robot is moving. distance detected {}".format(robot_travelled))
                 if diff < -0.01:
                     self.robot_movement = "approaching"
                 elif diff > 0.01:
@@ -1712,6 +1714,7 @@ class PickerSimulator(object):
             self.old_distance = distance
             self.old_robot_x = self.robot_x
             self.old_robot_y = self.robot_y
+            self.old_robot_timestamp = timestamp
 
     def loop(self):
         if not self.shutting_down:

@@ -67,6 +67,7 @@ from bdi.intention_recognition import IntentionRecognition
 class BDISystem:
     def __init__(self, me, kb):
         rospy.loginfo("BDI: Initializing BDI System")
+        self.shutting_down = False
         self.durations = []
         self.kb = kb
         initialize_opencog(self.kb.atomspace)
@@ -268,49 +269,50 @@ class BDISystem:
     def loop(self):
         # self.pause()
         # rospy.logwarn("BDI: ----- Started Loop -----")
-        start_time = time.time()
-        # loop_start = start_time
-        self._update_beliefs()
-        rospy.logdebug(
-            "BDI: --  updated beliefs   -- {:.4f}".format(
-                time.time() - start_time
+        if not self.shutting_down:
+            start_time = time.time()
+            # loop_start = start_time
+            self._update_beliefs()
+            rospy.logdebug(
+                "BDI: --  updated beliefs   -- {:.4f}".format(
+                    time.time() - start_time
+                )
             )
-        )
-        start_time = time.time()
-        intention_candidates = self._generate_intention_candidates()
-        rospy.logdebug(
-            "BDI: -- generated desires  -- {:.4f}".format(
-                time.time() - start_time
+            start_time = time.time()
+            intention_candidates = self._generate_intention_candidates()
+            rospy.logdebug(
+                "BDI: -- generated desires  -- {:.4f}".format(
+                    time.time() - start_time
+                )
             )
-        )
-        start_time = time.time()
-        self.intentions = self._filter_intention_candidates(
-            intention_candidates
-        )
-        rospy.logdebug(
-            "BDI: -- filtered desires   -- {:.4f}".format(
-                time.time() - start_time
+            start_time = time.time()
+            self.intentions = self._filter_intention_candidates(
+                intention_candidates
             )
-        )
-        start_time = time.time()
-        self._perform_action()
-        rospy.logdebug(
-            "BDI: -- performed action   -- {:.4f}".format(
-                time.time() - start_time
+            rospy.logdebug(
+                "BDI: -- filtered desires   -- {:.4f}".format(
+                    time.time() - start_time
+                )
             )
-        )
-        start_time = time.time()
-        self._clean_intentions()
-        rospy.logdebug(
-            "BDI: -- cleaned intentions -- {:.4f}".format(
-                time.time() - start_time
+            start_time = time.time()
+            self._perform_action()
+            rospy.logdebug(
+                "BDI: -- performed action   -- {:.4f}".format(
+                    time.time() - start_time
+                )
             )
-        )
-        # duration = time.time() - loop_start
-        # if duration > 0.01:
-        # rospy.loginfo("BDI: -----     Loop     ----- {:.4f}"
-        #               .format(duration))
-        # self.unpause()
+            start_time = time.time()
+            self._clean_intentions()
+            rospy.logdebug(
+                "BDI: -- cleaned intentions -- {:.4f}".format(
+                    time.time() - start_time
+                )
+            )
+            # duration = time.time() - loop_start
+            # if duration > 0.01:
+            # rospy.loginfo("BDI: -----     Loop     ----- {:.4f}"
+            #               .format(duration))
+            # self.unpause()
 
     def _clean_intentions(self):
         index = 0
@@ -457,3 +459,6 @@ class BDISystem:
     def add_goal(self, goal):
         """Adds a goal to the BDI system"""
         self.desires.append(goal)
+
+    def shutdown(self):
+        self.shutting_down = True

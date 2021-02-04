@@ -147,9 +147,12 @@ class Scheduler:
 
     def shutdown(self):
         rospy.loginfo("SCH: Shutting down")
+        self.bdi.shutdown()
         self.robot_pose_sub.unregister()
         self.robot_sub.unregister()
         self.human_action_sub.unregister()
+        for sub in self.human_position_subs:
+            sub.unregister()
 
 
     def add_position_noise(self, pose, old_pose):

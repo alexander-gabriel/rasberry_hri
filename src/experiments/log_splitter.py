@@ -306,14 +306,15 @@ if __name__ == '__main__':
         delete_state(run_ids)
     except:
         pass
-    run_ids = db.get_runs()
     if args.check:
+        run_ids = db.get_runs()
         missing, broken = check_logs(run_ids)
         print("broken:")
         print(broken)
         print("missing:")
         print(missing)
     elif args.move:
+        run_ids = db.get_runs()
         distribute_logs(run_ids)
     else:
         LOG_PATH = "/home/rasberry/.ros/log/"

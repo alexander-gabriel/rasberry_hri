@@ -1,41 +1,49 @@
 #!/usr/bin/env python2
-import sqlite3
+import re
 import os
-import json
 import argparse
-import warnings
-# from numpy import mean, var, errstate
-import numpy as np
-import yaml
+from datetime import datetime
+# import numpy as np
+import sqlite3
 from contextlib import closing
 
 from common.parameters import CONFIG_DIRECTORY, LOG_DIRECTORY, STATE_DIRECTORY
 
-def mean(l):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=RuntimeWarning)
-        # warnings.filterwarnings('error')
-        try:
-            return np.nanmean(l)
-        except RuntimeWarning:
-            return np.NaN
+# [rosout][INFO] 2020-03-06 13:38:02,165: SCH: Perceived human action Picker02, calling
 
-def var(l):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=RuntimeWarning)
-        return np.var(l)
+call_pattern = re.compile("^\[rosout\]\[INFO\] [0-9]{4,4}-[0-9]{2,2}-[0-9]{2,2} (?P<time>[0-9]{2,2}:[0-9]{2,2}:[0-9]{2,2}),[0-9]{3,3}: SCH: Perceived human action Picker02, calling$")
 
-# datenbank datei lesen
-#
-# aus einem table indexe und daten lesen
-#
-# entsprechende eintraege aus anderen tables lesen
-#
-# dictionary pro experiment nach metriken erstellen
-#
-# tabellen aus dict erstellen und ausgeben
+# [INFO] [1583497616.451514, 97017.075000]: GOL: Performed action <Action:Exchange crate with Picker02>; Action queue is: [<Action:Move to WayPoint103>]
 
-brocken_ids = ["000e4870af6ab364c8a554fdfefaee86b1eb619851a933e130c557b9f0d5e4bc",
+action_done_pattern = re.compile("^\[rosout\]\[INFO\] [0-9]{4,4}-[0-9]{2,2}-[0-9]{2,2} (?P<time>[0-9]{2,2}:[0-9]{2,2}:[0-9]{2,2}),[0-9]{3,3}: GOL: Performed action \<Action:(?P<action>Exchange|Give|Evade|BerryEvade) .*$")
+
+
+# [INFO] [1583521661.122962, 114113.265000]: ACT: Performing <Action
+
+action_start_pattern = re.compile("^\[rosout\]\[INFO\] [0-9]{4,4}-[0-9]{2,2}-[0-9]{2,2} (?P<time>[0-9]{2,2}:[0-9]{2,2}:[0-9]{2,2}),[0-9]{3,3}: ACT: Performing \<Action:(?P<action>Exchange|Give|Evade|BerryEvade) .*$")
+
+# [INFO] [1583497625.984403, 97023.865000]: BDI: Finished following <Goal:Exchange crate with Picker02 at WayPoint105 (240, 12.375)>
+
+goal_pattern =  re.compile("^\[rosout\]\[INFO\] [0-9]{4,4}-[0-9]{2,2}-[0-9]{2,2} (?P<time>[0-9]{2,2}:[0-9]{2,2}:[0-9]{2,2}),[0-9]{3,3}: BDI: Finished following \<Goal:(?P<goal>Exchange|Deliver|Evade|BerryEvade) .*$")
+
+
+start_pattern = re.compile("^\[rosout\]\[INFO\] [0-9]{4,4}-[0-9]{2,2}-[0-9]{2,2} (?P<time>[0-9]{2,2}:[0-9]{2,2}:[0-9]{2,2}),[0-9]{3,3}: EXP: Initializing Experiment: (?P<scenario>\w+) - Subject (?P<subject_id>[0-9]+) - Mode (?P<mode>\w+)$")
+
+# [rosout][WARNING] 2020-03-06 02:09:49,297: BDI: Robot has met picker. Distance: 0.471746484403
+
+meeting_pattern = re.compile("^\[rosout\]\[WARNING\] [0-9]{4,4}-[0-9]{2,2}-[0-9]{2,2} (?P<time>[0-9]{2,2}:[0-9]{2,2}:[0-9]{2,2}),[0-9]{3,3}: BDI: Robot has met picker. Distance: (?P<distance>[0-9].[0-9]+)$")
+
+
+timeout_pattern = re.compile("^\[rosout\]\[INFO\] [0-9]{4,4}-[0-9]{2,2}-[0-9]{2,2} (?P<time>[0-9]{2,2}:[0-9]{2,2}:[0-9]{2,2}),[0-9]{3,3}: EXP: Timeout condition reached$")
+
+
+# [INFO] [1583521053.848928, 113684.240000]: WST: Picker02 is at WayPoint104
+waypoint_pattern = re.compile("^\[rosout\]\[INFO\] [0-9]{4,4}-[0-9]{2,2}-[0-9]{2,2} (?P<time>[0-9]{2,2}:[0-9]{2,2}:[0-9]{2,2}),[0-9]{3,3}: WST: Picker02 is at WayPoint104$")
+
+
+patterns = ["INFO", "WARNING", "ERROR"]
+
+broken_ids = ["000e4870af6ab364c8a554fdfefaee86b1eb619851a933e130c557b9f0d5e4bc",
 "002cbd1a19b54ecba8f37ebabdabc6722d8d734b8ea4000875073e2b6d88ebb6",
 "00864fda089b2b55ad72584520cd8ca2935dc9a3e2aa23e72468fd783de5af0e",
 "00a6cb2db97f272637f528789259a5a9f2e6950cde65a4d3c501eb5ca8fba55a",
@@ -1400,17 +1408,6 @@ class DB:
         self.db = sqlite3.connect(filename, check_same_thread=False)
         self.failed_runs = []
 
-    def get_experiments(self):
-        with closing(self.db.cursor()) as cursor:
-            cursor.execute("SELECT DISTINCT experiment_id FROM experiments")
-            return list(map(lambda x: x[0], cursor.fetchall()))
-
-    def get_label(self, experiment_id):
-        with closing(self.db.cursor()) as cursor:
-            cursor.execute("SELECT DISTINCT experiment_label FROM experiments "
-                           "WHERE (experiment_id = ?)", (experiment_id,))
-            return cursor.fetchall()[0][0]
-
     def get_runs(self, experiment_id=None, subject_id=None):
         with closing(self.db.cursor()) as cursor:
             if subject_id is not None:
@@ -1424,90 +1421,6 @@ class DB:
             else:
                 cursor.execute("SELECT DISTINCT run_id FROM runs")
             return list(map(lambda x: x[0], cursor.fetchall()))
-
-    def get_meetings(self, runs):
-        signal_distances = []
-        stop_distances = []
-        speeds = []
-        success = []
-        for run_id in runs:
-            with closing(self.db.cursor()) as cursor:
-                cursor.execute(("SELECT signal_distance, stop_distance, speed_profile FROM meetings WHERE "
-                                "run_id = ?"),
-                               (run_id,))
-                results = cursor.fetchall()
-                for result in results:
-                    result_success = False
-                    try:
-                        result_speeds = map(lambda x: float(x), result[2].split(", "))
-                        speeds += list(filter(lambda number: number > 0, result_speeds))
-                    except ValueError:
-                        result_speeds = []
-                    if result[0] is not None:
-                        signal_distances.append(result[0])
-                        result_success = True
-                    if result[1] is not None:
-                        stop_distances.append(result[1])
-                        if result_success:
-                            success.append(1.0)
-                    if not result_success:
-                        success.append(0.0)
-                        self.failed_runs.append(run_id)
-                # for index, entry in enumerate(result_speeds):
-                #     speeds[index].append(entry)
-        # for index in range(4):
-        #     speeds[index] = (mean(speeds[index]), var(speeds[index]))
-        return success, signal_distances, stop_distances, speeds
-
-    def get_waits(self, runs):
-        waits = []
-        success = []
-        for run_id in runs:
-            with closing(self.db.cursor()) as cursor:
-                cursor.execute(("SELECT wait FROM picker_waiting WHERE "
-                                "run_id = ?"), (run_id,))
-                for result in list(map(lambda x: x[0], cursor.fetchall())):
-                    if isinstance(result, float):
-                        waits.append(float(result))
-                        success.append(1.0)
-                    else:
-                        success.append(0.0)
-                        self.failed_runs.append(run_id)
-        return success, waits
-
-    def get_yaml(self, run_id, config_directory=CONFIG_DIRECTORY):
-        with open(os.path.join(config_directory, STATE_DIRECTORY, run_id + '.param'), 'r') as file:
-            parameters = yaml.full_load(file)
-            return parameters
-
-    def get_service(self, runs, expected_goal):
-        success = []
-        duration = []
-        actual_followed_goals = set()
-        failed_runs = []
-        for run_id in runs:
-            found_expected_goal = False
-            with closing(self.db.cursor()) as cursor:
-                cursor.execute(("SELECT goal, duration FROM robot_goals WHERE "
-                                "run_id = ?"),  (run_id,))
-                for result in cursor.fetchall():
-                    if isinstance(result[1], float) and result[0] == expected_goal and not found_expected_goal:
-                        found_expected_goal = True
-                        duration.append(result[1])
-                        success.append(1.0)
-                    elif not found_expected_goal:
-                        actual_followed_goals.add(result[0])
-            if not found_expected_goal:
-                success.append(0.0)
-                failed_runs.append(run_id)
-                self.failed_runs.append(run_id)
-        return success, duration, actual_followed_goals, failed_runs
-
-    def calculate_statistics(self, list):
-        return mean(list), var(list)
-
-    def close(self):
-        self.db.close()
 
     def delete_experiment(self, experiment_id):
         runs = []
@@ -1531,52 +1444,217 @@ class DB:
             cursor.execute("DELETE FROM runs WHERE run_id = ?", (run_id,))
             self.db.commit()
 
-def letter_cmp(a, b):
-    for index in range(4):
-        if a[index] > b[index]:
-            return 1
-        elif a[index] < b[index]:
-            return -1
-    return 0
-from functools import cmp_to_key
-letter_cmp_key = cmp_to_key(letter_cmp)
+    def close(self):
+        self.db.close()
 
-goal_table = {
-    "Deliver": "DeliverGoal",
-    "Evade": "EvadeGoal",
-    "Exchange": "ExchangeGoal",
-    "Resupply": "DepositGoal",
-    "Leave": "StandByGoal",
-    "Approach": "ApproachGoal"
-}
-def get_expected_goal(label):
-    return goal_table[label.split(" - ")[1]]
 
-def delete_state(run_ids):
-    path = os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, "experiments.json")
-    with open(path, "r") as file:
-        state = json.load(file)
-    for id in run_ids:
+def read_file(lines, filename):
+    with open(filename, 'r') as file:
+        for line in file.readlines():
+            for pattern in patterns:
+                if pattern in line:
+                    lines.append(line)
+                    break
+
+
+def get_run_data(foldername):
+    lines = []
+    read_file(lines, os.path.join(foldername, "experiment_node.log"))
+    for filename in os.listdir(os.path.join(foldername, "39a9ec4a-847a-11ea-b1ee-00012e83d65b")):
+        if filename.endswith(".log"):
+            read_file(lines, os.path.join(foldername, "39a9ec4a-847a-11ea-b1ee-00012e83d65b", filename))
+    # lines = sorted(lines, key= lambda line: datetime.strptime(line.split(" ")[2].split(",")[0], "%H:%M:%S"))
+    lines = sorted(lines, key= lambda line: line.split(" ")[2].split(",")[0])
+    experiments = []
+    current_experiment = None
+    for line in lines:
+        match = re.match(start_pattern, line)
+        if not match is None:
+            group = match.groupdict()
+            current_experiment = {}
+            current_experiment["start time"] = datetime.strptime(group["time"], "%H:%M:%S")
+            current_experiment["subject_id"] = group["subject_id"]
+            current_experiment["mode"] = group["mode"]
+            current_experiment["scenario"] = group["scenario"]
+
+        match = re.match(waypoint_pattern, line)
+        if not match is None:
+            group = match.groupdict()
+            current_experiment["waypoint time"] = datetime.strptime(group["time"], "%H:%M:%S")
+
+        match = re.match(call_pattern, line)
+        if not match is None and not "call time" in current_experiment:
+            group = match.groupdict()
+            current_experiment["call time"] = datetime.strptime(group["time"], "%H:%M:%S")
+
+        match = re.match(meeting_pattern, line)
+        if not match is None and not "meeting time" in current_experiment:
+            group = match.groupdict()
+            current_experiment["meeting time"] = datetime.strptime(group["time"], "%H:%M:%S")
+            try:
+                current_experiment["time to meeting"] = current_experiment["meeting time"] - group["call time"]
+            except:
+                current_experiment["time to meeting"] = current_experiment["meeting time"] - current_experiment["start time"]
+            current_experiment["meeting distance"] = group["distance"]
+
+        # match = re.match(action_start_pattern, line)
+        # if not match is None:
+        #     group = match.groupdict()
+        #     current_experiment["service time"] = datetime.strptime(group["time"], "%H:%M:%S")
+        #     if group["action"] == "Evade":
+        #         current_experiment["time to service"] = current_experiment["service time"] - current_experiment["waypoint time"]
+
+
+        match = re.match(action_done_pattern, line)
+        if not match is None and not "service time" in current_experiment:
+            group = match.groupdict()
+            current_experiment["service time"] = datetime.strptime(group["time"], "%H:%M:%S")
+            if group["action"] == "Evade" or group["action"] == "BerryEvade" :
+                current_experiment["time to service"] = current_experiment["service time"] - current_experiment["waypoint time"]
+            else:
+                try:
+                    current_experiment["time to service"] = current_experiment["service time"] - current_experiment["call time"]
+                except:
+                    current_experiment["time to service"] = current_experiment["service time"] - current_experiment["start time"]
+
+        match = re.match(goal_pattern, line)
+        if not match is None and not "end time" in current_experiment:
+            group = match.groupdict()
+            current_experiment["end time"] = datetime.strptime(group["time"], "%H:%M:%S")
+            current_experiment["success"] = True
+
+        match = re.match(timeout_pattern, line)
+        if not match is None:
+            group = match.groupdict()
+            if not "success" in current_experiment:
+                current_experiment["end time"] = datetime.strptime(group["time"], "%H:%M:%S")
+                current_experiment["time to end"] = current_experiment["end time"] - current_experiment["start time"]
+                current_experiment["success"] = False
+            experiments.append(current_experiment)
+    return experiments
+
+
+def get_statistics(data_series):
+    if not data_series:
+        return "\\multicolumn{2}{c|}{N/A}"
+    print(data_series)
+    return "{:.2f} & {:.3f}".format(np.mean(data_series), np.var(data_series))
+
+
+def get_success(successes):
+    return "{:.2f}".format(float(sum(successes))/len(successes))
+
+
+class Line(object):
+    def __init__(self, line):
+        self.line = line
+        self.date = datetime.strptime(line.split("] ", 1)[1].split(": ", 1)[0], "%Y-%m-%d %H:%M:%S,%f")
+        self.content = line.split(": ", 1)[1]
+
+    def __eq__(self, other):
+        """Override the default Equals behavior"""
+        if inspect.isclass(other):
+            return other.__name__ == self.__class__.__name__
+        if isinstance(other, self.__class__):
+            return self.content == other.content
+        return False
+
+    def __ne__(self, other):
+        """Override the default Equals behavior"""
+        if isinstance(other, self.__class__):
+            # for subgoal in self.subgoal_templates:
+            #     if not subgoal in other.subgoal_templates:
+            #         return True
+            # for subgoal in other.subgoal_templates:
+            #     if not subgoal in self.subgoal_templates:
+            #         return True
+            return not (self.content == other.content)
+        return True
+
+    def __gt__(self, other):
+        return self.date > other.date
+
+    def __lt__(self, other):
+        return self.date < other.date
+
+    def __ge__(self, other):
+        return (self > other) or (self == other)
+
+    def __le__(self, other):
+        return (self < other) or (self == other)
+
+
+class Traceback(Line):
+    def __init__(self, traceback, last_line):
+        first_line = traceback.split("\n", 1)[0]
         try:
-            state["finished experiments"].remove(id)
-        except ValueError:
-            pass
-        param_path = os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, id + ".param")
-        try:
-            os.remove(param_path)
+            super(Traceback, self).__init__(first_line)
         except:
-            pass
-    with open(path, "w") as file:
-        json.dump(state, file, indent=4)
+            super(Traceback, self).__init__(last_line)
+            self.line = first_line
+        self.content = traceback
+
+
+def get_logs(path, logs=[]):
+    for root, subdirs, files in os.walk(LOG_PATH):
+        for filename in files:
+            if (filename.startswith("thorvald_001-experimenter_node")
+                or filename.startswith("thorvald_001-scheduler")
+                or filename.startswith("roslaunch-simulator")
+                or filename.startswith("thorvald_001-picker_mover")):
+                with open(os.path.join(root, filename), 'r') as file:
+                    traceback_mode = False
+                    traceback = ""
+                    last_line = ""
+                    for line in file.readlines():
+                        if line.endswith("Traceback (most recent call last):\n"):
+                            traceback_mode = True
+                        if traceback_mode:
+                            if line == "\n":
+                                logs.append(Traceback(traceback, last_line))
+                                traceback_mode = False
+                                traceback = ""
+                            else:
+                                traceback += line
+                        else:
+                            try:
+                                if line.startswith("[rosout]"):
+                                    logs.append(Line(line))
+                                    last_line = line
+                            except:
+                                pass
+    return sorted(logs)
+
+def move_logs(run_ids):
+    for root, subdirs, files in os.walk(os.path.join(args.config, LOG_DIRECTORY)):
+        for filename in files:
+            run_id = filename[:-4]
+            if run_id in run_ids:
+                if run_id in broken_ids:
+                    os.rename(os.path.join(root, filename), os.path.join(args.config, LOG_DIRECTORY, "broken", filename))
+                else:
+                    os.rename(os.path.join(root, filename), os.path.join(args.config, LOG_DIRECTORY, "used", filename))
+
+def check_logs(run_ids):
+    missing = []
+    broken = []
+    for root, subdirs, files in os.walk(os.path.join(args.config, LOG_DIRECTORY, experiment_label, "used")):
+        for filename in files:
+            run_id = filename[:-4]
+            run_ids.remove(run_id)
+    for root, subdirs, files in os.walk(os.path.join(args.config, LOG_DIRECTORY, experiment_label, "broken")):
+        for filename in files:
+            run_id = filename[:-4]
+            run_ids.remove(run_id)
+            broken.append(run_id)
+    return run_ids, broken
+
 
 if __name__ == '__main__':
-    # CONFIG_DIRECTORY = "/home/rasberry"
-    # STATE_DIRECTORY="large-state"
-    # db = DB("/home/rasberry/stop-test-log.db")
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('--id', action='store', type=str, help='experiment to show')
-    parser.add_argument('-p', action="store_true", help='evaluate per picker')
+    parser = argparse.ArgumentParser(description='Split log files per experiment run')
     parser.add_argument('--config', type=str, nargs='?', const=CONFIG_DIRECTORY, help='optional config directory')
+    parser.add_argument('--move', action="store_true")
+    parser.add_argument('--check', action="store_true")
     args = parser.parse_args()
     if args.config:
         db = DB(os.path.join(args.config, LOG_DIRECTORY, "log.db"))
@@ -1588,170 +1666,153 @@ if __name__ == '__main__':
         delete_state(run_ids)
     except:
         pass
-    if args.id:
-        experiments = [args.id]
+    run_ids = db.get_runs()
+    if args.check:
+        missing, broken = check_logs(run_ids)
+        print("broken:")
+        print(broken)
+        print("missing:")
+        print(missing)
+    elif args.move:
+        move_logs(run_ids)
     else:
-        experiments = db.get_experiments()
-    data = []
-    behaviour = {}
-    repeat_these_runs = []
-    if args.p:
-        print("label;subject;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; picker_crate_fill; exp id")
-    else:
-        print("label;gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; has_crate; picker_crate_fill; picker crate full;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; position noise; posture noise;exp id")
-    speeds = []
-    output = []
-    for experiment_id in experiments:
-        label = db.get_label(experiment_id)
-        if args.p:
-            for subject_id in [
-                        "picker01",
-                        "picker02",
-                        "picker03",
-                        "picker04",
-                        "picker05",
-                        "picker06", "picker07", "picker08", "picker09", "picker10"
-                         ]:
+        LOG_PATH = "/home/rasberry/.ros/log/"
+        logs = get_logs(LOG_PATH)
+        experiments = {}
+        latest_run = None
+        during_run = False
+        for line in logs:
+            if line.content.startswith("EXPE: Starting Experiment run"):
+                during_run = True
+                run_id = line.content.split("run ", 1)[1][:-1]
+                latest_run = run_id
                 try:
-                    runs = db.get_runs(experiment_id, subject_id)
-                    if not runs:
-                        raise IndexError()
-                    # with errstate(all='ignore', divide='ignore'):
-                    parameters = {}
-                    try:
-                        parameters = db.get_yaml(runs[0], args.config)
-                        if experiment_id not in behaviour:
-                            behaviour[experiment_id] = parameters["behaviour"]
-                    except IOError:
-                        print("No run id for experiment: {}".format(experiment_id))
-                        behaviour[experiment_id] = "No run ID"
-                    gesture_perception = parameters["gesture_perception"]
-                    behavior_perception = parameters["behavior_perception"]
-                    direction_perception = parameters["direction_perception"]
-                    berry_perception = parameters["berry_position_perception"]
-                    berry_existence = not bool(parameters["no_berry_places"])
-                    robot_crate_perception = parameters["robot_crate_possession_perception"]
-                    picker_crate_possession_perception = parameters["picker_crate_possession_perception"]
-                    picker_crate_fill_perception = parameters["picker_crate_fill_perception"]
-                    expected_goal = get_expected_goal(parameters["experiment_label"])
-                    success1, duration, actual_followed_goals, failed_runs = db.get_service(runs, expected_goal)
-                    if len(failed_runs) not in [0, len(runs)]:
-                        repeat_these_runs+= failed_runs
-                    success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
-                    speeds += speed
-                    success3, waits = db.get_waits(runs)
-                    print("{}; {}; {}; {}; {};  {};  {};  {};  {};  {}; {}; {}; {}"
-                        .format(label, subject_id,
-                                "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
-                                behaviour[experiment_id],
-                                "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(duration)),
-                                "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(signal_distances)),
-                                "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(stop_distances)),
-                                "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(waits)),
-                                "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(speed)),
-                                "{}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception, behavior_perception, direction_perception, berry_perception, berry_existence, robot_crate_perception, picker_crate_possession_perception, picker_crate_fill_perception),
-                                experiment_id,
-                                runs[0],
-                                ", ".join(actual_followed_goals)))
-                except IndexError:
-                    pass
-        else:
-            try:
-                runs = db.get_runs(experiment_id)
-                if not runs:
-                    raise IndexError()
-                parameters = {}
-                try:
-                    parameters = db.get_yaml(runs[0], args.config)
-                    if experiment_id not in behaviour:
-                        behaviour[experiment_id] = parameters["behaviour"]
-                except IOError:
-                    print("No run id for experiment: {}".format(experiment_id))
-                    behaviour[experiment_id] = "No run ID"
-                gesture_perception = parameters["gesture_perception"]
-                behavior_perception = parameters["behavior_perception"]
-                direction_perception = parameters["direction_perception"]
-                berry_perception = parameters["berry_position_perception"]
-                berry_existence = not bool(parameters["no_berry_places"])
-                robot_crate_perception = parameters["robot_crate_possession_perception"]
-                picker_crate_possession_perception = parameters["picker_crate_possession_perception"]
-                picker_crate_fill_perception = parameters["picker_crate_fill_perception"]
-                has_crate = parameters["has_crate"]
-                crate_full = parameters["crate_full"]
-                try:
-                    position_noise = parameters["movement_noise"]
+                    run_data = experiments[run_id]
                 except:
-                    position_noise = [0, 0]
-                try:
-                    posture_noise = parameters["posture_noise"]
-                except:
-                    posture_noise = [0, 0]
-                expected_goal = get_expected_goal(parameters["experiment_label"])
-                success1, duration, actual_followed_goals, failed_runs = db.get_service(runs, expected_goal)
-                if len(failed_runs) not in [0, 10]:
-                    repeat_these_runs+= failed_runs
-                success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
-                speeds += speed
-                success3, waits = db.get_waits(runs)
-                output.append("{}; {}; {}; {};  {};  {};  {};  {};  {}; {}; {}; {}"
-                    .format(label,
-                            "{}; {}; {}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception,
-                                                                        behavior_perception,
-                                                                        direction_perception,
-                                                                        berry_perception,
-                                                                        berry_existence,
-                                                                        robot_crate_perception,
-                                                                        picker_crate_possession_perception,
-                                                                        has_crate,
-                                                                        picker_crate_fill_perception,
-                                                                        crate_full),
-                            "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
-                            behaviour[experiment_id],
-                            "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(duration)),
-                            "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(signal_distances)),
-                            "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(stop_distances)),
-                            "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(waits)),
-                            "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(speed)),
-                            "{: >4.3f}; {: >4.3f}".format(position_noise[0], posture_noise[0]),
-                            experiment_id,
-                            ", ".join(actual_followed_goals)))
-            except IndexError:
-                pass
-    for line in sorted(output):
-        print(line)
-    repeat_these_runs = list(set(repeat_these_runs))
-    # print("Failed runs: {}".format(repeat_these_runs))
-    # delete_confirm = raw_input('Would you like to delete these runs (y/n)?\n')
-    # if delete_confirm == "y":
-    #     delete_state(repeat_these_runs)
-    #     for run_id in repeat_these_runs:
-    #         db.delete_run(run_id)
-    # print("Speed mean: {} var: {}".format(*db.calculate_statistics(speeds)))
-                # print("No runs for {}".format(subject_id))
+                    run_data = {}
+                if not "start" in run_data or run_data["start"] < line.date:
+                    run_data["start"] = line.date
+                    run_data["log"] = [line.content]
+                experiments[run_id] = run_data
+            elif line.content.startswith("EXPE: Ending Experiment run"):
+                during_run = False
+                run_id = line.content.split("run ", 1)[1][:-1]
+                run_data = experiments[run_id]
+                if not "end" in run_data or run_data["end"] < line.date:
+                    run_data["end"] = line.date
+                    run_data["log"].append(line.content)
+                experiments[run_id] = run_data
+            elif during_run:
+                experiments[run_id]["log"].append(line.content)
 
-        # print("{};{:.2f};{:.3f}".format(experiment_id, waits[experiment_id][0], waits[experiment_id][1]))
-        # print("{};{:.2f};{:.3f};{:.2f};{:.3f};{:.2f};{:.3f};{:.2f};{:.3f};{:.2f};{:.3f}".format(experiment_id, distances[experiment_id][0], distances[experiment_id][1], speeds[experiment_id][0][0], speeds[experiment_id][0][1], speeds[experiment_id][1][0], speeds[experiment_id][1][1], speeds[experiment_id][2][0], speeds[experiment_id][2][1], speeds[experiment_id][3][0], speeds[experiment_id][3][1]))
+        for run_id, run_data in experiments.items():
+            # db.add_log(run_id, run_data)
+            # print(run_id + " : " + str(len(run_data["log"])))
+            with open(os.path.join(args.config, LOG_DIRECTORY, run_id + ".log"), 'w') as file:
+                for line in run_data["log"]:
+                    file.write(line)
 
-        # experiment_id, picker_id, run_id = row
-        # cursor.execute(("SELECT timestamp, behaviour FROM picker_behavior WHERE"
-        #                 " experiment_id = ? AND picker_id = ? AND run_id = ?"),
-        #                (experiment_id, picker_id, run_id))
-    #     results = cursor.fetchall()
-    #     for result in results:
-    #         data.append([experiment_id, picker_id, run_id, result[0], "HUMAN", result[1]])
-    #     cursor.execute(("SELECT timestamp, action FROM robot_actions WHERE"
-    #                     " experiment_id = ? AND picker_id = ? AND run_id = ? AND NOT action = ?"),
-    #                    (experiment_id, picker_id, run_id, "WaitAction"))
-    #     results = cursor.fetchall()
-    #     for result in results:
-    #         data.append([experiment_id, picker_id, run_id, result[0], "ROBOT", result[1]])
-    #     cursor.execute(("SELECT timestamp, goal FROM robot_goals WHERE"
-    #                     " experiment_id = ? AND picker_id = ? AND run_id = ? AND NOT goal = ?"),
-    #                    (experiment_id, picker_id, run_id, "WaitGoal"))
-    #     results = cursor.fetchall()
-    #     for result in results:
-    #         data.append([experiment_id, picker_id, run_id, result[0], "ROBOT", result[1]])
-    # data.sort(key=letter_cmp_key)
+
+
+    # with open(filename, 'r') as file:
+    #     for line in file.readlines():
+
+    # search run borders in log files
+    # save run-specific logs in individual log files
     #
-    # for entry in data:
-    #     print("{} {} {} {:.3f} {} {}".format(*entry))
+
+
+    #
+    #
+    # PER_SUBJECT = False
+    # experiments = []
+    # for experiment in range(1,2+1):
+    #     for run in range(1,10+1):
+    #         try:
+    #             experiments += get_run_data(os.path.join("/", "home", "rasberry", ".ros", "experiment{:d}".format(experiment), "session-{:d}".format(run)))
+    #         except:
+    #             pass
+    # data = {}
+    # if PER_SUBJECT:
+    #     for e in experiments:
+    #         try:
+    #             data[e["scenario"]][e["subject_id"]]["success"].append(e["success"])
+    #             if e["success"]:
+    #                 data[e["scenario"]][e["subject_id"]]["durations"].append(e["time to service"].total_seconds())
+    #             try:
+    #                 if e["scenario"] != "Evasion" and e["scenario"] != "BerryEvasion":
+    #                     data[e["scenario"]][e["subject_id"]]["distances"].append(float(e["meeting distance"]))
+    #             except:
+    #                 pass
+    #         except:
+    #             if e["scenario"] not in data:
+    #                 data[e["scenario"]] = {}
+    #             if e["subject_id"] not in data[e["scenario"]]:
+    #                 data[e["scenario"]][e["subject_id"]] = { "success": [], "distances": [], "durations": []}
+    #             try:
+    #                 if e["scenario"] != "Evasion" and e["scenario"] != "BerryEvasion":
+    #                     data[e["scenario"]][e["subject_id"]]["distances"].append(float(e["meeting distance"]))
+    #             except:
+    #                 pass
+    #             data[e["scenario"]][e["subject_id"]]["success"].append(e["success"])
+    #             data[e["scenario"]][e["subject_id"]]["durations"].append(e["time to service"].total_seconds())
+    #     results = []
+    #     for scenario_id, scenario in data.items():
+    #         for subject_id, subject in scenario.items():
+    #             results.append({"scenario": scenario_id, "subject_id": subject_id, "success": get_success(subject["success"]), "meeting distance": get_statistics(subject["distances"]), "time to service": get_statistics(subject["durations"])})
+    #     print("scenario;mode;subject;success;min distance; duration")
+    #     for e in results:
+    #         if e["success"]:
+    #             try:
+    #                 print(" & ".join([e["scenario"],e["subject_id"],str(e["success"]),e["meeting distance"],e["time to service"]])+"\\\\")
+    #             except:
+    #                 print(" & ".join([e["scenario"],e["subject_id"],str(e["success"]),"\\multicolumn{2}{c|}{N/A}",str(e["time to service"])])+"\\\\")
+    #         else:
+    #             try:
+    #                 print(" & ".join([e["scenario"],e["subject_id"],str(e["success"]),"{:.2f}".format(float(e["meeting distance"])),str(e["time to end"])])+"\\\\")
+    #             except:
+    #                 print(" & ".join([e["scenario"],e["subject_id"],str(e["success"]),"\\multicolumn{2}{c|}{N/A}",str(e["time to end"])])+"\\\\")
+    # else:
+    #     for e in experiments:
+    #         try:
+    #             data[e["scenario"]]["success"].append(e["success"])
+    #             if e["success"]:
+    #                 data[e["scenario"]]["durations"].append(e["time to service"].total_seconds())
+    #             try:
+    #                 if e["scenario"] != "Evasion" and e["scenario"] != "BerryEvasion":
+    #                     data[e["scenario"]]["distances"].append(float(e["meeting distance"]))
+    #             except:
+    #                 pass
+    #         except:
+    #             if e["scenario"] not in data:
+    #                 data[e["scenario"]] = { "success": [], "distances": [], "durations": []}
+    #             try:
+    #                 if e["scenario"] != "Evasion" and e["scenario"] != "BerryEvasion":
+    #                     data[e["scenario"]]["distances"].append(float(e["meeting distance"]))
+    #             except:
+    #                 pass
+    #             data[e["scenario"]]["success"].append(e["success"])
+    #             data[e["scenario"]]["durations"].append(e["time to service"].total_seconds())
+    #     results = []
+    #     for scenario_id, scenario in data.items():
+    #         results.append({"scenario": scenario_id, "success": get_success(scenario["success"]), "meeting distance": get_statistics(scenario["distances"]), "time to service": get_statistics(scenario["durations"])})
+    #     print("scenario;mode;subject;success;min distance; duration")
+    #     for e in results:
+    #         if e["success"]:
+    #             try:
+    #                 print(" & ".join([e["scenario"],str(e["success"]),e["meeting distance"],e["time to service"]])+"\\\\")
+    #             except:
+    #                 print(" & ".join([e["scenario"],str(e["success"]),"\\multicolumn{2}{c|}{N/A}",str(e["time to service"])])+"\\\\")
+    #         else:
+    #             try:
+    #                 print(" & ".join([e["scenario"],str(e["success"]),"{:.2f}".format(float(e["meeting distance"])),str(e["time to end"])])+"\\\\")
+    #             except:
+    #                 print(" & ".join([e["scenario"],str(e["success"]),"\\multicolumn{2}{c|}{N/A}",str(e["time to end"])])+"\\\\")
+
+        # try:
+        #     print("Scenario: {} Subject: {} Mode: {} Succes: {} Time to service: {}".format(e["scenario"], e["subject_id"], e["mode"], e["success"], e["time to service"]))
+        # except:
+        #     try:
+        #         print("Scenario: {} Subject: {} Mode: {} Succes: {} Time to meet: {}".format(e["scenario"], e["subject_id"], e["mode"], e["success"], e["time to meeting"]))
+        #     except:
+        #         print("Scenario: {} Subject: {} Mode: {} Succes: {} Time to end: {}".format(e["scenario"], e["subject_id"], e["mode"], e["success"], e["end time"]))

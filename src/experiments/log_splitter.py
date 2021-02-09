@@ -286,7 +286,10 @@ def check_logs(run_ids):
     for root, subdirs, files in os.walk(os.path.join(args.config, LOG_DIRECTORY)):
         for filename in files:
             run_id = filename[:-4]
-            run_ids.remove(run_id)
+            try:
+                run_ids.remove(run_id)
+            except:
+                pass
     return run_ids
 
 
@@ -308,9 +311,7 @@ if __name__ == '__main__':
         pass
     if args.check:
         run_ids = db.get_runs()
-        missing, broken = check_logs(run_ids)
-        print("broken:")
-        print(broken)
+        missing = check_logs(run_ids)
         print("missing:")
         print(missing)
     elif args.move:

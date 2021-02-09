@@ -224,16 +224,24 @@ class Line(object):
     def __le__(self, other):
         return (self < other) or (self == other)
 
+    def __repr__(self):
+        return "{:%Y-%m-%d %H:%M:%S,%f}: {}".format(self.date, self.content)
+
 
 class Traceback(Line):
     def __init__(self, traceback, last_line):
         first_line = traceback.split("\n", 1)[0]
         try:
             super(Traceback, self).__init__(first_line)
+            self.content = traceback.split(": ", 1)[1]
         except:
             super(Traceback, self).__init__(last_line)
             self.line = first_line
-        self.content = traceback
+            self.content = traceback
+
+
+    def __repr__(self):
+        return "{:%Y-%m-%d %H:%M:%S,%f}: {}".format(self.date, self.content)
 
 
 def get_logs(path, logs=[]):
@@ -324,7 +332,7 @@ if __name__ == '__main__':
                     run_data = {}
                 if not "start" in run_data or run_data["start"] < line.date:
                     run_data["start"] = line.date
-                    run_data["log"] = [line.content]
+                    run_data["log"] = [str(line)]
                 experiments[run_id] = run_data
             elif line.content.startswith("EXPE: Ending Experiment run"):
                 during_run = False
@@ -332,10 +340,10 @@ if __name__ == '__main__':
                 run_data = experiments[run_id]
                 if not "end" in run_data or run_data["end"] < line.date:
                     run_data["end"] = line.date
-                    run_data["log"].append(line.content)
+                    run_data["log"].append(str(line))
                 experiments[run_id] = run_data
             elif during_run:
-                experiments[run_id]["log"].append(line.content)
+                experiments[run_id]["log"].append(str(line))
 
         for run_id, run_data in experiments.items():
             # db.add_log(run_id, run_data)

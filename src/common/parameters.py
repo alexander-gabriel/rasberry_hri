@@ -81,7 +81,13 @@ MIN_GAIN = define("min_gain", 0)
 
 # ACTION RECOGNITION
 
-CAMERA_TOPIC = define("camera", "/camera/color/image_raw")
+CAMERA_TOPIC = define("camera", "/camera/color/image_raw") # realsense color raw
+# CAMERA_TOPIC = define("camera", "/camera/depth/image_rect_raw")  # realsense color rect 
+# CAMERA_TOPIC = define("camera", "/camera/infra1/image_rect_raw") # realsense infrared 1
+# CAMERA_TOPIC = define("camera", "/camera/infra2/image_rect_raw") # realsense infrared 2
+# CAMERA_TOPIC = define("camera", "/zed/right/image_rect_color") # zed stereo right
+# CAMERA_TOPIC = define("camera", "/zed/left/image_rect_color") # zed stereo left
+# CAMERA_TOPIC = define("camera", "/optris/thermal_image_view") # optris thermal
 CLASSIFICATION_TOLERANCE = define("classification_tolerance", 20)
 ANGLE_WEIGHT = define("angle_weight", 1.0)
 DETECTION_COUNT = define("detection_count", 10)

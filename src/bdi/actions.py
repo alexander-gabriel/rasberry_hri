@@ -59,10 +59,7 @@ class Action(object):
         self.cost = 0
         self.first_try = True
         self.start_time = None
-
         replacement_table = args
-        # {key: value for key, value in zip(self.placeholders, self.instances)}
-
         for condition in self.condition_templates:
             new_variables = list(
                 map(
@@ -109,11 +106,6 @@ class Action(object):
             if type(self) != WaitAction:
                 rospy.loginfo("ACT: Performing {:}".format(self))
             self.first_try = False
-        # for condition in self.conditions:
-        #     if not condition in self.consequences:
-        #         self.ws.abandon_belief(condition)
-        # for consequence in self.consequences:
-        #     self.ws.add_belief(consequence)
 
     def get_cost(self):
         return self.cost
@@ -150,7 +142,7 @@ class MoveAction(Action):
     def perform(self):
         super(MoveAction, self).perform()
         if not self.sent_movement_request:
-            self.startint_too_close = self.ws.too_close
+            self.starting_too_close = self.ws.too_close
             # timestamp, typ, distance, x, y
             x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
             db.add_action_entry(self.start_time, float(x), float(y),
@@ -161,7 +153,7 @@ class MoveAction(Action):
             self.ws.moving = True
             return False
         try:
-            if self.robco.get_result() or (self.ws.too_close and not self.startint_too_close):
+            if self.robco.get_result() or (self.ws.too_close and not self.starting_too_close):
                 time = rospy.get_time()
                 x, y, _ = self.ws.get_position(ConceptNode(ME))[-1].to_list()
                 self.ws.moving = False
@@ -427,7 +419,6 @@ class ExchangeCrateAction(Action):
     placeholders = [ME, "picker", "my_destination", "my_position"]
 
     def __init__(self, world_state, robco, args):
-        # [me, picker, my_destination]
         super(ExchangeCrateAction, self).__init__(world_state, args)
         self.robco = robco
         self.picker = args["picker"]
@@ -629,7 +620,6 @@ class ApproachAction(Action):
                 self.sent_movement_request = True
                 self.ws.moving = True
             try:
-                # this next line will
                 result = self.robco.get_result()
                 if result:
                     time = rospy.get_time()

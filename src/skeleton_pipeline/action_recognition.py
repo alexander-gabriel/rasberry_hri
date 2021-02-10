@@ -1,18 +1,20 @@
 import json
 import os
 import rospy
-from openpose import Openpose
+
 
 from sensor_msgs.msg import Image
 from image_recognition_msgs.srv import Recognize
+from rasberry_hri.msg import Action, Command, Joint, Classification
 
+from common.utils import get_angle_prototype, get_position_prototype, suppress
 from common.parameters import NS, DETECTION_COUNT, COOLDOWN, TARGET_PICKER, \
     CAMERA_TOPIC, BEHAVIOR_PERCEPTION, GESTURE_PERCEPTION, CONFIG_DIRECTORY, \
     LOG_DIRECTORY, USE_ACTION_RECOGNITION, define
-from rasberry_hri.msg import Action, Command, Joint, Classification
+    
 from converter import Converter
 from classifiers import MinimumDifferenceClassifier
-from common.utils import get_angle_prototype, get_position_prototype, suppress
+from openpose import Openpose
 
 
 class ActionRecognition:
@@ -52,16 +54,6 @@ class ActionRecognition:
         else:
             self.sub = rospy.Subscriber('{}/human_actions'.format(NS), Action, self.action_callback)
             rospy.loginfo("ACR: Subscribed to {}/human_actions".format(NS))
-
-        # rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.callback_depth)
-        # rospy.Subscriber("/camera/infra1/image_rect_raw", Image, self.callback_infra1)
-        # rospy.Subscriber("/camera/infra2/image_rect_raw", Image, self.callback_infra2)
-
-        # ZED camera
-        # rospy.Subscriber("/zed/left/image_rect_color", Image, self.callback_rgb)
-
-        # Thermal camera
-        # rospy.Subscriber("/optris/thermal_image_view", Image, self.callback_thermal)
         rospy.loginfo("ACR: Initialization Complete")
 
     def run(self):
@@ -80,7 +72,6 @@ class ActionRecognition:
         finally:
             rospy.logwarn("ACR: we reached finally")
             self.shutdown()
-
 
     def openpose_callback(self, timestamp, source, response):
         if response.recognitions:
@@ -142,17 +133,11 @@ class ActionRecognition:
         positions = get_position_prototype()
         angles = get_angle_prototype()
         for joint in msg.joints:
-            # old
-            # angle_key = "{:}-X".format(joint.label)
-            # pos_x_key = "{:}-X".format(joint.label)
-            # pos_y_key = "{:}-Y".format(joint.label)
             angles[joint.label] = joint.angle
             positions[joint.label] = {}
             positions[joint.label]['X'] = joint.position.x
             positions[joint.label]['Y'] = joint.position.y
             positions[joint.label]['P'] = 0.5  # joint.confidence
-        # rospy.loginfo(angles)
-        # sys.exit(0)
         with open(os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY, "angles.log"), 'w') as f:
             json.dump(angles, f)
         with open(os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY, "positions.log"), 'w') as f:
@@ -160,15 +145,14 @@ class ActionRecognition:
         action, classification = self.get_action(angles, positions)
         classification.header.stamp = msg.header.stamp
         self.classification_publisher.publish(classification)
-        with open(os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY) +"action.log", 'w') as f:
+        with open(os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY) + "action.log", 'w') as f:
             json.dump(action, f)
         if action is not None:
-            # pass
             rospy.logdebug("ACR: Detected behavior '{}'".format(action))
             outmsg = Action()
             outmsg.header.stamp = msg.header.stamp
             outmsg.action = action or ""
-            outmsg.person = define("target_picker","PICKER_NAME_NOT_SET") #self.picker
+            outmsg.person = define("target_picker","PICKER_NAME_NOT_SET")
             # outmsg.header.stamp = rospy.get_rostime()
             outmsg.joints = []
             for key in angles.keys():
@@ -195,7 +179,6 @@ class ActionRecognition:
                 self.action_publisher2.publish(outmsg)
 
     def get_positions(self):
-
         # convert x/y offsets to values relative to some reference point (neck?)
         # adjust joint number and setup and labels
         model = get_position_prototype()
@@ -211,7 +194,6 @@ class ActionRecognition:
                 model[id] = self.converter.get_angle2(id)
             except Exception:
                 pass
-
         for id in ['Right:Elbow', 'Upper-Spine', 'Mid-Spine', 'Lower-Spine',
                    'Right:Shoulder', 'Right:Hip', 'Right:Knee']:
             try:
@@ -223,14 +205,6 @@ class ActionRecognition:
                 model[id] = self.converter.get_angle1(id)
             except Exception:
                 pass
-        # self.publisher.publish(outmsg)
-        # if msg.header.frame_id == "RGB":
-        #     self.model.add_sample(CATEGORY_JOINTS_OPENPOSE_2D_RGB, msg.header.stamp, model)
-        # elif msg.header.frame_id == "THERMAL":
-        #     self.model.add_sample(CATEGORY_JOINTS_OPENPOSE_2D_THERMAL, msg.header.stamp, model)
-        # else:
-        #     print("unknown category")
-        #self.model.classify(inp)
         return model
 
     def get_action(self, angles, positions):
@@ -258,7 +232,6 @@ class ActionRecognition:
                 return (action_label, classification)
             else:
                 return (None, classification)
-
         else:
             return (None, classification)
 

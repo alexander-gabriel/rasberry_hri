@@ -19,48 +19,6 @@ class Config():
         self.termination_time = data["termination_time"]
         self.experiment_label = "{}".format(data["experiment_label"])
 
-
-
-
-        # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/picker_mover.launch"]
-        # self.launch_files = ["/home/rasberry/catkin_ws/src/rasberry_hri/launch/hri_agent.launch"]
-        # self.robot_pose = PoseWithCovarianceStamped()
-        # self.robot_pose.pose.pose.position.x = 11.649
-        # self.robot_pose.pose.pose.position.y = 4.62
-        # self.robot_pose.pose.pose.position.z = 0
-
-    # def reset(self):
-    #     self.behaviour_times = copy(self._behaviour_times)
-    #     self.behaviours = copy(self._behaviours)
-
-    # def get_bag_paths(self):
-    #     bags = {}
-    #     for _, behaviour in self.behaviours.items():
-    #         if behaviour["type"] == "rosbag":
-    #             bag_path = behaviour["filename"]
-    #             bags[bag_path] = rosbag.Bag(bag_path)
-    #     return bags
-
-    # def update_behaviour_times(self):
-    #     self.behaviour_times = sorted(self.behaviours.keys())
-    #     self._behaviour_times = copy(self.behaviour_times)
-    #     self._behaviours = copy(self.behaviours)
-
-    # def add_parameter(self, label, values):
-    #     if not isinstance(values, list):
-    #         values = [values]
-    #     self.parameters[label] = values
-
-    # def get_next_behaviour_time(self):
-    #     try:
-    #         return self.behaviour_times[0]
-    #     except IndexError:
-    #         return float('inf')
-
-    # def get_next_behaviour(self):
-    #     return self.behaviours[self.behaviour_times.pop(0)]
-
-
     def _generate_parameter_set(self):
         try:
             return self.parameter_set

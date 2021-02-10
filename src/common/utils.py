@@ -1,25 +1,19 @@
-# from threading import Lock
 from contextlib import contextmanager
 from math import pi
-
 import os
-# import sys
-
 from subprocess import Popen
-# from threading import Thread
 
 import rospy
 
 from opencog.atomspace import AtomSpace
-
 from opencog.type_constructors import VariableNode, ConceptNode, \
                                       TypedVariableLink, TypeNode, \
                                       PredicateNode, NumberNode, FloatValue
 from opencog.utilities import initialize_opencog
 
-from experiments.log_writer import DB
-
+from experiments.db import DB
 from common.parameters import EXPERIMENT_ID, TARGET_PICKER, RUN_ID, EXPERIMENT_LABEL
+
 
 atomspace = AtomSpace()
 initialize_opencog(atomspace)

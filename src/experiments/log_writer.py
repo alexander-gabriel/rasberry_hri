@@ -50,27 +50,9 @@ class DB:
             cursor.execute("CREATE TABLE meetings (run_id text, timestamp float, "
                            "x float, y float, signal_distance float, stop_distance float, speed_profile text, "
                            "FOREIGN KEY (run_id) REFERENCES runs (run_id))")
-
-            # cursor.execute("CREATE TABLE experiments (experiment_label text, experiment_id text)")
-            # cursor.execute("CREATE TABLE picker_behavior (experiment_id text,"
-            #                "picker_id text, run_id text, timestamp float, x float, y float,"
-            #                "orientation float, behaviour text)")
-            # cursor.execute("CREATE TABLE picker_waiting (experiment_id text,"
-            #                "picker_id text, run_id text, timestamp float, x float, y float,"
-            #                "orientation float, wait float)")
-            # cursor.execute("CREATE TABLE robot_actions (experiment_id text,"
-            #                "picker_id text, run_id text, timestamp float, duration float,"
-            #                "start_x float, start_y float, end_x float, end_y float,"
-            #                "action text, info text)")
-            # cursor.execute("CREATE TABLE robot_goals (experiment_id text,"
-            #                "picker_id text, run_id text, timestamp float, duration float,"
-            #                "start_x float, start_y float, end_x float, end_y float,"
-            #                "goal text)")
-            # cursor.execute("CREATE TABLE meetings (experiment_id text,"
-            #                "picker_id text, run_id text, timestamp float, x float, y float,"
-            #                "signal_distance float, stop_distance float, speed_profile text)")
             self.db.commit()
 
+    # variance testing
     # def add_entry(self, timestamp, typ, target, x, y):
     #     cursor = self.db.cursor()
     #     cursor.execute("INSERT INTO movement_variance VALUES"
@@ -126,13 +108,6 @@ class DB:
                 (timestamp, x, y, distance, self.run_id))
             self.db.commit()
             rospy.logwarn("DBW: updated meet entry at {:.2}m distance".format(distance))
-
-    # def add_robot_entry(self, timestamp, x, y, orientation, behaviour):
-    #     cursor = self.db.cursor()
-    #     cursor.execute(
-    #         "INSERT INTO robot_behavior VALUES (?, ?, ?, ?, ?, ?)",
-    #         (self.experiment_id, timestamp, x, y, orientation, behaviour))
-    #     self.db.commit()
 
     def add_action_entry(self, timestamp, x, y, action, info):
         with closing(self.db.cursor()) as cursor:

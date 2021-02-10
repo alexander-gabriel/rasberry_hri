@@ -1,38 +1,19 @@
-# import sys
 from threading import RLock
 import time
-# from copy import copy
 
 from opencog.atomspace import createFloatValue, createLinkValue
 from opencog.atomspace import types
-# from opencog.type_constructors import *
 from opencog.type_constructors import ConceptNode, InheritanceLink, TruthValue
 from opencog.ure import BackwardChainer
-# from opencog.utilities import initialize_opencog
 from opencog.scheme_wrapper import scheme_eval
 from opencog.bindlink import execute_atom, evaluate_atom
 from opencog.logger import log
 
 import rospy
 
-# atomspace = AtomSpace()
-# initialize_opencog(atomspace)
-# set_type_ctor_atomspace(atomspace)
 from common.utils import atomspace
-# from common.parameters import *
 from common.parameters import ITERATIONS, COMPLEXITY_PENALTY
-# set_type_ctor_atomspace(self.atomspace)
 
-# def lock():
-#     rospy.loginfo("{} wants lock".format(sys._getframe().f_back.f_code.co_name))
-#     # return
-#     LOCK.acquire()
-#     rospy.loginfo("{} has lock".format(sys._getframe().f_back.f_code.co_name))
-#
-# def unlock():
-#     # return
-#     LOCK.release()
-#     rospy.loginfo("{} released lock".format(sys._getframe().f_back.f_code.co_name))
 
 
 class KnowledgeBase(object):
@@ -41,7 +22,6 @@ class KnowledgeBase(object):
         rospy.loginfo("KNB: Initializing Knowledge Base")
         self.atomspace = atomspace
         self.debug = 0
-        # initialize_opencog(self.atomspace)
         self.lock = RLock()
         self.TRUE = TruthValue(1, 1)
         self.FALSE = TruthValue(0, 1)
@@ -90,7 +70,6 @@ class KnowledgeBase(object):
                     rospy.logwarn("Untrue Results:\n{}".format(results))
                 # rospy.loginfo("WST: Chaining Result:{:}".format(result))
                 # rospy.loginfo("WST: ---------------------")
-
         if not got_one:
             self.debug += 1
             if query.type_name == "GetLink":
@@ -220,11 +199,6 @@ class KnowledgeBase(object):
                 self.recursive_query_matcher(query, result, target)
         return target
 
-    # def add_link(self, link, truth_value=None):
-    #     truth_value = self.TRUE if truth_value is None else truth_value
-    #     with lock:
-    #         self.atomspace.add_link(link, tv=truth_value)
-
     def set_value(self, node, key, value):
         node.set_value(self.predicate(key), value)
 
@@ -236,10 +210,6 @@ class KnowledgeBase(object):
 
     def LinkValue(self, value):
         return createLinkValue(value)
-
-    # def add_node(self, node=None):
-    #     with lock:
-    #         self.atomspace.add_node(node)
 
     def number(self, name):
         with self.lock:
@@ -292,9 +262,6 @@ class KnowledgeBase(object):
 
     def inheritance(self, *subnodes, **kwargs):
         with self.lock:
-            # is_a = self.atomspace.add_node(types.PredicateNode, "is a")
-            # list_link = self.atomspace.add_link(types.ListLink, list(subnodes))
-            # return self.atomspace.add_link(types.EvaluationLink, [is_a, list_link])
             return self.atomspace.add_link(types.InheritanceLink,
                                            list(subnodes))
 
@@ -601,7 +568,6 @@ class KnowledgeBase(object):
         self.member(deduction_rule_name, deduction_rbs)
 
     def build_ontology(self):
-
         thing = ConceptNode("thing")
         thing.tv = self.TRUE
 
@@ -645,119 +611,3 @@ class KnowledgeBase(object):
         self.crate = ConceptNode("crate")
         self.crate.tv = self.TRUE
         InheritanceLink(self.crate, obj).tv = self.TRUE
-
-        # p1 = self.variable("place1")
-        # p2 = self.variable("place2")
-        # p3 = self.variable("place3")
-        # t1 = self.variable("thing1")
-        # s1 = self.variable("state1")
-        # t2 = self.variable("thing2")
-        # hum1 = self.variable("human1")
-        # obj1 = self.variable("object1")
-        # cre1 = self.variable("creature1")
-
-        # self.for_all(
-        #     p1,
-        #     self.evaluation(
-        #         self.predicate("leads_to"),
-        #         self.list(p1, p1)).tv = self.FALSE)
-        #
-        # self.for_all(
-        #     self.variable_list(p1, p2),
-        #     self.implication(
-        #         self.evaluation(
-        #             self.predicate("leads_to"),
-        #             self.list(p1, p2)),
-        #             self.evaluation(
-        #                 self.predicate("linked"),
-        #                 self.list(p1, p2)).tv = self.TRUE))
-        #
-        # self.for_all(
-        #     self.variable_list(p1, p2, p3),
-        #     self.implication(
-        #         self.And(
-        #             self.Not(
-        #                 self.identical(p1, p3)),
-        #             self.evaluation(
-        #                 self.predicate("linked"),
-        #                 self.list(p1, p2)),
-        #             self.evaluation(
-        #                 self.predicate("linked"),
-        #                 self.list(p2, p3))),
-        #         self.evaluation(
-        #             self.predicate("linked"),
-        #             self.list(p1, p3)).tv = self.TRUE))
-        #
-        # self.for_all(
-        #     self.variable_list(p1, p2),
-        #     self.implication(
-        #         self.And(
-        #             self.evaluation(
-        #                 self.predicate("leads_to"),
-        #                 self.list(p1, p2)),
-        #             self.Not(
-        #                 self.exists(t1, self.state(t1, p2))),
-        #             self.or(
-        #                 self.evaluation(
-        #                     self.predicate("can_reach"),
-        #                     self.list(p2, p3)),
-        #                 self.identical(p1, p3))),
-        #         self.evaluation(
-        #             self.predicate("free_path"),
-        #             self.list(p1, p3)).tv = self.TRUE))
-        #
-        # self.for_all(
-        #     self.variable_list(p1, p2, obj1, cre1),
-        #     self.implication(
-        #         self.or(
-        #             self.inheritance(obj1, obj),
-        #             self.inheritance(obj1, plant)),
-        #         self.evaluation(
-        #             self.predicate("can_reach"),
-        #             self.list(p1, p2)).tv = self.FALSE))
-        # self.for_all(
-        #     self.variable_list(p1, p2, obj1, cre1),
-        #     self.implication(
-        #         self.And(
-        #             self.or(
-        #                 self.inheritance(obj1, obj),
-        #                 self.inheritance(obj1, plant)),
-        #             self.inheritance(cre1, creature),
-        #             self.state(cre1, p1),
-        #             self.state(obj1, p2),
-        #             self.or(
-        #                 self.evaluation(
-        #                     self.predicate("free_path"),
-        #                     self.list(p1, p2)),
-        #                 self.evaluation(
-        #                     self.predicate("leads_to"),
-        #                     self.list(p1, p2)))),
-        #         self.evaluation(
-        #             self.predicate("can_reach"),
-        #             self.list(p1, p2)).tv = self.TRUE))
-        #
-        # self.for_all(
-        #     self.variable_list(t1, t2, p1),
-        #     self.implication(
-        #         self.And(
-        #             self.Not(self.identical(t1, t2)),
-        #             self.state(t1, p1),
-        #             self.state(t2, p1)),
-        #         self.evaluation(
-        #             self.predicate("colocated"),
-        #             self.list(t1, t2)).tv = self.TRUE))
-        # self.for_all(
-        #     self.variable_list(t1, t2, p1, p2),
-        #     self.implication(
-        #         self.And(
-        #             self.Not(self.identical(t1, t2)),
-        #             self.Not(self.identical(p1, p2)),
-        #             self.state(t1, p1),
-        #             self.state(t2, p2)),
-        #         self.evaluation(
-        #             self.predicate("colocated"),
-        #             self.list(t1, t2)).tv = self.FALSE))
-        # self.evaluation(
-        #     self.identical(
-        #         self.set(ConceptNode("has_crate")),
-        #         self.get(self.state(hum1, s1))))

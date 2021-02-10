@@ -78,12 +78,6 @@ class Goal(object):
         if inspect.isclass(other):
             return other.__name__ == self.__class__.__name__
         if isinstance(other, self.__class__):
-            # for subgoal in self.subgoal_templates:
-            #     if not subgoal in other.subgoal_templates:
-            #         return False
-            # for subgoal in other.subgoal_templates:
-            #     if not subgoal in self.subgoal_templates:
-            #         return False
             return (
                 self.action_template == other.action_template
                 and self.subgoal_templates == other.subgoal_templates
@@ -93,12 +87,6 @@ class Goal(object):
     def __ne__(self, other):
         """Override the default Equals behavior"""
         if isinstance(other, self.__class__):
-            # for subgoal in self.subgoal_templates:
-            #     if not subgoal in other.subgoal_templates:
-            #         return True
-            # for subgoal in other.subgoal_templates:
-            #     if not subgoal in self.subgoal_templates:
-            #         return True
             return not (
                 self.action_template == other.action_template
                 and self.subgoal_templates == other.subgoal_templates
@@ -122,7 +110,6 @@ class Goal(object):
     def get_condition_templates(cls):
         try:
             cls.guide = []
-            # cls.guide = cls.action_template.get_instance_guide()
             rospy.logdebug(
                 "{:}.action_template.condition_templates: {}".format(
                     cls.__name__, cls.action_template.condition_templates
@@ -212,7 +199,6 @@ class Goal(object):
 
     @classmethod
     def get_targets(cls, targets, variables, results):
-        # variables = variables.get_out()
         if results.is_a(types.ListLink):
             results_out = results.get_out()
         else:
@@ -406,8 +392,6 @@ class Goal(object):
         # rospy.logwarn("GOL: classic reasoning results:\n{}".format(results))
         for setlink in results.get_out():
             for listlink in setlink.get_out():
-                # if result.tv == world_state.kb.TRUE:
-                # (SetLink (ListLink (ConceptNode "Picker02") (ConceptNode "human") (ConceptNode "WayPoint106") (ConceptNode "WayPoint104")))
                 this_target = copy(target)
                 # rospy.logwarn(listlink)
                 cls.get_targets(this_target, variables, listlink)
@@ -432,52 +416,6 @@ class Goal(object):
             return True
         else:
             return False
-        # TODO: this check requires a new set of condition primitives and an updated get_consequences function so it can query for the truth of statements without making statements
-
-        # start_time = time.time()
-        # success = False
-        # if not self.get_action_queue():
-        #     consequences = []
-        #     for fun, args in self.get_consequences():
-        #         rospy.loginfo("{}: {}".format(fun, args))
-        #         new_args = []
-        #         for arg in args:
-        #             if arg == ME:
-        #                 new_args.append(ConceptNode(ME))
-        #             else:
-        #                 new_args.append(ConceptNode(arg))
-        #         candidate = fun(world_state, *new_args)
-        #         consequences.append(candidate)
-        #     rospy.logdebug("Consequences from is_achieved:\n{}".format(consequences))
-        #     # query = AndLink(*consequences)
-        #     query = consequences[0]
-        #     consequence_count = len(consequences)
-        #     if consequence_count > 1:
-        #         query = AndLink(*consequences)
-        #     elif consequence_count == 1:
-        #         query = consequences[0]
-        #     else:
-        #         return True
-        #     rospy.logdebug("GOL: Check:\n{:}".format(query))
-        #     results = world_state.kb.reason(query, None)
-        #     rospy.logdebug("------ is achieved? ------")
-        #     rospy.logdebug(results)
-        #     for listlink in results.get_out():
-        #         if listlink.tv == world_state.kb.TRUE:
-        #             rospy.logwarn("pleasure achieved")
-        #             success = True
-        #         else:
-        #             rospy.logdebug("no bueno")
-        #             success = False
-        #     # if (results.tv == world_state.kb.TRUE):
-        #     #     rospy.logdebug("pleasure achieved")
-        #     #     success = True
-        #     # else:
-        #     #     rospy.logdebug("no bueno")
-        #     #     success = False
-        # rospy.logdebug("GOL: Checked if goal {:} was achieved -- {:.4f}".format(self, time.time() - start_time))
-        #
-        # return success
 
     def get_action_queue(self):
         try:

@@ -1,34 +1,29 @@
 #!/usr/bin/env python
 import os
-
 import base64
+import warnings
 
 import paramiko
 import rospy
 import roslaunch
 import rosparam
 import rosnode
-# import dynamic_reconfigure.client
 
 from std_srvs.srv import Empty  # , Trigger
-
-# from robot_localization. srv import ToggleFilterProcessing
 from std_msgs.msg import String
-
-# from sensor_msgs.msg import Image
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from rosgraph_msgs.msg import Clock
 from gazebo_msgs.msg import ModelState
 from gazebo_msgs.srv import SetModelState  # , GetModelState
 from rasberry_hri.msg import Action
 
-# from config import Config
 from bdi.robot_control import RobotControl
 from common.parameters import NS, BEHAVIOURS, CONFIG_DIRECTORY, \
     STATE_DIRECTORY, EXPERIMENT_START_DELAY
 
-import warnings
+
 warnings.filterwarnings(action='ignore', module='.*paramiko.*')
+
 
 key = paramiko.RSAKey(
     data=base64.b64decode(
@@ -36,7 +31,6 @@ key = paramiko.RSAKey(
     )
 )
 
-# command = """tmux send-keys -t "robot_local.0" C-c C-m 'roslaunch rasberry_navigation rasberry_localisation_multisim.launch use_imu:="$USE_IMU" publish_tf:="$EKF_PUBLISH_TF" robot_name:=$ROBOT_NAME_1 initial_pose_x:=$ROBOT_POS_X_1 initial_pose_y:=$ROBOT_POS_Y_1 initial_pose_a:=$ROBOT_POS_A_1' C-m"""
 
 # 102: 8.675 4.65
 # 103: 11.649 4.64
@@ -58,8 +52,6 @@ class Experiment:
     def __init__(self, config):
         self.config = config
 
-        # rospy.set_param("{}/experiment_id".format(NS), self.config["experiment_id"])
-        # super(Config, self).__init__()
         rospy.loginfo(
             "EXP: Initializing Experiment: {}".format(config["experiment_label"])
         )
@@ -70,47 +62,10 @@ class Experiment:
         self.set_model_state = self.create_service_proxy(
             "/gazebo/set_model_state", SetModelState, local=False
         )
-
-
         self.set_robot_position()
-
         self.is_finished = False
-
         self.robco = RobotControl(self.config["robot"])
-
-        # self.initial_pose_publisher = rospy.Publisher(
-        #     "/{:}/initialpose".format(self.config["robot"]),
-        #     PoseWithCovarianceStamped,
-        #     queue_size=10,
-        # )
-        # self.picker_pose_publisher = rospy.Publisher(
-        #     "/picker_mover", String, queue_size=10
-        # )
-        # self.human_action_publisher = rospy.Publisher(
-        #     "/human_actions", Action, queue_size=10
-        # )
-        # self.robot_pose_publisher = rospy.Publisher(
-        #     "/{:}/set_pose".format(self.config["robot"]),
-        #     PoseWithCovarianceStamped,
-        #     queue_size=10,
-        # )
-        # self.camera_publisher = rospy.Publisher(
-        #       "/camera/color/image_raw", Image, queue_size=10)
-
-        # self.bag_paths = convert_bags(self.config)
-        # self.bags = self.config.get_bag_paths()
-        # self.running_bags = []
-
         rospy.loginfo("EXP: Initialization finished")
-        # reconfigure robot speed
-        # client = dynamic_reconfigure.client.Client("/{:}/move_base/DWAPlannerROS".format(self.config["robot"]), timeout=4)
-        # client.update_configuration(
-        # {"max_vel_x":1.5})
-        # {
-        # "int_param":x,
-        # "double_param":(1/(x+1)),
-        # "str_param":str(rospy.get_rostime()),
-        # "bool_param":b, "size":1})
 
     def set_robot_position(self):
         self.ssh_client = paramiko.SSHClient()
@@ -130,14 +85,7 @@ class Experiment:
         self.ssh_client.connect("simulator", username="rasberry")
         stdin, stdout, stderr = self.ssh_client.exec_command(get_command(x, y))
         self.ssh_client.close()
-        # running_nodes = rosnode.get_node_names()
-        # while ("/thorvald_001/picker_mover" not in running_nodes
-        #     or '/thorvald_001/action_recognition_node' not in running_nodes
-        #     or '/thorvald_001/scheduler' not in running_nodes
-        #     or '/thorvald_001/openpose' not in running_nodes):
-        #     rospy.sleep(1)
         rospy.sleep(3)
-
 
     def create_service_proxy(self, topic, type=Empty, local=True):
         if local:
@@ -153,15 +101,7 @@ class Experiment:
         rospy.loginfo(msg)
 
     def launch_services(self):
-        # scheduler = start_process(['/bin/bash', "/opt/ros/kinetic/bin/rosbag rasberry_hri scheduler"],
-        # 'node', start_time_string,
-        #                        dpath_logs)
         run_id = roslaunch.rlutil.get_or_generate_uuid(None, True)
-        # roslaunch.configure_logging(run_id)
-        # config = roslaunch.ROSLaunchConfig()
-        # config.set_master(roslaunch.core.Master())
-        # # node = roslaunch.core.Node(package, executable)
-        # # runner = roslaunch.ROSLaunchRunner(self.run_id, config, server_uri="http://localhost:11311")
         self.launch = roslaunch.parent.ROSLaunchParent(
             run_id, self.launch_files, is_core=False
         )
@@ -238,95 +178,20 @@ class Experiment:
         rospy.loginfo(
             "EXP: Experiment starting at: {}".format(self.start_clock)
         )
-        # self.reset_simulation()
-        # self.robot_pose_publisher.publish(self.robot_pose)
-        # add config specific stuff to reasoning system, <- do this as defined by rosparameters inside the respective nodes instead
-        # picker_pose_publisher.publish(self.picker_pose)
 
     def clock_callback(self, msg):
         if msg.clock.nsecs == 0:
             clock = msg.clock.to_sec()
-            # rospy.loginfo("Now {:}, Start {:}, End {:}"
-            #               .format(clock, self.start_clock,
-            #                       self.config["termination_time"]))
             if clock >= self.config["termination_time"] + self.start_clock:
                 if not self.is_finished:
                     rospy.loginfo("EXP: Timeout condition reached")
                     self.is_finished = True
                 return
 
-            # index = 0
-            # while index < len(self.running_bags):
-            #     if not self.running_bags[index] is None:
-            #         del self.running_bags[i]
-            #     else:
-            #         index+=1
-
-            # ----
-            # difference = clock - self.last_clock
-            # self.last_clock = clock
-            # try:
-            #     while (
-            #         clock
-            #         == self.config.get_next_behaviour_time() + self.start_clock
-            #     ):
-            #         behaviour = self.config.get_next_behaviour()
-            #         if behaviour["type"] == "rosbag":
-            #             rospy.loginfo(
-            #                 "EXP: Playing rosbag '{}'".format(
-            #                     behaviour["filename"]
-            #                 )
-            #             )
-            #             player = Player(
-            #                 behaviour["filename"],
-            #                 topics=behaviour["topics"],
-            #                 start_time=behaviour["start"],
-            #                 duration=behaviour["duration"],
-            #             )
-            #             player.start()
-            #             # for topic, outmsg, t in bag.read_messages(topics=behaviour["topics"]):
-            #             #     secs = t.to_sec()
-            #             #     if secs >= start_time and secs <= end_time:
-            #             #         outmsg.header.stamp.secs += clock
-            #             #         # self.camera_publisher.publish(outmsg)
-            #             #         self.human_action_publisher.publish(outmsg)
-            #             self.running_bags.append(player)
-            #         elif behaviour["type"] == "message":
-            #             if behaviour["target"] == "picker_movement":
-            #                 rospy.loginfo(
-            #                     "EXP: Sending Movement message '{}'".format(
-            #                         behaviour["message"]
-            #                     )
-            #                 )
-            #                 self.picker_pose_publisher.publish(
-            #                     behaviour["message"]
-            #                 )
-            #             elif behaviour["target"] == "action_label":
-            #                 rospy.loginfo(
-            #                     "EXP: Sending Behaviour message '{}'".format(
-            #                         behaviour["message"]
-            #                     )
-            #                 )
-            #                 outmsg = Action()
-            #                 outmsg.action = behaviour["message"]
-            #                 outmsg.id = rospy.get_param(
-            #                     "{}/hri/target_picker".format(
-            #                         self.config.robot_id
-            #                     ),
-            #                     "Picker02",
-            #                 )
-            #                 self.human_action_publisher.publish(outmsg)
-            # except AttributeError as err:
-            #     rospy.logerr("EXP: clock_callback - {}".format(err))
-
     def shutdown(self):
-        rospy.loginfo("EXP: Shutting dow")
+        rospy.loginfo("EXP: Shutting down")
+        self.clock_sub.unregister()
         self.robco.cancel_movement()
         self.launch.shutdown()
-        self.clock_sub.unregister()
-        # self.terminate_bags()
-        # for bag in self.bags.values():
-        #     bag.close()
-        # wait for launch to have shutdown
         self.unset_parameters()
         rospy.loginfo("EXP: Experiment ended")

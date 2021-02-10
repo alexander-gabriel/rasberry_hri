@@ -12,20 +12,13 @@ from qsrlib_io.world_trace import Object_State, World_Trace
 
 import numpy as np
 
-# from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
-# from qsrlib_io.world_trace import Object_State, World_Trace
 
 from opencog.type_constructors import ConceptNode
 from opencog.utilities import initialize_opencog
-# from opencog.atomspace import AtomSpace
 
 import tf
 import rospy
-# import actionlib
 from rasberry_hri.msg import Action
-# from topological_navigation.msg import GotoNodeAction, GotoNodeGoal
-# from bayes_people_tracker.msg import PeopleTracker
-# from std_srvs.srv import Empty
 from std_msgs.msg import String
 from geometry_msgs.msg import Pose, PoseStamped
 
@@ -55,8 +48,6 @@ class Scheduler:
         self.rate = rospy.Rate(REASONING_LOOP_FREQUENCY)
         self.atomspace = atomspace
         initialize_opencog(self.atomspace)
-        # set_type_ctor_atomspace(self.atomspace)
-        # self.kb = KnowledgeBase(self.atomspace)
         self.kb = KnowledgeBase()
         self.sensory_lock1 = Lock()
         self.sensory_lock2 = Lock()
@@ -77,10 +68,8 @@ class Scheduler:
         self.speed = [-1,-1,-1,-1]
         self.human_position_subs = []
         self.robot_id = robot_id
-        # self.bdi.me = ConceptNode(robot_id)
         self.latest_robot_node = None
         self.bdi = BDISystem(self.robot_id, self.kb)
-        # self.picker01_sub = rospy.Subscriber("/picker01/posestamped", PoseStamped, lambda msg: self.picker_tracker_callback(msg, "Picker01") )
         for name in PICKERS:
             self.has_reached_50cm[name] = False
             self.has_reached_100cm[name] = False
@@ -125,16 +114,6 @@ class Scheduler:
         )
         try:
             while not rospy.core.is_shutdown():
-                # try:
-                #     if not bdi.is_alive():
-                #         bdi = threading.Thread(target=self.bdi.loop)
-                #         bdi.start()
-                #     else:
-                #         # rospy.loginfo("SCH: sleeping")
-                #         rospy.rostime.wallsleep(0.001)
-                # except:
-                #     bdi = threading.Thread(target=self.bdi.loop)
-                #     bdi.start()
                 self.bdi.loop()
                 self.rate.sleep()
             rospy.loginfo("SCH: at end of spin")
@@ -147,13 +126,12 @@ class Scheduler:
 
     def shutdown(self):
         rospy.loginfo("SCH: Shutting down")
-        self.bdi.shutdown()
         self.robot_pose_sub.unregister()
         self.robot_sub.unregister()
         self.human_action_sub.unregister()
         for sub in self.human_position_subs:
             sub.unregister()
-
+        self.bdi.shutdown()
 
     def add_position_noise(self, pose, old_pose):
         if old_pose is not None:
@@ -173,7 +151,6 @@ class Scheduler:
             pre_movement_rotation = atan2(dy, dx) - old_theta
             post_movement_rotation = theta - (pre_movement_rotation
                                               + old_theta)
-
             # calculate standard deviations
             sd_pre_movement_rotation = (
                 MOVEMENT_NOISE[0] * abs(pre_movement_rotation)
@@ -220,13 +197,8 @@ class Scheduler:
 
     def robot_position_coordinate_callback(self, pose):
         # rospy.loginfo("SCH: Robot position coordinate callback")
-        # self.latest_robot_msg = pose
-        # if ADD_MOVEMENT_NOISE:
-        #     self.latest_robot_msg = self.add_position_noise(
-        #         pose, self.latest_actual_robot_msg)
-        # else:
-        self.latest_robot_msg = pose
         self.latest_actual_robot_msg = pose
+        self.latest_robot_msg = pose
         self.bdi.world_state.set_position(
             self.bdi.me, pose.position.x, pose.position.y, rospy.get_time())
 
@@ -234,7 +206,6 @@ class Scheduler:
         # rospy.loginfo("SCH: Robot position node callback")
         if msg.data != "none":
             initialize_opencog(self.atomspace)
-            # set_type_ctor_atomspace(self.atomspace)
             self.latest_robot_node = wp2sym(msg.data)
             self.bdi.world_state.update_position(
                 ConceptNode(self.robot_id),
@@ -302,11 +273,6 @@ class Scheduler:
                 )
             else:  # we know the closest but not the current node
                 pass
-                # self.latest_people_nodes[person] = ("is_near", closest_node)
-                # self.bdi.world_state.add_belief("is_near({:},{:})"
-                #                             .format(person, closest_node))
-                # rospy.logwarn("added is_near({:},{:})"
-                #               .format(person, closest_node))
         except TypeError as err:
             rospy.logerr(
                 ("BDI - Couldn't update picker node. " "Error: {:}").format(
@@ -391,7 +357,6 @@ class Scheduler:
                 "SCH: 275 - Couldn't react to distance events. Error: {:}"
                 .format(err)
             )
-            # raise err
 
     def _calculate_directions(self, world, pairs):
         dynamic_args = {
@@ -459,7 +424,6 @@ class Scheduler:
                 )
             self.bdi.world_state.standing(picker).tv = self.kb.TRUE
 
-
     def _handle_position_msgs(self, name, msg, timestamp):
         """Abstracts received position messages to the Knowledge Base"""
         if self.latest_robot_msg is not None:
@@ -496,60 +460,6 @@ class Scheduler:
             if DIRECTION_PERCEPTION:
                 self._calculate_directions(world, pairs)
                 # if direction changed and picker close and robot stationary, consider saving new perferred distance
-
-
-    # def people_tracker_callback(self, msg, id):
-    #     rospy.loginfo("SCH: Person msg: {}".format(msg))
-    #     id = "Picker01"
-    #     msg.angles
-    #     msg = PoseStamped()
-    #     indexes = [idx for idx, val in enumerate(msg.angles) if val > -0.5 and val < 0.5]
-    #     min_distance = 100
-    #     angle = None
-    #     msg2.header = msg.header
-    #     msg2.pose = None
-    #     for index in indexes:
-    #         distance = msg.distances[index]
-    #         if distance < min_distance:
-    #             min_distance = distance
-    #             msg2.pose = msg.poses[index]
-    #     if msg2.pose is not None:
-    #         self.picker_tracker_callback(msg2)
-
-    # world = World_Trace()
-    # things = []
-    # qsrlib_request_message = QSRlib_Request_Message(which_qsr="tpcc", input_data=world)
-    # # request your
-    #
-    # position = Object_State(name=id, timestamp=msg2.header.stamp.to_sec(), x=msg2.pose.position.x, y=msg2.pose.position.y, width=0.6, length=0.4)
-    # things.append(position)
-    #
-    # things.append(self.bdi.robot_track[-1])
-    #
-    # world.add_object_state_series(things)
-    # qsrlib_response_message = self.qsrlib.request_qsrs(req_msg=qsrlib_request_message)
-    # for t in qsrlib_response_message.qsrs.get_sorted_timestamps():
-    #     foo = str(t) + ": "
-    #     for k, v in zip(qsrlib_response_message.qsrs.trace[t].qsrs.keys(),
-    #                     qsrlib_response_message.qsrs.trace[t].qsrs.values()):
-    #         foo += str(k) + ":" + str(v.qsr) + "; "
-    #     rospy.loginfo(foo)
-    # world_qsr.trace[4].qsrs[self.robot_id','+id].qsr['tpcc']
-    # direction = ""
-    # if direction in ["dsf","csf"]:
-    #     self.latest_people_msgs[id] = msg
-    # self.latest_people_msgs[id] = msg
-
-    # if current_node != "none":
-    #     current_node = wp2sym(current_node)
-    #     self.latest_people_node[id] = ("is_at", current_node)
-    #     self.bdi.world_state.add_belief("is_at({:},{:})".format(id, current_node))
-    #
-    #
-    # else:
-    #     closest_node = wp2sym(closest_node)
-    #     self.latest_people_node[id] = ("is_near", closest_node)
-    #     self.bdi.world_state.add_belief("is_near({:},{:})".format(id, closest_node))
 
     def save(self):
         self.bdi.save()

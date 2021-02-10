@@ -1,6 +1,7 @@
 src/unused/*
 *.pyc
 **/*.log
+**/*.csv
 *.scm
 src/example*.py
 src/test*.py

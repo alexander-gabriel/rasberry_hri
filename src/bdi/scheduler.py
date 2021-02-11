@@ -45,6 +45,7 @@ class Scheduler:
 
     def __init__(self, robot_id):
         rospy.loginfo("SCH: Initializing Scheduler")
+        self.shutting_down = False
         self.rate = rospy.Rate(REASONING_LOOP_FREQUENCY)
         self.atomspace = atomspace
         initialize_opencog(self.atomspace)
@@ -70,6 +71,7 @@ class Scheduler:
         self.robot_id = robot_id
         self.latest_robot_node = None
         self.bdi = BDISystem(self.robot_id, self.kb)
+        rospy.on_shutdown(self.shutdown)
         for name in PICKERS:
             self.has_reached_50cm[name] = False
             self.has_reached_100cm[name] = False
@@ -125,13 +127,15 @@ class Scheduler:
             self.shutdown()
 
     def shutdown(self):
-        rospy.loginfo("SCH: Shutting down")
-        self.robot_pose_sub.unregister()
-        self.robot_sub.unregister()
-        self.human_action_sub.unregister()
-        for sub in self.human_position_subs:
-            sub.unregister()
-        self.bdi.shutdown()
+        if not self.shutting_down:
+            rospy.loginfo("SCH: Shutting down")
+            self.shutting_down = True
+            self.bdi.shutdown()
+            self.robot_pose_sub.unregister()
+            self.robot_sub.unregister()
+            self.human_action_sub.unregister()
+            for sub in self.human_position_subs:
+                sub.unregister()
 
     def add_position_noise(self, pose, old_pose):
         if old_pose is not None:
@@ -305,7 +309,7 @@ class Scheduler:
                and self.has_reached_100cm[person.name] \
                and not self.has_reached_50cm[person.name]:
                 self.has_reached_50cm[person.name] = True
-                rospy.loginfo("Distance to {:} is 50cm: {:.2f}"
+                rospy.loginfo("SCH: Distance to {:} is 50cm: {:.2f}"
                               .format(person.name, distance))
                 # save half meter distance speed
                 speed = self.get_speed(
@@ -316,7 +320,7 @@ class Scheduler:
                   and self.has_reached_150cm[person.name]
                   and not self.has_reached_100cm[person.name]):
                 self.has_reached_100cm[person.name] = True
-                rospy.loginfo("Distance to {:} is 100cm: {:.2f}"
+                rospy.loginfo("SCH: Distance to {:} is 100cm: {:.2f}"
                               .format(person.name, distance))
                 # save one meter distance speed
                 speed = self.get_speed(
@@ -327,7 +331,7 @@ class Scheduler:
                   and self.has_reached_200cm[person.name]
                   and not self.has_reached_150cm[person.name]):
                 self.has_reached_150cm[person.name] = True
-                rospy.loginfo("Distance to {:} is 150cm: {:.2f}"
+                rospy.loginfo("SCH: Distance to {:} is 150cm: {:.2f}"
                               .format(person.name, distance))
                 # save two meter distance spe.ed
                 speed = self.get_speed(
@@ -337,7 +341,7 @@ class Scheduler:
             elif (distance <= 2.0
                   and not self.has_reached_200cm[person.name]):
                 self.has_reached_200cm[person.name] = True
-                rospy.loginfo("Distance to {:} is 200cm: {:.2f}"
+                rospy.loginfo("SCH: Distance to {:} is 200cm: {:.2f}"
                               .format(person.name, distance))
                 # save two meter distance speed
                 speed = self.get_speed(

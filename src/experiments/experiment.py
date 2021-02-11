@@ -191,7 +191,7 @@ class Experiment:
     def shutdown(self):
         rospy.loginfo("EXP: Shutting down")
         self.clock_sub.unregister()
-        self.robco.cancel_movement()
         self.launch.shutdown()
+        self.robco.cancel_movement()
         self.unset_parameters()
         rospy.loginfo("EXP: Experiment ended")

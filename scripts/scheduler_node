@@ -9,88 +9,13 @@ from topological_navigation.msg import GotoNodeAction
 
 from bdi.knowledge_base import *
 from bdi.scheduler import Scheduler
-# from geometry_msgs.msg import Pose, PoseStamped
-
-
-# def setup(bdi, me):
-#     bdi.world_state.add_formula("is_a({:}, Robot)".format(me), INF)
-#
-#     pickup = Action()
-#     pickup.label = "pickup"
-#     pickup.conditions = ["has_requested_crate({:})".format(TARGET), "in_front_of({:},{:})".format(TARGET, me)]
-#     pickup.consequences = ["has_crate({:})".format(TARGET), "!has_requested_crate({:})".format(TARGET), "!has_crate({:})".format(me)]
-#     pickup_goal = Goal(bdi.world_state, [], pickup)
-#
-#     move_to = Action()
-#     move_to.label = "move to target"
-#     move_to.conditions = ["!in_front_of({:},{:})".format(TARGET, me), "can_reach({:},{:})".format(me, TARGET)]
-#     move_to.consequences = ["in_front_of({:},{:})".format(TARGET, me)]
-#     move_to_goal = Goal(bdi.world_state, [], move_to)
-#
-#     move_away = Action()
-#     move_away.label = "move away from target"
-#     move_away.conditions = ["in_front_of({:},{:})".format(TARGET, me)]
-#     move_away.consequences = ["!in_front_of({:},{:})".format(TARGET, me)]
-#     move_away_goal = Goal(bdi.world_state, [], move_away)
-#
-#     deliver_crate = Goal(bdi.world_state, [move_to_goal, pickup_goal, move_away_goal], None)
-#
-#     bdi.add_goal(deliver_crate)
-#     # bdi.add_goal(pickup_goal)
-#
-#
-# def pretty_print_world_qsr_trace(which_qsr, qsrlib_response_message):
-#     print(which_qsr, "request was made at ", str(qsrlib_response_message.req_made_at)
-#           + " and received at " + str(qsrlib_response_message.req_received_at)
-#           + " and computed at " + str(qsrlib_response_message.req_finished_at))
-#     print("---")
-#     print("Response is:")
-#     print(qsrlib_response_message.qsrs.get_last_state())
-#     for t in qsrlib_response_message.qsrs.get_sorted_timestamps():
-#         foo = str(t) + ": "
-#         for k, v in zip(qsrlib_response_message.qsrs.trace[t].qsrs.keys(),
-#                         qsrlib_response_message.qsrs.trace[t].qsrs.values()):
-#             foo += str(k) + ":" + str(v.qsr) + "; "
-#         print(foo)
-#
-# if '__main__' == __name__:
-#     rospy.init_node("scheduler")
-#     robot_control = actionlib.SimpleActionClient('topological_navigation', GotoNodeAction)
-#     robot_control.wait_for_server()
-#     # find out picker addresses
-#
-#     scheduler = Scheduler(ROBOT_NAME, robot_control)
-#     scheduler.spin()
-#     scheduler.save()
-
-    #
-
-
-    # o1 = [Object_State(name="o1", timestamp=0, x=1., y=1., width=5., length=8.),
-    #       Object_State(name="o1", timestamp=1, x=1., y=2., width=5., length=8.),
-    #       Object_State(name="o1", timestamp=2, x=1., y=3., width=5., length=8.)]
-    #
-    # o2 = [Object_State(name="o2", timestamp=0, x=11., y=1., width=5., length=8.),
-    #       Object_State(name="o2", timestamp=1, x=11., y=2., width=5., length=8.),
-    #       Object_State(name="o2", timestamp=2, x=11., y=3., width=5., length=8.)]
-    # world.add_object_state_series(o1)
-    # world.add_object_state_series(o2)
-
-    # make a QSRlib request message
-    # qsrlib_request_message = QSRlib_Request_Message(which_qsr=which_qsr, input_data=world)
-    # # request your QSRs
-    # qsrlib_response_message = qsrlib.request_qsrs(req_msg=qsrlib_request_message)
-    #
-    # pretty_print_world_qsr_trace(which_qsr, qsrlib_response_message)
-
-
 
 
 if __name__ == '__main__':
     rospy.init_node("scheduler")
     while (rospy.get_time() == 0):
         sleep(0.01)
-    from common.parameters import ME,NS  # doesn't work before init_node
+    from common.parameters import ME, NS  # doesn't work before init_node
     robot_id = ME
     if robot_id == "":
         robot_id = "thorvald_002"
@@ -104,5 +29,3 @@ if __name__ == '__main__':
         rospy.sleep(0.25)
     rospy.loginfo("SCH: Starting Scheduler")
     scheduler.spin()
-    # rospy.spin()
-    # scheduler.save()

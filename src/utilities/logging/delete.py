@@ -55,8 +55,8 @@ class DB:
             cursor.execute("SELECT run_id FROM runs WHERE picker_id = ?", (picker_id,))
             return list(map(lambda x: x[0], cursor.fetchall()))
 
-def delete_state(run_ids):
-    path = os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, "experiments.json")
+def delete_state(run_ids, config):
+    path = os.path.join(config, STATE_DIRECTORY, "experiments.json")
     with open(path, "r") as file:
         state = json.load(file)
     for id in run_ids:
@@ -77,15 +77,16 @@ if __name__ == '__main__':
     parser.add_argument('--id', action='store', type=str, help='experiment to delete')
     parser.add_argument('--label', action='store', type=str, help='scenario to delete')
     parser.add_argument('--run', action='store', type=str, help='run to delete')
-    parser.add_argument('--dbpath', action='store', type=str, help='optional db path')
+    parser.add_argument('--config', action='store', type=str, help='optional db path')
     parser.add_argument('--picker', action='store', type=str, help='picker id to remove')
     args = parser.parse_args()
-    if args.dbpath:
-        db = DB(args.dbpath)
+    if args.config:
+        db = DB(os.path.join(args.config, LOG_DIRECTORY, "log.db"))
     else:
+        args.config = CONFIG_DIRECTORY
         db = DB()
     if args.run:
-        delete_state([args.run])
+        delete_state([args.run], args.config)
         db.delete_run(args.run)
     if args.id:
         run_ids = db.delete_experiment(args.id)

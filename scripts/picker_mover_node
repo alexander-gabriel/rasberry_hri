@@ -55,6 +55,7 @@ Y_DISTANCE = sin(ANGLE) * PICKER_SPEED / PICKER_UPDATE_FREQUENCY
 # 104: 14.12 4.612
 # 105: 17.061 4.609 ,_ was this
 # 106: 19.997 4.568
+# 133: 5.53 4.62
 
 # class Time(rospy.Time):
 #
@@ -1359,6 +1360,15 @@ def do_call_robot(self):
         sleep(1)
     return True
 
+def do_call_robot_simple(self):
+    meta_start_wait(self)
+    msg = Action()
+    msg.header.stamp = rospy.get_rostime()
+    msg.action = "calling"
+    msg.person = TARGET_PICKER
+    self.human_action_pub.publish(msg)
+    return True
+
 
 def meta_start_wait(self):
     if not self.started_waiting_at:
@@ -1473,6 +1483,7 @@ BEHAVIOURS = {"pick berries": do_pick_berries,
               "approach without crate": do_approach_robot,
               "pass with crate": do_pass_robot,
               "call robot": do_call_robot,
+              "call robot simple": do_call_robot_simple,
               "return crate": do_return_crate,
               "get crate": do_get_crate,
               "wait for robot to move": do_wait_for_robot_to_move,

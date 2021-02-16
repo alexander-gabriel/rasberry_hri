@@ -11,7 +11,7 @@ from common.utils import get_angle_prototype, get_position_prototype, suppress
 from common.parameters import NS, DETECTION_COUNT, COOLDOWN, TARGET_PICKER, \
     CAMERA_TOPIC, BEHAVIOR_PERCEPTION, GESTURE_PERCEPTION, CONFIG_DIRECTORY, \
     LOG_DIRECTORY, USE_ACTION_RECOGNITION, define
-    
+
 from converter import Converter
 from classifiers import MinimumDifferenceClassifier
 from openpose import Openpose
@@ -51,7 +51,7 @@ class ActionRecognition:
         if self.normal_mode and (BEHAVIOR_PERCEPTION or GESTURE_PERCEPTION):
             self.sub = rospy.Subscriber(camera, Image, self.callback_rgb)
             rospy.loginfo("ACR: Subscribed to {:}".format(camera))
-        else:
+        elif not self.normal_mode:
             self.sub = rospy.Subscriber('{}/human_actions'.format(NS), Action, self.action_callback)
             rospy.loginfo("ACR: Subscribed to {}/human_actions".format(NS))
         rospy.loginfo("ACR: Initialization Complete")
@@ -243,4 +243,7 @@ class ActionRecognition:
 
     def shutdown(self):
         rospy.loginfo("ACR: Shutting down")
-        self.sub.unregister()
+        try:
+            self.sub.unregister()
+        except AttributeError:
+            pass

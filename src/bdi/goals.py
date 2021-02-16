@@ -731,6 +731,7 @@ class WaitForGoal(Goal):
             self.picker, self.destination, self.get_gain(), self.get_cost()
         )
 
+
 class SimpleDeliverGoal(Goal):
 
     action_template = None
@@ -740,7 +741,7 @@ class SimpleDeliverGoal(Goal):
         super(SimpleDeliverGoal, self).__init__(world_state, robco, args, is_root)
         self.subgoals.append(MoveGoal(world_state, robco, args))
         self.subgoals.append(SimpleGiveCrateGoal(world_state, robco, args))
-        self.subgoals.append(SimpleStandByGoal(world_state, robco, args))
+        # self.subgoals.append(SimpleStandByGoal(world_state, robco, args))
         self.picker = args["picker"]
         self.destination = args["my_destination"]
 
@@ -759,7 +760,7 @@ class SimpleExchangeGoal(Goal):
         super(SimpleExchangeGoal, self).__init__(world_state, robco, args, is_root)
         self.subgoals.append(MoveGoal(world_state, robco, args))
         self.subgoals.append(SimpleExchangeCrateGoal(world_state, robco, args))
-        self.subgoals.append(SimpleStandByGoal(world_state, robco, args))
+        # self.subgoals.append(SimpleStandByGoal(world_state, robco, args))
         self.picker = args["picker"]
         self.destination = args["my_destination"]
 

@@ -40,6 +40,8 @@ USE_ACTION_RECOGNITION = define("use_action_recognition", True)
 
 # DISABLE ABILITIES
 
+SIMPLE_MODE = define("simple_mode", False)
+
 GESTURE_PERCEPTION = define("gesture_perception", True)
 BEHAVIOR_PERCEPTION = define("behavior_perception", True)
 DIRECTION_PERCEPTION = define("direction_perception", True)
@@ -82,7 +84,7 @@ MIN_GAIN = define("min_gain", 0)
 # ACTION RECOGNITION
 
 CAMERA_TOPIC = define("camera", "/camera/color/image_raw") # realsense color raw
-# CAMERA_TOPIC = define("camera", "/camera/depth/image_rect_raw")  # realsense color rect 
+# CAMERA_TOPIC = define("camera", "/camera/depth/image_rect_raw")  # realsense color rect
 # CAMERA_TOPIC = define("camera", "/camera/infra1/image_rect_raw") # realsense infrared 1
 # CAMERA_TOPIC = define("camera", "/camera/infra2/image_rect_raw") # realsense infrared 2
 # CAMERA_TOPIC = define("camera", "/zed/right/image_rect_color") # zed stereo right
@@ -127,8 +129,7 @@ FULL_CRATE_COUNT = define("full_crate_count", 0)
 EMPTY_CRATE_COUNT = define("empty_crate_count", 2)
 TARGET_PICKER = define("target_picker", "NOT SET")
 
-INITIAL_PICKER_POSITION = define("picker_position",
-                                 [17.561, 4.609])  # [19.997, 4.568])
+INITIAL_PICKER_POSITION = define("picker_position", [17.561, 4.609])  # [19.997, 4.568])
 INITIAL_PICKER_ORIENTATION = define("picker_orientation", 2*pi)
 CALLED_ROBOT = define("called_robot", False)
 DISMISSED_ROBOT = define("dismissed_robot", False)
@@ -201,6 +202,12 @@ BEHAVIOURS = {
         ["get crate", 3],
         ["pick berries", 4]
     ],
+    "deliver expect robot to come simple": [
+        ["call robot simple", 0],
+        ["wait for robot to arrive", 0],
+        ["get crate", 3],
+        ["pick berries", 4]
+    ],
     "deliver expect mind read": [
         ["expect service", 0],
         ["wait for robot to arrive", 0],
@@ -230,6 +237,14 @@ BEHAVIOURS = {
     "exchange expect robot to come": [
         ["pick berries", 4],
         ["call robot", 0],
+        ["wait for robot to arrive", 0],
+        ["return crate", 2.5],
+        ["get crate", 3],
+        ["pick berries", 4]
+    ],
+    "exchange expect robot to come simple": [
+        ["pick berries", 4],
+        ["call robot simple", 0],
         ["wait for robot to arrive", 0],
         ["return crate", 2.5],
         ["get crate", 3],

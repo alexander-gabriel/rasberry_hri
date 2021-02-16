@@ -283,14 +283,15 @@ def distribute_logs(run_ids):
 
 def check_logs(run_ids):
     missing = []
+    other = []
     for root, subdirs, files in os.walk(os.path.join(args.config, LOG_DIRECTORY)):
         for filename in files:
             run_id = filename[:-4]
             try:
                 run_ids.remove(run_id)
             except:
-                pass
-    return run_ids
+                other.append(run_id)
+    return run_ids, other
 
 
 if __name__ == '__main__':
@@ -311,9 +312,11 @@ if __name__ == '__main__':
         pass
     if args.check:
         run_ids = db.get_runs()
-        missing = check_logs(run_ids)
+        missing, other = check_logs(run_ids)
         print("missing:")
         print(missing)
+        print("other:")
+        print(other)
     elif args.move:
         run_ids = db.get_runs()
         distribute_logs(run_ids)

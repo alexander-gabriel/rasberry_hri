@@ -176,8 +176,17 @@ goal_table = {
     "Leave": "StandByGoal",
     "Approach": "ApproachGoal"
 }
+
+simple_goal_table = {
+    "Deliver": "SimpleDeliverGoal",
+    "Exchange": "SimpleExchangeGoal"
+}
+
 def get_expected_goal(label):
-    return goal_table[label.split(" - ")[1]]
+    if label.endswith("Simple"):
+        return simple_goal_table[label.split(" - ")[1]]
+    else:
+        return goal_table[label.split(" - ")[1]]
 
 def delete_state(run_ids):
     path = os.path.join(CONFIG_DIRECTORY, STATE_DIRECTORY, "experiments.json")
@@ -263,7 +272,8 @@ if __name__ == '__main__':
                     expected_goal = get_expected_goal(parameters["experiment_label"])
                     success1, duration, actual_followed_goals, failed_runs = db.get_service(runs, expected_goal)
                     if len(failed_runs) not in [0, len(runs)]:
-                        repeat_these_runs+= failed_runs
+                        repeat_these_runs += failed_runs
+                    succeeded_runs = list(filter(lambda x: x not in failed_runs, runs))
                     success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
                     speeds += speed
                     success3, waits = db.get_waits(runs)
@@ -278,7 +288,7 @@ if __name__ == '__main__':
                                 "{:0>5.2f}; {:0>6.3f}".format(*db.calculate_statistics(speed)),
                                 "{}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception, behavior_perception, direction_perception, berry_perception, berry_existence, robot_crate_perception, picker_crate_possession_perception, picker_crate_fill_perception),
                                 experiment_id,
-                                runs[0],
+                                ", ".join(failed_runs),
                                 ", ".join(actual_followed_goals)))
                 except IndexError:
                     pass

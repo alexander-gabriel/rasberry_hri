@@ -38,7 +38,7 @@ from opencog.type_constructors import (
 
 from common.parameters import MINIMUM_DISTANCE, CRATE_CAPACITY, \
     TIMEOUT_LENGTH, NO_BERRY_PLACES, PICKER_DISTANCE_PREFERENCE, \
-    BEHAVIOR_PERCEPTION, GESTURE_PERCEPTION
+    BEHAVIOR_PERCEPTION, GESTURE_PERCEPTION, SIMPLE_MODE
 
 
 rospack = rospkg.RosPack()
@@ -461,7 +461,7 @@ class WorldState(object):
             rospy.loginfo(
                 "WST: Observation: {:} is {:}".format(person.name, action)
             )
-        elif action == "calling" and GESTURE_PERCEPTION:
+        elif action == "calling" and (GESTURE_PERCEPTION or SIMPLE_MODE):
             self.called_robot(person).tv = self.kb.TRUE
             rospy.loginfo(
                 "WST: Observation: {:} is {:}".format(person.name, action)

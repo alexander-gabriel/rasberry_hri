@@ -899,6 +899,8 @@ class StandByAction(Action):
 class SimpleGiveCrateAction(Action):
 
     condition_templates = [
+        [ws.called_robot, [V("picker", ConceptNode)]],
+        [ws.not_has_crate, [V("picker", ConceptNode)]],
         [ws.robot_has_crate, [C(ME), P(ws._empty_crate_count.name)]],
         [ws.is_a, [V("picker", ConceptNode), C("human")]],
         [
@@ -957,6 +959,8 @@ class SimpleGiveCrateAction(Action):
 class SimpleExchangeCrateAction(Action):
 
     condition_templates = [
+        [ws.called_robot, [V("picker", ConceptNode)]],
+        [ws.has_crate, [V("picker", ConceptNode)]],
         [ws.robot_has_crate, [C(ME), P(ws._empty_crate_count.name)]],
         [ws.robot_has_crate_capacity, [C(ME), P(ws._full_crate_count.name)]],
         [ws.is_a, [V("picker", ConceptNode), C("human")]],

@@ -42,7 +42,8 @@ from common.parameters import (
     PICKER_CRATE_POSSESSION_PERCEPTION,
     PICKER_CRATE_FILL_PERCEPTION,
     ROBOT_CRATE_POSSESSION_PERCEPTION,
-    ROBOT_POSITION
+    ROBOT_POSITION,
+    SIMPLE_MODE
 )
 
 from common.utils import OrderedConsistentSet, suppress, db, SortedConsistentSet
@@ -58,6 +59,9 @@ from bdi.goals import (
     WaitForGoal,
     WaitGoal,
     MoveGoal,
+    SimpleStandByGoal,
+    SimpleExchangeGoal,
+    SimpleDeliverGoal,
 )
 from bdi.robot_control import RobotControl
 from bdi.world_state import WorldState
@@ -86,14 +90,23 @@ class BDISystem:
             rospy.loginfo("BDI: Initialized World State")
             self.last_behaviours = {}
             self.desires = []
-            self.desires.append(WaitGoal)
-            self.desires.append(StandByGoal)
-            self.desires.append(ApproachGoal)
-            self.desires.append(CloseApproachGoal)
-            self.desires.append(DeliverGoal)
-            self.desires.append(ExchangeGoal)
-            self.desires.append(EvadeGoal)
-            self.desires.append(DepositGoal)
+            if SIMPLE_MODE:
+                self.desires.append(WaitGoal)
+                self.desires.append(DepositGoal)
+                # self.desires.append(SimpleStandByGoal)
+                self.desires.append(SimpleDeliverGoal)
+                self.desires.append(SimpleExchangeGoal)
+                # self.desires.append(DeliverGoal)
+                # self.desires.append(ExchangeGoal)
+            else:
+                self.desires.append(WaitGoal)
+                self.desires.append(DepositGoal)
+                self.desires.append(StandByGoal)
+                self.desires.append(DeliverGoal)
+                self.desires.append(ExchangeGoal)
+                self.desires.append(EvadeGoal)
+                self.desires.append(ApproachGoal)
+                self.desires.append(CloseApproachGoal)
             self.intentions = SortedConsistentSet(True)
             self.locator = TopologicalNavLoc()
             self.route_search = TopologicalRouteSearch(self.locator.tmap)

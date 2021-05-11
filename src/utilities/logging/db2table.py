@@ -94,7 +94,7 @@ class DB:
                 cursor.execute(("SELECT wait FROM picker_waiting WHERE "
                                 "run_id = ?"), (run_id,))
                 for result in list(map(lambda x: x[0], cursor.fetchall())):
-                    if isinstance(result, float):
+                    if isinstance(result, float) and result < 1:
                         waits.append(float(result))
                         success.append(1.0)
                     else:
@@ -234,7 +234,7 @@ if __name__ == '__main__':
     if args.p:
         print("label;subject;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; picker_crate_fill; exp id")
     else:
-        print("label;gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; has_crate; picker_crate_fill; picker crate full;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; position noise; posture noise;exp id")
+        print("label;gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; has_crate; picker_crate_fill; picker crate full; position noise; posture noise; success; behaviour; duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var;exp id")
     speeds = []
     output = []
     for experiment_id in experiments:
@@ -322,7 +322,7 @@ if __name__ == '__main__':
                 try:
                     posture_noise = parameters["posture_noise"]
                 except:
-                    posture_noise = [0, 0]
+                    posture_noise = 0
                 expected_goal = get_expected_goal(parameters["experiment_label"])
                 success1, duration, actual_followed_goals, failed_runs = db.get_service(runs, expected_goal)
                 if len(failed_runs) not in [0, 10]:
@@ -342,6 +342,7 @@ if __name__ == '__main__':
                                                                         has_crate,
                                                                         picker_crate_fill_perception,
                                                                         crate_full),
+                            "{: >4.3f}; {: >4.3f}".format(position_noise[0], posture_noise),
                             "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
                             behaviour[experiment_id],
                             "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(duration)),
@@ -349,7 +350,6 @@ if __name__ == '__main__':
                             "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(stop_distances)),
                             "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(waits)),
                             "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(speed)),
-                            "{: >4.3f}; {: >4.3f}".format(position_noise[0], posture_noise[0]),
                             experiment_id,
                             ", ".join(actual_followed_goals)))
             except IndexError:

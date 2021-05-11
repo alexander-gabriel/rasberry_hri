@@ -456,7 +456,7 @@ class WorldState(object):
 
     def update_action(self, person, action):
         person = ConceptNode(person)
-        if (action == "picking berries" or action == "picking_berries_right") and BEHAVIOR_PERCEPTION:
+        if (action == "picking berries" or action == "picking berries right") and BEHAVIOR_PERCEPTION:
             self.seen_picking(person).tv = self.kb.TRUE
             rospy.loginfo(
                 "WST: Observation: {:} is {:}".format(person.name, action)
@@ -466,21 +466,21 @@ class WorldState(object):
             rospy.loginfo(
                 "WST: Observation: {:} is {:}".format(person.name, action)
             )
-        elif action == "gesture_cancel" and GESTURE_PERCEPTION:
-            self.dismissed_robot(ConceptNode(person)).tv = self.kb.TRUE
+        elif action == "gesture cancel" and GESTURE_PERCEPTION:
+            self.dismissed_robot(person).tv = self.kb.TRUE
             rospy.loginfo(
                 "WST: Observation: {:} is {:}".format(person.name, action)
             )
-        elif action == "gesture_stop" and GESTURE_PERCEPTION:
+        elif action == "gesture stop" and GESTURE_PERCEPTION:
             pass
             # self.called_robot(ConceptNode(person)).tv = self.kb.TRUE
-        elif action == "gesture_forward" and GESTURE_PERCEPTION:
+        elif action == "gesture forward" and GESTURE_PERCEPTION:
             pass
             # self.called_robot(ConceptNode(person)).tv = self.kb.TRUE
-        elif action == "gesture_backward" and GESTURE_PERCEPTION:
+        elif action == "gesture backward" and GESTURE_PERCEPTION:
             pass
             # self.called_robot(ConceptNode(person)).tv = self.kb.TRUE
-        elif action == "neutral" or action == "put_or_get_crate" and BEHAVIOR_PERCEPTION:
+        elif action == "neutral" or action == "put or get crate" and BEHAVIOR_PERCEPTION:
             pass
         else:
             rospy.logerr("WST: Did not observe gesture/behaviour {}".format(action))

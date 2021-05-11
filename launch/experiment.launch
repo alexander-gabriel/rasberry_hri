@@ -9,14 +9,18 @@
         <!-- Set to match the cameras that are launched in the include file (camera launch script) -->
         <!-- <arg name="topic_prefixes" default="rsense"/>--> <!-- Separate topic_prefixes with commas -->
 
-        <node pkg="rasberry_hri" name="action_recognition_node" ns="$(arg _ns)" type="action_recognition_node" output="screen">
+        <!-- <node pkg="rasberry_hri" name="action_recognition_node" ns="$(arg _ns)" type="action_recognition_node" output="screen">
             <param name="/use_sim_time" value="true"/>
-        </node>
+        </node> -->
         <node pkg="openpose_ros" name="openpose" type="openpose_ros_node" ns="$(arg _ns)" output="screen">
-            <param name="net_input_width" value="320"/>
+            <param name="net_input_width" value="640"/>
+            <param name="net_input_height" value="480"/>
+            <param name="net_output_width" value="640"/>
+            <param name="net_output_height" value="480"/>
+            <!-- <param name="net_input_width" value="320"/>
             <param name="net_input_height" value="240"/>
             <param name="net_output_width" value="320"/>
-            <param name="net_output_height" value="240"/>
+            <param name="net_output_height" value="240"/> -->
             <param name="model_folder" value="$(arg model_folder)"/>
             <param name="pose_model" value="BODY_25"/>
             <param name="publish_result" value="$(arg publish_result)"/>

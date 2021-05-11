@@ -11,7 +11,7 @@ from opencog.type_constructors import VariableNode, ConceptNode, \
                                       PredicateNode, NumberNode, FloatValue
 from opencog.utilities import initialize_opencog
 
-from experiments.db import DB
+from experiments.db import DB, ARDB
 from common.parameters import EXPERIMENT_ID, TARGET_PICKER, RUN_ID, EXPERIMENT_LABEL
 
 
@@ -338,3 +338,4 @@ def mean(liste):
     return sum(liste)/len(liste)
 
 db = DB(EXPERIMENT_LABEL, EXPERIMENT_ID, TARGET_PICKER, RUN_ID)
+ardb = ARDB()

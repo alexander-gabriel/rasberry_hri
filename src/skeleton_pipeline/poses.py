@@ -1,166 +1,201 @@
 
 # 0,0 is left, top
 
+def combine(all, new_part):
+    for key, value in new_part.items():
+        if key in all:
+            all[key] = all[key] + value
+        else:
+            all[key] = value
+
 front_facing = {
-    "Left:Shoulder-X": "p > Neck-X",
-    "Right:Shoulder-X": "p < Neck-X",
-    "Left:Hip-X": "p > Neck-X",
-    "Right:Hip-X": "p < Neck-X",
-    # "Left:Knee-X": "p > Neck-X",
-    # "Right:Knee-X" "p < Neck-X",
+    "Left:Shoulder-X": ["p > Neck-X", "p > Right:Shoulder-X"], "Right:Shoulder-X": ["p < Neck-X", "p < Left:Shoulder-X"],
+    "Left:Hip-X": ["p > Neck-X", "p > Right:Hip-X"], "Right:Hip-X": ["p < Neck-X", "p < Left:Hip-X"],
+    "Left:Knee-X": ["p > Neck-X", "p > Right:Knee-X"], "Right:Knee-X": ["p < Neck-X", "p < Left:Knee-X"],
+    "Left:Elbow-X": ["p > Right:Elbow-X"], "Right:Elbow-X": ["p < Left:Elbow-X"],
 }
 
 back_facing = {
-    "Left:Shoulder-X": "p < Neck-X",
-    "Right:Shoulder-X": "p > Neck-X",
-    # "Left:Hip-X": "p < Neck-X",
-    "Left:Hip-X": "p < Right:Hip-X",
-    # "Right:Hip-X": "p > Neck-X",
-    "Right:Hip-X": "p > Left:Hip-X",
-    # "Left:Knee-X": "p < Neck-X",
-    # "Right:Knee-X" "p > Neck-X",
+    "Left:Shoulder-X": ["p < Neck-X"], "Right:Shoulder-X": ["p > Neck-X"],
+    # "Left:Hip-X": ["p < Neck-X"], "Right:Hip-X": ["p > Neck-X"],
+    "Left:Hip-X": ["p < Right:Hip-X"], "Right:Hip-X": ["p > Left:Hip-X"],
+    "Left:Knee-X": ["p < Neck-X"], "Right:Knee-X": ["p > Neck-X"],
 }
 
 side_facing = {
-    "Left:Shoulder-X": "p = Neck-X",
-    "Right:Shoulder-X": "p = Neck-X",
-    "Left:Hip-X": "p = Neck-X",
-    "Right:Hip-X": "p = Neck-X",
-    # "Left:Knee-X": "p = Neck-X",
-    # "Right:Knee-X" "p = Neck-X",
+    "Left:Shoulder-X": ["p = Neck-X"], "Right:Shoulder-X": ["p = Neck-X"],
+    "Left:Hip-X": ["p = Neck-X"], "Right:Hip-X": ["p = Neck-X"],
+    "Left:Knee-X": ["p = Neck-X"], "Right:Knee-X": ["p = Neck-X"],
 }
 
 standing = {
-    "Right:Ankle-Y" : "p = Left:Ankle-Y",
-    "Right:Knee-Y" : "p = Left:Knee-Y",
+    "Right:Ankle-Y" : ["p = Left:Ankle-Y"],
+    "Right:Knee-Y" : ["p = Left:Knee-Y"],
 }
 
-right_arm_up = {"Right:Shoulder": "a > 230.0"}
-right_arm_down = {"Right:Shoulder": "a < 120.0"}
-right_arm_side = {"Right:Shoulder": "a = 180.0"}
-right_arm_angled = {"Right:Elbow": "a < 115.0"}
-right_arm_straight = {"Right:Elbow": "a > 140.0"}
+right_arm_up = {"Right:Shoulder": ["a > 230.0"]}
+right_arm_down = {"Right:Shoulder": ["a < 120.0"]}
+right_arm_side = {"Right:Shoulder": ["a = 180.0"]}
+right_arm_angled = {"Right:Elbow": ["a < 115.0"]}
+right_arm_straight = {"Right:Elbow": ["a > 140.0"]}
 
-left_arm_up = {"Left:Shoulder": "a > 230"}
-left_arm_down = {"Left:Shoulder": "a < 120.0"}
-left_arm_side = {"Left:Shoulder": "a = 180.0"}
-left_arm_angled = {"Left:Elbow": "a < 115.0"}
-left_arm_straight = {"Left:Elbow": "a > 140.0"}
+left_arm_up = {"Left:Shoulder": ["a > 230"]}
+left_arm_down = {"Left:Shoulder": ["a < 120.0"]}
+left_arm_side = {"Left:Shoulder": ["a = 180.0"]}
+left_arm_angled = {"Left:Elbow": ["a < 115.0"]}
+left_arm_straight = {"Left:Elbow": ["a > 140.0"]}
 
 arms_crossed_frontfacing = {
-    "Left:Wrist-X": "p < Neck-X", "Right:Wrist-X": "p > Neck-X",
-    "Left:Elbow-X": "p > Neck-X", "Right:Elbow-X": "p < Neck-X",
-    "Left:Wrist-X": "p < Right:Wrist-X",
+    "Left:Wrist-X": ["p < Neck-X", "p < Right:Wrist-X", "p > Right:Shoulder-X"], "Right:Wrist-X": ["p > Neck-X", "p > Left:Wrist-X", "p < Left:Shoulder-X"],
+    "Left:Wrist-Y": ["p > Right:Shoulder-Y", "p < Right:Elbow-Y", "p = Right:Wrist-Y"], "Right:Wrist-Y": ["p > Left:Shoulder-Y", "p < Left:Elbow-Y", "p = Left:Wrist-Y"],
+    "Left:Elbow-X": ["p > Neck-X", "p = Left:Shoulder-X"], "Right:Elbow-X": ["p < Neck-X", "p = Right:Shoulder-X"],
 }
 
-arms_side_frontfacing = {
-    "Left:Wrist-X": "p > Neck-X", "Right:Wrist-X": "p < Neck-X",
-    "Left:Elbow-X": "p > Neck-X", "Right:Elbow-X": "p < Neck-X",
+arms_side = {
+    "Left:Wrist-X": ["p = Left:Elbow-X", "p = Left:Shoulder-X"], "Right:Wrist-X": ["p = Right:Elbow-X", "p = Right:Shoulder-X"],
+    "Left:Elbow-X": ["p = Left:Shoulder-X"], "Right:Elbow-X": ["p = Right:Shoulder-X"],
 }
 
-arms_side_backfacing = {
-    "Left:Wrist-X": "p < Neck-X", "Right:Wrist-X": "p > Neck-X",
-    "Left:Elbow-X": "p < Neck-X", "Right:Elbow-X": "p > Neck-X",
+arms_wide_frontfacing = {
+    "Left:Wrist-X": ["p > Neck-X", "p > Left:Shoulder-X"], "Right:Wrist-X": ["p < Neck-X", "p < Right:Shoulder-X"],
+    "Left:Elbow-X": ["p > Neck-X", "p > Left:Shoulder-X"], "Right:Elbow-X": ["p < Neck-X", "p < Right:Shoulder-X"],
+}
+
+arms_wide_backfacing = {
+    "Left:Wrist-X": ["p < Neck-X", "p < Left:Shoulder-X"], "Right:Wrist-X": ["p > Neck-X", "p > Right:Shoulder-X"],
+    "Left:Elbow-X": ["p < Neck-X", "p < Left:Shoulder-X"], "Right:Elbow-X": ["p > Neck-X", "p > Right:Shoulder-X"],
 }
 
 arms_left = {
-    "Left:Elbow-X": "p < Neck-X", "Right:Elbow-X": "p < Neck-X",
-    "Left:Wrist-X": "p < Left:Elbow-X", "Right:Wrist-X": "p < Right:Elbow-X",
-
+    "Left:Elbow-X": ["p < Neck-X", "p < Left:Hip-X", "p < Left:Shoulder-X"], "Right:Elbow-X": ["p < Neck-X", "p < Right:Hip-X", "p < Right:Shoulder-X"],
+    "Left:Wrist-X": ["p < Neck-X", "p < Left:Elbow-X", "p < Left:Hip-X", "p < Left:Shoulder-X"], "Right:Wrist-X": ["p < Neck-X", "p < Right:Elbow-X", "p < Right:Hip-X", "p < Right:Shoulder-X"],
 }
 
 arms_right = {
-    "Left:Elbow-X": "p > Neck-X", "Right:Elbow-X": "p > Neck-X",
-    "Left:Wrist-X": "p > Left:Elbow-X", "Right:Wrist-X": "p > Right:Elbow-X",
+    "Left:Elbow-X": ["p > Neck-X", "p > Left:Hip-X", "p > Left:Shoulder-X"], "Right:Elbow-X": ["p > Neck-X", "p > Right:Hip-X", "p > Right:Shoulder-X"],
+    "Left:Wrist-X": ["p > Neck-X", "p > Left:Elbow-X", "p > Left:Hip-X", "p > Left:Shoulder-X"], "Right:Wrist-X": ["p > Neck-X", "p > Right:Elbow-X", "p > Right:Hip-X", "p > Right:Shoulder-X"],
 }
 
 arms_mid_high = {
-    "Left:Wrist-Y": "p > Left:Shoulder-Y", "Right:Wrist-Y": "p > Right:Shoulder-Y",
-    "Left:Wrist-Y": "p < Left:Hip-Y", "Right:Wrist-Y": "p < Right:Hip-Y",
+    "Left:Wrist-Y": ["p > Left:Shoulder-Y", "p < Left:Hip-Y"], "Right:Wrist-Y": ["p > Right:Shoulder-Y", "p < Right:Hip-Y"],
+}
+
+arms_shoulder_high = {
+    "Left:Wrist-Y": ["p > Neck-Y", "p < Left:Hip-Y"], "Right:Wrist-Y": ["p > Neck-Y", "p < Right:Hip-Y"],
+    "Left:Elbow-Y": ["p < Left:Hip-Y", "p > Neck-Y"], "Right:Elbow-Y": ["p < Right:Hip-Y", "p > Neck-Y"],
 }
 
 stop_wrists = {
-    "Left:Wrist-Y": "p = Left:Shoulder-Y", "Right:Wrist-Y": "p = Right:Shoulder-Y",
-    "Left:Wrist-X": "p = Left:Shoulder-X", "Right:Wrist-X": "p = Right:Shoulder-X",
+    "Left:Wrist-Y": ["p = Left:Shoulder-Y", "p = Right:Wrist-Y"], "Right:Wrist-Y": ["p = Right:Shoulder-Y", "p = Left:Wrist-Y"],
+    "Left:Wrist-X": ["p = Left:Shoulder-X", "p = Left:Elbow-X"], "Right:Wrist-X": ["p = Right:Shoulder-X", "p = Right:Elbow-X"],
+}
+
+stop_elbows = {
+    "Left:Elbow-Y": ["p = Left:Shoulder-Y", "p = Right:Elbow-Y"], "Right:Elbow-Y": ["p = Right:Shoulder-Y", "p = Left:Elbow-Y"],
+    "Left:Elbow-X": ["p = Left:Shoulder-X"], "Right:Elbow-X": ["p = Right:Shoulder-X"],
 }
 
 arms_down = {
-    "Left:Wrist-Y": "p > Left:Hip-Y", "Right:Wrist-Y": "p > Right:Hip-Y",
-    "Left:Wrist-Y": "p > Left:Elbow-Y", "Right:Wrist-Y": "p > Right:Elbow-Y",
+    "Left:Wrist-Y": ["p > Left:Hip-Y", "p > Left:Elbow-Y"], "Right:Wrist-Y": ["p > Right:Hip-Y", "p > Right:Elbow-Y"],
 }
 
 
 gesture_call_robot = dict()
-gesture_call_robot.update(front_facing)
-gesture_call_robot.update(standing)
-gesture_call_robot.update(right_arm_up)
-gesture_call_robot.update(right_arm_straight)
-gesture_call_robot.update(left_arm_down)
-gesture_call_robot.update(left_arm_straight)
+combine(gesture_call_robot, front_facing)
+combine(gesture_call_robot, standing)
+combine(gesture_call_robot, right_arm_up)
+combine(gesture_call_robot, right_arm_straight)
+combine(gesture_call_robot, left_arm_down)
+combine(gesture_call_robot, left_arm_straight)
 
 gesture_forward = dict()
-gesture_forward.update(front_facing)
-gesture_forward.update(standing)
-gesture_forward.update(right_arm_side)
-gesture_forward.update(right_arm_angled)
-gesture_forward.update(left_arm_down)
-gesture_forward.update(left_arm_straight)
+combine(gesture_forward, front_facing)
+combine(gesture_forward, standing)
+combine(gesture_forward, right_arm_side)
+combine(gesture_forward, right_arm_angled)
+combine(gesture_forward, left_arm_down)
+combine(gesture_forward, left_arm_straight)
 
 gesture_backward = dict()
-gesture_backward.update(front_facing)
-gesture_backward.update(standing)
-gesture_backward.update(left_arm_side)
-gesture_backward.update(left_arm_angled)
-gesture_backward.update(right_arm_down)
-gesture_backward.update(right_arm_straight)
+combine(gesture_backward, front_facing)
+combine(gesture_backward, standing)
+combine(gesture_backward, left_arm_side)
+combine(gesture_backward, left_arm_angled)
+combine(gesture_backward, right_arm_down)
+combine(gesture_backward, right_arm_straight)
 
 gesture_cancel = dict()
-gesture_cancel.update(front_facing)
-gesture_cancel.update(standing)
-gesture_cancel.update(arms_crossed_frontfacing)
-gesture_cancel.update(arms_mid_high)
+combine(gesture_cancel, front_facing)
+combine(gesture_cancel, standing)
+combine(gesture_cancel, arms_crossed_frontfacing)
+combine(gesture_cancel, left_arm_down)
+combine(gesture_cancel, right_arm_down)
+combine(gesture_cancel, arms_mid_high)
 
 gesture_stop = dict()
-gesture_stop.update(front_facing)
-gesture_stop.update(standing)
-gesture_stop.update(arms_side_frontfacing)
-gesture_stop.update(stop_wrists)
+combine(gesture_stop, front_facing)
+combine(gesture_stop, standing)
+combine(gesture_stop, arms_side)
+combine(gesture_stop, stop_wrists)
+combine(gesture_stop, stop_elbows)
 
 put_or_get_crate = dict()
-put_or_get_crate.update(back_facing)
-put_or_get_crate.update(standing)
-put_or_get_crate.update(arms_side_backfacing)
-put_or_get_crate.update(arms_mid_high)
+combine(put_or_get_crate, back_facing)
+combine(put_or_get_crate, standing)
+combine(put_or_get_crate, arms_wide_backfacing)
+combine(put_or_get_crate, arms_mid_high)
 
 picking_berries_left = dict()
-picking_berries_left.update(side_facing)
-picking_berries_left.update(standing)
-picking_berries_left.update(arms_left)
-picking_berries_left.update(arms_mid_high)
+combine(picking_berries_left, side_facing)
+combine(picking_berries_left, standing)
+combine(picking_berries_left, arms_left)
+combine(picking_berries_left, arms_shoulder_high)
 
 picking_berries_right = dict()
-picking_berries_right.update(side_facing)
-picking_berries_right.update(standing)
-picking_berries_right.update(arms_right)
-picking_berries_right.update(arms_mid_high)
+combine(picking_berries_right, side_facing)
+combine(picking_berries_right, standing)
+combine(picking_berries_right, arms_right)
+combine(picking_berries_right, arms_shoulder_high)
 
 neutral = dict()
-neutral.update(front_facing)
-neutral.update(standing)
-neutral.update(arms_side_frontfacing)
-neutral.update(arms_down)
-neutral.update(right_arm_down)
-neutral.update(left_arm_down)
-neutral.update(right_arm_straight)
-neutral.update(left_arm_straight)
+combine(neutral, front_facing)
+combine(neutral, standing)
+combine(neutral, arms_side)
+combine(neutral, arms_down)
+combine(neutral, right_arm_down)
+combine(neutral, left_arm_down)
+combine(neutral, right_arm_straight)
+combine(neutral, left_arm_straight)
 
 walking_away = dict()
-walking_away.update(back_facing)
-walking_away.update(arms_side_backfacing)
+combine(walking_away, back_facing)
+combine(walking_away, arms_down)
+combine(walking_away, arms_side)
+combine(walking_away, right_arm_down)
+combine(walking_away, left_arm_down)
 
 walking_towards = dict()
-walking_towards.update(front_facing)
-walking_towards.update(arms_side_frontfacing)
+combine(walking_towards, front_facing)
+combine(walking_towards, arms_down)
+combine(walking_towards, arms_side)
+combine(walking_towards, right_arm_down)
+combine(walking_towards, left_arm_down)
+
+carry_away = dict()
+combine(carry_away, back_facing)
+combine(carry_away, arms_mid_high)
+combine(carry_away, arms_wide_backfacing)
+combine(carry_away, right_arm_down)
+combine(carry_away, left_arm_down)
+
+carry_towards = dict()
+combine(carry_towards, front_facing)
+combine(carry_towards, arms_mid_high)
+combine(carry_towards, arms_wide_frontfacing)
+combine(carry_towards, right_arm_down)
+combine(carry_towards, left_arm_down)
+
+
 
 # rotate_right = {"Left:Shoulder-X": "a = 90.0", "Left:Elbow-X": "a = 180.0",  "Right:Shoulder-X": "a = 180.0", "Right:Elbow-X": "a = 180.0" }
 # rotate_left = {"Left:Shoulder-X": "a = 180.0", "Left:Elbow-X": "a = 180.0",  "Right:Shoulder-X": "a = 90.0", "Right:Elbow-X": "a = 180.0" }
@@ -183,16 +218,18 @@ walking_towards.update(arms_side_frontfacing)
 
 pose_list = {"calling": gesture_call_robot,
              "picking berries": picking_berries_left,
-             "picking_berries_right": picking_berries_right,
+             "picking berries right": picking_berries_right,
              # "standing": standing,
-             "gesture_cancel": gesture_cancel,
-             "gesture_stop": gesture_stop,
-             # "put_or_get_crate": put_or_get_crate,
-             # "gesture_forward": gesture_forward,
-             # "gesture_backward": gesture_backward,
+             "gesture cancel": gesture_cancel,
+             "gesture stop": gesture_stop,
+             # "put or get crate": put_or_get_crate,
+             "gesture forward": gesture_forward,
+             "gesture backward": gesture_backward,
              "neutral": neutral,
-             # "approaching": walking_towards,
-             # "leaving": walking_away
+             # "walk_towards": walking_towards,
+             # "walk_away": walking_away,
+             # "walk_towards_crate": carry_towards,
+             # "walk_away_crate": carry_away,
              }
 
 # pose_list = {"front": front_facing,

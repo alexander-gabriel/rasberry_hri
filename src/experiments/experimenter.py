@@ -8,6 +8,8 @@ from datetime import timedelta
 
 import rospy
 import rosnode
+import subprocess
+# import roslib.scriptutil as scriptutil
 from experiment import Experiment
 from common.parameters import CONFIG_DIRECTORY, STATE_DIRECTORY
 
@@ -43,14 +45,25 @@ class Experimenter:
             id = config["run_id"]
             if id not in self.state["finished experiments"]:
                 running_nodes = rosnode.get_node_names()
+                wait_count = 0
                 if ("/thorvald_001/picker_mover" in running_nodes
-                    or '/thorvald_001/scheduler' in running_nodes):
+                    or '/thorvald_001/scheduler' in running_nodes
+                    or '/thorvald_001/action_recognition_node' in running_nodes):
                     rospy.logwarn("EXPE: Waiting for previous experiment to stop")
                     rospy.logwarn(running_nodes)
                 while ("/thorvald_001/picker_mover" in running_nodes
-                    or '/thorvald_001/scheduler' in running_nodes):
+                    or '/thorvald_001/scheduler' in running_nodes
+                    or '/thorvald_001/action_recognition_node' in running_nodes):
+                    if wait_count == 10:
+                        process = subprocess.Popen(["/opt/ros/melodic/bin/rosnode", "cleanup", "/thorvald_001/scheduler"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+                        process.stdin.write("y\n")
+                        rospy.loginfo(process.communicate()[0])
+                        process.stdin.close()
+                    elif wait_count >= 10:
+                        rospy.logerr("EXPE: Zombie nodes exist")
                     rospy.sleep(1)
                     running_nodes = rosnode.get_node_names()
+                    wait_count += 1
                 rospy.logwarn("EXPE: Starting Experiment run {}".format(id))
                 start = time()
                 experiment = Experiment(config)

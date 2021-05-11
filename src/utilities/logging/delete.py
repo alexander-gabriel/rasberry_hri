@@ -90,15 +90,15 @@ if __name__ == '__main__':
         db.delete_run(args.run)
     if args.id:
         run_ids = db.delete_experiment(args.id)
-        delete_state(run_ids)
+        delete_state(run_ids, args.config)
     if args.label:
         ids = db.get_experiments(args.label)
         for id in ids:
             run_ids = db.delete_experiment(id)
-            delete_state(run_ids)
+            delete_state(run_ids, args.config)
     if args.picker:
         run_ids = db.get_picker_runs(args.picker)
-        delete_state(run_ids)
+        delete_state(run_ids, args.config)
         for run_id in run_ids:
             db.delete_run(run_id)
     db.close()

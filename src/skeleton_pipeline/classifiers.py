@@ -26,7 +26,8 @@ class MinimumDifferenceClassifier:
             classification.poses[-1].criteria = list()
             error_list = [self.limit]
             rospy.logdebug("CLA: checking pose: {}".format(name))
-            for label, target in pose.items():
+            for label, targets in pose.items():
+                for target in targets:
                     value = None
                     limit = None
                 # with suppress(TypeError):
@@ -58,28 +59,22 @@ class MinimumDifferenceClassifier:
                         # old
                         # value = positions[label]
                     error = False
-
-                    if limit is None or abs(limit - 3.14159) < 0.001:
-                        if limit is None:
-                            rospy.logwarn("CLA: DETECTED NONE ERROR")
-                            rospy.loginfo("CLA: {}-{}".format(label, target))
-                        else:
-                            rospy.logwarn("CLA: DETECTED PI ERROR")
-                            rospy.loginfo("CLA: {}-{}".format(label, target))
+                    if limit is None or abs(limit - pi) < 0.001:
+                        # if limit is None:
+                        #     rospy.logwarn("CLA: DETECTED NONE ERROR: {} {}".format(label, target))
+                        # else:
+                        #     rospy.logwarn("CLA: DETECTED PI ERROR: {} {}".format(label, target))
                         limit = pi
-                        rospy.logwarn("CLA: {}".format(label))
                         error = True
-                    if value is None or abs(value - 3.14159) < 0.001:
-                        if value is None:
-                            rospy.logwarn("CLA: DETECTED NONE ERROR")
-                            rospy.loginfo("CLA: {}-{}".format(label, target))
-                        else:
-                            rospy.logwarn("CLA: DETECTED PI ERROR")
-                            rospy.loginfo("CLA: {}-{}".format(label, target))
+                    if value is None or abs(value - pi) < 0.001:
+                        # if value is None:
+                        #     rospy.logwarn("CLA: DETECTED NONE ERROR: {} {}".format(label, target))
+                        # else:
+                        #     rospy.logwarn("CLA: DETECTED PI ERROR: {} {}".format(label, target))
                         value = pi
-                        rospy.logwarn("CLA: {}".format(label))
                         error = True
                     if not error:
+                        # rospy.loginfo("CLA: {}: {:f}".format(label, value))
                         if direction == "=":
                             rospy.logdebug("CLA: error: {}-{}={}".format(limit, value, abs(limit - value)))
                             error_list.append(abs(limit - value))
@@ -92,15 +87,17 @@ class MinimumDifferenceClassifier:
                         else:
                             rospy.logerr("CLA: wrong direction code {}".format(direction))
                             pass
-                    else:
-                        error_list.append(self.limit)
+                    # else:
+                    #     error_list.append(self.limit)
                     criterium = Criterium()
-                    criterium.code = "Angle: {}".format(label) if angle_or_position == "a" else "Position: {}".format(label)
+                    criterium.code = "Angle: {} {}".format(label, target) if angle_or_position == "a" else "Position: {} {}".format(label, target)
                     criterium.limit = limit
                     criterium.value = value
                     criterium.error = error_list[-1]
                     classification.poses[-1].criteria.append(criterium)
+            # error = mean(error_list)
             error = mean(error_list)
+            classification.poses[-1].error_score = error
             if error < min_error[1]:
                 min_error = (name, error)
             rospy.logdebug("CLA: {:}: {:f}".format(name, error))

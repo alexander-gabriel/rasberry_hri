@@ -1,4 +1,4 @@
-
+from math import pi
 from numpy import arctan2, abs
 import numpy as np
 
@@ -70,9 +70,14 @@ class Converter:
         centerX = self.X("Neck")
         centerY = self.Y("Neck")
         def abs2rel(pos):
-            return {"X": pos.roi.x_offset - centerX,
-                    "Y": pos.roi.y_offset - centerY,
-                    "P": pos.categorical_distribution.probabilities[0].probability}
+            if pos.roi.x_offset == 0 and pos.roi.y_offset == 0:
+                return {"X": pi,
+                        "Y": pi,
+                        "P": pos.categorical_distribution.probabilities[0].probability}
+            else:
+                return {"X": pos.roi.x_offset - centerX,
+                        "Y": pos.roi.y_offset - centerY,
+                        "P": pos.categorical_distribution.probabilities[0].probability}
         self.positions = {}
         old_positions = self.actual_positions
         self.actual_positions = {}
@@ -82,7 +87,8 @@ class Converter:
                 new_label = self.label_table[label]
                 self.actual_positions[new_label] = abs2rel(recognitions[self.index_map[label]])
                 try:
-                    if ADD_POSTURE_NOISE:
+                    # if ADD_POSTURE_NOISE:
+                    if False:
                         self.positions[new_label] = self.add_pose_noise(self.actual_positions[new_label])
                     else:
                         self.positions[new_label] = self.actual_positions[new_label]

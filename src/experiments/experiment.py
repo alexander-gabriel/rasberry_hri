@@ -2,6 +2,7 @@
 import os
 import base64
 import warnings
+import subprocess
 
 import paramiko
 import rospy
@@ -82,9 +83,10 @@ class Experiment:
         rospy.loginfo("Setting robot to {:.2f}, {:.2f}".format(x, y))
         self.set_model_state(state_msg)
         rospy.sleep(1)
-        self.ssh_client.connect("simulator", username="rasberry")
-        stdin, stdout, stderr = self.ssh_client.exec_command(get_command(x, y))
-        self.ssh_client.close()
+        # self.ssh_client.connect("simulator", username="rasberry")
+        # stdin, stdout, stderr = self.ssh_client.exec_command(get_command(x, y))
+        subprocess.call(get_command(x, y), shell=True)
+        # self.ssh_client.close()
         rospy.sleep(3)
 
     def create_service_proxy(self, topic, type=Empty, local=True):

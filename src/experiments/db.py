@@ -157,3 +157,34 @@ class DB:
         with self.lock:
             self.db.commit()
             self.db.close()
+
+class ARDB:
+    def __init__(self, filename=os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY, 'ar-log.db')):
+        self.lock = Lock()
+        make_paths()
+        self.db = sqlite3.connect(filename, check_same_thread=False)
+        try:
+            self.build_db()
+        except sqlite3.OperationalError:
+            pass
+
+    def build_db(self):
+        with self.lock:
+            with closing(self.db.cursor()) as cursor:
+                cursor.execute("CREATE TABLE pose_classifications (timestamp float, picker_id text, actual_behavior text, classification text)")
+                self.db.commit()
+
+
+    def add_classification(self, timestamp, picker, behaviour, classification):
+        with self.lock:
+            with closing(self.db.cursor()) as cursor:
+                cursor.execute(
+                    "INSERT INTO pose_classifications VALUES (?, ?, ?, ?)",
+                    (timestamp, picker, behaviour, classification))
+                self.db.commit()
+
+
+    def close_db(self):
+        with self.lock:
+            self.db.commit()
+            self.db.close()

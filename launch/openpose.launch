@@ -1,7 +1,7 @@
 <launch>
   <arg name="model_folder" default="/home/rasberry/git/openpose/models/"/>
   <arg name="publish_result" default="False"/>
-  <arg name="_ns" default="/thorvald_001"/>
+  <!-- <arg name="_ns" default="/thorvald_001"/> -->
   <group>
         <!-- <include file="$(find rasberry_hri)/launch/d415_camera.launch"/> -->
         <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch"/> -->
@@ -10,13 +10,12 @@
         <!-- <arg name="topic_prefixes" default="rsense"/>--> <!-- Separate topic_prefixes with commas -->
 
 
-        <node pkg="openpose_ros" name="openpose" type="openpose_ros_node" ns="$(arg _ns)" output="screen">
-            <!-- <param name="net_input_width" value="640"/>
-            <param name="net_input_height" value="480"/> -->
-            <param name="net_input_width" value="320"/>
-            <param name="net_input_height" value="240"/>
-            <param name="net_output_width" value="320"/>
-            <param name="net_output_height" value="240"/>
+        <!-- <node pkg="openpose_ros" name="openpose" type="openpose_ros_node" ns="$(arg _ns)" output="screen"> -->
+        <node pkg="openpose_ros" name="openpose" type="openpose_ros_node" output="screen">
+            <param name="net_input_width" value="640"/>
+            <param name="net_input_height" value="480"/>
+            <param name="net_output_width" value="640"/>
+            <param name="net_output_height" value="480"/>
             <param name="model_folder" value="$(arg model_folder)"/>
             <param name="pose_model" value="BODY_25"/>
             <param name="publish_result" value="$(arg publish_result)"/>

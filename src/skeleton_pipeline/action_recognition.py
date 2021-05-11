@@ -2,7 +2,6 @@ import json
 import os
 import rospy
 
-
 from sensor_msgs.msg import Image
 from image_recognition_msgs.srv import Recognize
 from rasberry_hri.msg import Action, Command, Joint, Classification
@@ -10,7 +9,7 @@ from rasberry_hri.msg import Action, Command, Joint, Classification
 from common.utils import get_angle_prototype, get_position_prototype, suppress
 from common.parameters import NS, DETECTION_COUNT, COOLDOWN, TARGET_PICKER, \
     CAMERA_TOPIC, BEHAVIOR_PERCEPTION, GESTURE_PERCEPTION, CONFIG_DIRECTORY, \
-    LOG_DIRECTORY, USE_ACTION_RECOGNITION, define
+    LOG_DIRECTORY, USE_ACTION_RECOGNITION, ADD_POSTURE_NOISE, POSTURE_CONFUSION
 
 from converter import Converter
 from classifiers import MinimumDifferenceClassifier
@@ -35,7 +34,7 @@ class ActionRecognition:
         self.classification_publisher = rospy.Publisher('/pose_classification',
                                                         Classification,
                                                         queue_size=10)
-        self.picker = TARGET_PICKER
+        # self.picker = TARGET_PICKER
         self.converter = Converter()
         self.classifier = MinimumDifferenceClassifier()
         if self.normal_mode:
@@ -83,15 +82,15 @@ class ActionRecognition:
             with open(os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY, "positions.log"), 'w') as f:
                 json.dump(positions, f)
             action, classification = self.get_action(angles, positions)
+            classification.header.stamp = timestamp
+            self.classification_publisher.publish(classification)
             if GESTURE_PERCEPTION and action in [
-                    "calling", "gesture_cancel", "gesture_stop",
-                    "gesture_forward", "gesture_backward"] \
+                    "calling", "gesture cancel", "gesture stop",
+                    "gesture forward", "gesture backward"] \
                or BEHAVIOR_PERCEPTION and action in [
-                    "picking berries", "picking_berries_right",
-                    "put_or_get_crate"] \
+                    "picking berries", "picking berries right",
+                    "put or get crate"] \
                or action == "neutral":
-                classification.header.stamp = timestamp
-                self.classification_publisher.publish(classification)
                 with open(os.path.join(CONFIG_DIRECTORY, LOG_DIRECTORY, "action.log"), 'w') as f:
                     json.dump(action, f)
                 if action is not None:
@@ -99,7 +98,7 @@ class ActionRecognition:
                     outmsg = Action()
                     outmsg.header.stamp = timestamp
                     outmsg.action = action or ""
-                    outmsg.person = define("target_picker","PICKER_NAME_NOT_SET") #self.picker
+                    outmsg.person = TARGET_PICKER # define("target_picker","PICKER_NAME_NOT_SET") #self.picker
                     # outmsg.header.stamp = rospy.get_rostime()
                     outmsg.joints = []
                     for key in angles.keys():
@@ -152,7 +151,7 @@ class ActionRecognition:
             outmsg = Action()
             outmsg.header.stamp = msg.header.stamp
             outmsg.action = action or ""
-            outmsg.person = define("target_picker","PICKER_NAME_NOT_SET")
+            outmsg.person = TARGET_PICKER # define("target_picker","PICKER_NAME_NOT_SET")
             # outmsg.header.stamp = rospy.get_rostime()
             outmsg.joints = []
             for key in angles.keys():
@@ -209,8 +208,18 @@ class ActionRecognition:
 
     def get_action(self, angles, positions):
         tuple, classification = self.classifier.classify(angles, positions)
-        action_label = tuple[0]
         error = tuple[1]
+        # decide if noise or not
+        if ADD_POSTURE_NOISE:
+            try:
+                action_label = POSTURE_CONFUSION[tuple[0]]()
+                rospy.loginfo("ACR: {} using noise".format(action_label))
+            except KeyError:
+                action_label = tuple[0]
+                rospy.loginfo("ACR: {} failed to use noise".format(action_label))
+        else:
+            action_label = tuple[0]
+            rospy.loginfo("ACR: {} NOT using noise".format(action_label))
         try:
             rospy.logdebug(
                 "ACR: Detected behavior '{}' with penalty {}, counts {}"

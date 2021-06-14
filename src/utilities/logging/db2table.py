@@ -10,6 +10,7 @@ import yaml
 from contextlib import closing
 
 from common.parameters import CONFIG_DIRECTORY, LOG_DIRECTORY, STATE_DIRECTORY
+WAITING_THRESHOLD = 0.1
 
 def mean(l):
     with warnings.catch_warnings():
@@ -94,7 +95,7 @@ class DB:
                 cursor.execute(("SELECT wait FROM picker_waiting WHERE "
                                 "run_id = ?"), (run_id,))
                 for result in list(map(lambda x: x[0], cursor.fetchall())):
-                    if isinstance(result, float) and result < 1:
+                    if isinstance(result, float) and result < WAITING_THRESHOLD:
                         waits.append(float(result))
                         success.append(1.0)
                     else:
@@ -330,28 +331,52 @@ if __name__ == '__main__':
                 success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
                 speeds += speed
                 success3, waits = db.get_waits(runs)
-                output.append("{}; {}; {}; {};  {};  {};  {};  {};  {}; {}; {}; {}"
-                    .format(label,
-                            "{}; {}; {}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception,
-                                                                        behavior_perception,
-                                                                        direction_perception,
-                                                                        berry_perception,
-                                                                        berry_existence,
-                                                                        robot_crate_perception,
-                                                                        picker_crate_possession_perception,
-                                                                        has_crate,
-                                                                        picker_crate_fill_perception,
-                                                                        crate_full),
-                            "{: >4.3f}; {: >4.3f}".format(position_noise[0], posture_noise),
-                            "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
-                            behaviour[experiment_id],
-                            "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(duration)),
-                            "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(signal_distances)),
-                            "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(stop_distances)),
-                            "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(waits)),
-                            "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(speed)),
-                            experiment_id,
-                            ", ".join(actual_followed_goals)))
+                try:
+                    output.append("{}; {}; {}; {};  {};  {};  {};  {};  {}; {}; {}; {}"
+                        .format(label,
+                                "{}; {}; {}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception,
+                                                                            behavior_perception,
+                                                                            direction_perception,
+                                                                            berry_perception,
+                                                                            berry_existence,
+                                                                            robot_crate_perception,
+                                                                            picker_crate_possession_perception,
+                                                                            has_crate,
+                                                                            picker_crate_fill_perception,
+                                                                            crate_full),
+                                "{: >4.3f}; {: >4.3f}".format(position_noise[0], posture_noise),
+                                "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
+                                behaviour[experiment_id],
+                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(duration)),
+                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(signal_distances)),
+                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(stop_distances)),
+                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(waits)),
+                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(speed)),
+                                experiment_id,
+                                ", ".join(actual_followed_goals)))
+                except:
+                    output.append("{}; {}; {}; {};  {};  {};  {};  {};  {}; {}; {}; {}"
+                        .format(label,
+                                "{}; {}; {}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception,
+                                                                            behavior_perception,
+                                                                            direction_perception,
+                                                                            berry_perception,
+                                                                            berry_existence,
+                                                                            robot_crate_perception,
+                                                                            picker_crate_possession_perception,
+                                                                            has_crate,
+                                                                            picker_crate_fill_perception,
+                                                                            crate_full),
+                                "{: >4.3f}; {:}".format(position_noise[0], posture_noise),
+                                "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
+                                behaviour[experiment_id],
+                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(duration)),
+                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(signal_distances)),
+                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(stop_distances)),
+                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(waits)),
+                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(speed)),
+                                experiment_id,
+                                ", ".join(actual_followed_goals)))
             except IndexError:
                 pass
     for line in sorted(output):

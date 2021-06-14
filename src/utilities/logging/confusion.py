@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 import json
 import sys
-
-from common.utils import ardb
+import os
+import argparse
+# from common.utils import ardb
 from contextlib import closing
+from common.parameters import CONFIG_DIRECTORY, LOG_DIRECTORY, STATE_DIRECTORY
+from experiments.db import ARDB
 
 def create_confusion():
     return {"gesture_cancel": 0,
@@ -42,7 +45,18 @@ def get_confusion(typ, table, klass, subject=None):
             table[typ][klass] = create_confusion()
             return table[typ][klass]
 
+def form(number):
+    return "{:d}".format(int(round(number*100,0)))
+
+
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('--db', type=str, nargs='?', const="./ar-log.db", help='optional db file')
+    args = parser.parse_args()
+    if args.db:
+        ardb = ARDB(args.db)
+    else:
+        ardb = ARDB("./ar-log.db")
     count = 0
     table = {}
     table["score"] = {}
@@ -68,37 +82,37 @@ if __name__ == '__main__':
                 # for typ in ["score", "rank"]:
                 #     get_confusion(typ, table, klass)
                 #     get_confusion(typ, table_combined, klass)
+                if best != "neutral":
+                    confusion = get_confusion("rank", table, klass, subject)
+                    confusion["total_count"] += 1
+                    confusion[best] += 1
 
-                confusion = get_confusion("rank", table, klass, subject)
-                confusion["total_count"] += 1
-                confusion[best] += 1
+                    confusion_combined = get_confusion("rank", table_combined, klass)
+                    confusion_combined["total_count"] += 1
+                    confusion_combined[best] += 1
 
-                confusion_combined = get_confusion("rank", table_combined, klass)
-                confusion_combined["total_count"] += 1
-                confusion_combined[best] += 1
+                    confusion = get_confusion("score", table, klass, subject)
+                    confusion["total_count"] += 1
 
-                confusion = get_confusion("score", table, klass, subject)
-                confusion["total_count"] += 1
+                    confusion_combined = get_confusion("score", table_combined, klass)
+                    confusion_combined["total_count"] += 1
 
-                confusion_combined = get_confusion("score", table_combined, klass)
-                confusion_combined["total_count"] += 1
-
-                for key, score in classification.items():
-                    key = key.replace(" ", "_")
-                    confusion_combined[key] += score
-                    confusion[key] += score
+                    for key, score in classification.items():
+                        key = key.replace(" ", "_")
+                        confusion_combined[key] += score
+                        confusion[key] += score
             else:
                 count += 1
-    for typ in ["score", "rank"]:
-        print(typ)
-        for subject, klasses in table[typ].items():
-            print(subject)
-            print(";".join(["actual_behavior", "gesture_call", "gesture_cancel", "gesture_stop", "neutral", "picking_berries", "picking_berries_right", "deliver_crate", "deposit_crate", "pickup_crate", "return_crate", "gesture_forward", "gesture_backward"]))
-            for klass, confusion in klasses.items():
-                candidates = {}
-                for candidate_klass, score in confusion.items():
-                    candidates[candidate_klass] = float(score)/confusion["total_count"]
-            print(";".join([klass, str(candidates["calling"]), str(candidates["gesture_cancel"]), str(candidates["gesture_stop"]), str(candidates["neutral"]), str(candidates["picking_berries"]), str(candidates["picking_berries_right"]), str(candidates["deliver_crate"]), str(candidates["deposit_crate"]), str(candidates["pickup_crate"]), str(candidates["return_crate"]), str(candidates["gesture_forward"]), str(candidates["gesture_backward"])]))
+    # for typ in ["score", "rank"]:
+    #     print(typ)
+    #     for subject, klasses in table[typ].items():
+    #         print(subject)
+    #         print(";".join(["actual_behavior", "gesture_call", "gesture_cancel", "gesture_stop", "neutral", "picking_berries", "picking_berries_right", "deliver_crate", "deposit_crate", "pickup_crate", "return_crate", "gesture_forward", "gesture_backward"]))
+    #         for klass, confusion in klasses.items():
+    #             candidates = {}
+    #             for candidate_klass, score in confusion.items():
+    #                 candidates[candidate_klass] = float(score)/confusion["total_count"]/100
+    #         print(";".join([klass, form(candidates["calling"]), form(candidates["gesture_cancel"]), form(candidates["gesture_stop"]), form(candidates["neutral"]), form(candidates["picking_berries"]), form(candidates["picking_berries_right"]), form(candidates["deliver_crate"]), form(candidates["deposit_crate"]), form(candidates["pickup_crate"]), form(candidates["return_crate"]), form(candidates["gesture_forward"]), form(candidates["gesture_backward"])]))
 
     for typ in ["score", "rank"]:
         print(typ)
@@ -107,7 +121,8 @@ if __name__ == '__main__':
             candidates = {}
             for candidate_klass, score in confusion.items():
                 candidates[candidate_klass] = float(score)/confusion["total_count"]
-            print(";".join([klass, str(candidates["calling"]), str(candidates["gesture_cancel"]), str(candidates["gesture_stop"]), str(candidates["neutral"]), str(candidates["picking_berries"]), str(candidates["picking_berries_right"]), str(candidates["deliver_crate"]), str(candidates["deposit_crate"]), str(candidates["pickup_crate"]), str(candidates["return_crate"]), str(candidates["gesture_forward"]), str(candidates["gesture_backward"])]))
+            print(";".join([klass, form(candidates["calling"]), form(candidates["gesture_cancel"]), form(candidates["gesture_stop"]), form(candidates["neutral"]), form(candidates["picking_berries"]), form(candidates["picking_berries_right"]), form(candidates["deliver_crate"]), form(candidates["deposit_crate"]), form(candidates["pickup_crate"]), form(candidates["return_crate"]), form(candidates["gesture_forward"]), form(candidates["gesture_backward"])]))
+
     # for subject, klasses in table.items():
     #     for klass, confusion in klasses.items():
     #         candidates = {}
@@ -116,7 +131,7 @@ if __name__ == '__main__':
     #         # avg scores calculation
     #         # for candidate_klass, tuple in confusion.items():
     #         #     candidates[candidate_klass] = tuple[0]
-    #         print(";".join([klass, str(candidates["calling"]), str(candidates["gesture_cancel"]), str(candidates["gesture_stop"]), str(candidates["neutral"]), str(candidates["picking_berries"]), str(candidates["picking_berries_right"]), str(candidates["deliver_crate"]), str(candidates["deposit_crate"]), str(candidates["pickup_crate"]), str(candidates["return_crate"]), str(candidates["walk_away"]), str(candidates["walk_away_crate"]), str(candidates["walk_towards"]), str(candidates["walk_towards_crate"])]))
+    #         print(";".join([klass, form(candidates["calling"]), form(candidates["gesture_cancel"]), form(candidates["gesture_stop"]), form(candidates["neutral"]), form(candidates["picking_berries"]), form(candidates["picking_berries_right"]), form(candidates["deliver_crate"]), form(candidates["deposit_crate"]), form(candidates["pickup_crate"]), form(candidates["return_crate"]), form(candidates["walk_away"]), form(candidates["walk_away_crate"]), form(candidates["walk_towards"]), form(candidates["walk_towards_crate"])]))
     #         # try:
     #         #     for candidate_klass, tuple in confusion.items():
     #         #         new_avg, new_count = tuple
@@ -140,11 +155,11 @@ if __name__ == '__main__':
     #     candidates = {}
     #     for candidate_klass, score in confusion.items():
     #         candidates[candidate_klass] = float(score)/confusion["total_count"]
-    #     print(";".join([klass, str(candidates["calling"]), str(candidates["gesture_cancel"]), str(candidates["gesture_stop"]), str(candidates["neutral"]), str(candidates["picking_berries"]), str(candidates["picking_berries_right"]), str(candidates["deliver_crate"]), str(candidates["deposit_crate"]), str(candidates["pickup_crate"]), str(candidates["return_crate"]), str(candidates["walk_away"]), str(candidates["walk_away_crate"]), str(candidates["walk_towards"]), str(candidates["walk_towards_crate"])]))
+    #     print(";".join([klass, form(candidates["calling"]), form(candidates["gesture_cancel"]), form(candidates["gesture_stop"]), form(candidates["neutral"]), form(candidates["picking_berries"]), form(candidates["picking_berries_right"]), form(candidates["deliver_crate"]), form(candidates["deposit_crate"]), form(candidates["pickup_crate"]), form(candidates["return_crate"]), form(candidates["walk_away"]), form(candidates["walk_away_crate"]), form(candidates["walk_towards"]), form(candidates["walk_towards_crate"])]))
     # avg scores calculation
     # for klass, confusion in combined.items():
     #     candidates = {}
     #     for candidate_klass, tuple in confusion.items():
     #         candidates[candidate_klass] = tuple[0]
-    #     print(";".join([klass, str(candidates["calling"]), str(candidates["gesture_cancel"]), str(candidates["gesture_stop"]), str(candidates["neutral"]), str(candidates["picking_berries"]), str(candidates["picking_berries_right"]), str(candidates["deliver_crate"]), str(candidates["deposit_crate"]), str(candidates["pickup_crate"]), str(candidates["return_crate"]), str(candidates["walk_away"]), str(candidates["walk_away_crate"]), str(candidates["walk_towards"]), str(candidates["walk_towards_crate"])]))
+    #     print(";".join([klass, form(candidates["calling"]), form(candidates["gesture_cancel"]), form(candidates["gesture_stop"]), form(candidates["neutral"]), form(candidates["picking_berries"]), form(candidates["picking_berries_right"]), form(candidates["deliver_crate"]), form(candidates["deposit_crate"]), form(candidates["pickup_crate"]), form(candidates["return_crate"]), form(candidates["walk_away"]), form(candidates["walk_away_crate"]), form(candidates["walk_towards"]), form(candidates["walk_towards_crate"])]))
     # print(table)

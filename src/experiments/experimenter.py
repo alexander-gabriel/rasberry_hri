@@ -35,6 +35,7 @@ class Experimenter:
             }
         number_of_runs = 0
         count = 0
+        duration = 0
         durations = []
         average_duration = 0
         for config in self.configs:
@@ -44,6 +45,12 @@ class Experimenter:
         for config in self.configs:
             id = config["run_id"]
             if id not in self.state["finished experiments"]:
+                rospy.logwarn(("EXPE: {} of {} runs finished, {} remain.\n"
+                               "      Took {}s, Average: {}s, Remaining: {}")
+                              .format(
+                                count, number_of_runs, remaining_runs,
+                                duration, average_duration,
+                                timedelta(seconds=remaining_runs * average_duration)))
                 running_nodes = rosnode.get_node_names()
                 wait_count = 0
                 if ("/thorvald_001/picker_mover" in running_nodes
@@ -59,6 +66,14 @@ class Experimenter:
                         process.stdin.write("y\n")
                         rospy.loginfo(process.communicate()[0])
                         process.stdin.close()
+                        # pinged, unpinged = rosnode.rosnode_ping_all()
+                        # if unpinged:
+                        #     master = scriptutil.get_master()
+                        #     rospy.logwarn(master)
+                        #     rospy.loginfo("Unable to contact the following nodes:")
+                        #     rospy.loginfo('\n'.join(' * %s'%n for n in unpinged))
+                        #     rospy.loginfo("cleanup will purge all information about these nodes from the master")
+                        #     rosnode.cleanup_master_blacklist(master, unpinged)
                     elif wait_count >= 10:
                         rospy.logerr("EXPE: Zombie nodes exist")
                     rospy.sleep(1)
@@ -86,12 +101,7 @@ class Experimenter:
                 except ZeroDivisionError:
                     average_duration = duration
 
-                rospy.logwarn(("EXPE: {} of {} runs finished, {} remain.\n"
-                               "      Took {}s, Average: {}s, Remaining: {}")
-                              .format(
-                                count, number_of_runs, remaining_runs,
-                                duration, average_duration,
-                                timedelta(seconds=remaining_runs * average_duration)))
+
 
 
         # for config in self.configs:

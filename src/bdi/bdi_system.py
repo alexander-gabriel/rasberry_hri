@@ -79,8 +79,8 @@ class BDISystem:
         self.last_intention = None
         self.last_distance = 0
         with self.kb.lock:
-            self.pause = rospy.ServiceProxy("/gazebo/pause_physics", Empty)
-            self.unpause = rospy.ServiceProxy("/gazebo/unpause_physics", Empty)
+            # self.pause = rospy.ServiceProxy("/gazebo/pause_physics", Empty)
+            # self.unpause = rospy.ServiceProxy("/gazebo/unpause_physics", Empty)
             self.picker_pose_publisher = rospy.Publisher(
                 "/picker_mover", String, queue_size=10
             )
@@ -292,6 +292,10 @@ class BDISystem:
             # rospy.loginfo("BDI: -----     Loop     ----- {:.4f}"
             #               .format(duration))
             # self.unpause()
+        else:
+            # self.pause.close()
+            # self.unpause.close()
+            rospy.loginfo("BDI: Shutdown complete")
 
     def _clean_intentions(self):
         index = 0
@@ -314,4 +318,5 @@ class BDISystem:
         self.desires.append(goal)
 
     def shutdown(self):
+        rospy.loginfo("BDI: Shutting down")
         self.shutting_down = True

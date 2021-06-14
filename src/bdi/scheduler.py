@@ -384,18 +384,18 @@ class Scheduler:
                 directions = v.qsr.get("qtcbs").split(",")
                 picker_direction = directions[1]
                 try:
-                    if (self.directions[picker.name] != picker_direction):
-                        self.directions[picker.name] = picker_direction
+                    self.directions[picker.name].appendleft(picker_direction)
+                    if self.directions[picker.name].count(picker_direction) == 3:
                         self._handle_direction_change(picker, picker_direction)
                 except KeyError:
-                    self.directions[picker.name] = picker_direction
-                    self._handle_direction_change(picker, picker_direction)
+                    self.directions[picker.name] = collections.deque([picker_direction], maxlen=5)
         except (ValueError) as err:
             pass
         except IndexError as err:
             rospy.logwarn("SCH: 414 - Index error: {}".format(err))
         except KeyError as err:
             rospy.logerr("SCH: 416 - Timestamp mismatch error: {}".format(err))
+
 
     def _handle_direction_change(self, picker, direction):
         if direction == "+":

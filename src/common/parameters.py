@@ -86,12 +86,45 @@ class WeightedRandomGenerator(object):
 
 POSTURE_NOISE = define("posture_noise", 0)
 ADD_POSTURE_NOISE = POSTURE_NOISE != 0
-POSTURE_CONFUSION = {"calling": WeightedRandomGenerator({"gesture forward": (1-0.57*(1-POSTURE_NOISE))/0.43 * 0.07, "neutral": (1-0.57*(1-POSTURE_NOISE))/0.43 * 0.34, "calling": (1-POSTURE_NOISE) * 0.57}),
-                     "gesture stop": WeightedRandomGenerator({"picking berries": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.01, "picking berries right": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.02, "calling": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.06, "gesture cancel": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.07, "gesture forward": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.12, "gesture backward": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.13, "gesture stop": (1-POSTURE_NOISE) * 0.26, "neutral": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.34}),
-                     "gesture cancel": WeightedRandomGenerator({"calling": (1-0.61*(1-POSTURE_NOISE))/0.39 * 0.01, "gesture forward": (1-0.61*(1-POSTURE_NOISE))/0.39 * 0.01, "gesture backward": (1-0.61*(1-POSTURE_NOISE))/0.39 * 0.01, "neutral": (1-0.61*(1-POSTURE_NOISE))/0.39 * 0.36, "gesture cancel": (1-POSTURE_NOISE) * 0.61}),
-                     "gesture forward": WeightedRandomGenerator({"calling": (1-0.7*(1-POSTURE_NOISE))/0.3 * 0.02, "neutral": (1-0.7*(1-POSTURE_NOISE))/0.3 * 0.28, "gesture forward": (1-POSTURE_NOISE) * 0.7}),
-                     "gesture backward": WeightedRandomGenerator({"neutral": (0.29+0.71*POSTURE_NOISE), "gesture backward": (1-POSTURE_NOISE) * 0.71}),
-                     "picking berries": WeightedRandomGenerator({"gesture backward": (1-0.85*(1-POSTURE_NOISE))/0.15 * 0.01, "neutral": (1-0.85*(1-POSTURE_NOISE))/0.15 * 0.02, "gesture cancel": (1-0.85*(1-POSTURE_NOISE))/0.15 * 0.02, "picking berries right": (1-0.85*(1-POSTURE_NOISE))/0.15 * 0.04, "gesture forward": (1-0.85*(1-POSTURE_NOISE))/0.15 * 0.06, "picking berries": (1-POSTURE_NOISE) * 0.85})}
+# including neutral
+# POSTURE_CONFUSION = {"calling": WeightedRandomGenerator({"gesture forward": (1-0.57*(1-POSTURE_NOISE))/0.43 * 0.07, "neutral": (1-0.57*(1-POSTURE_NOISE))/0.43 * 0.34, "calling": (1-POSTURE_NOISE) * 0.57}),
+#                      "gesture stop": WeightedRandomGenerator({"picking berries": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.01, "picking berries right": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.02, "calling": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.06, "gesture cancel": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.07, "gesture forward": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.12, "gesture backward": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.13, "gesture stop": (1-POSTURE_NOISE) * 0.26, "neutral": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.34}),
+#                      "gesture cancel": WeightedRandomGenerator({"calling": (1-0.61*(1-POSTURE_NOISE))/0.39 * 0.01, "gesture forward": (1-0.61*(1-POSTURE_NOISE))/0.39 * 0.01, "gesture backward": (1-0.61*(1-POSTURE_NOISE))/0.39 * 0.01, "neutral": (1-0.61*(1-POSTURE_NOISE))/0.39 * 0.36, "gesture cancel": (1-POSTURE_NOISE) * 0.61}),
+#                      "gesture forward": WeightedRandomGenerator({"calling": (1-0.7*(1-POSTURE_NOISE))/0.3 * 0.02, "neutral": (1-0.7*(1-POSTURE_NOISE))/0.3 * 0.28, "gesture forward": (1-POSTURE_NOISE) * 0.7}),
+#                      "gesture backward": WeightedRandomGenerator({"neutral": (0.29+0.71*POSTURE_NOISE), "gesture backward": (1-POSTURE_NOISE) * 0.71}),
+#                      "picking berries": WeightedRandomGenerator({"gesture backward": (1-0.85*(1-POSTURE_NOISE))/0.15 * 0.01, "neutral": (1-0.85*(1-POSTURE_NOISE))/0.15 * 0.02, "gesture cancel": (1-0.85*(1-POSTURE_NOISE))/0.15 * 0.02, "picking berries right": (1-0.85*(1-POSTURE_NOISE))/0.15 * 0.04, "gesture forward": (1-0.85*(1-POSTURE_NOISE))/0.15 * 0.06, "picking berries": (1-POSTURE_NOISE) * 0.85})}
+
+POSTURE_CONFUSION = {
+    "calling": WeightedRandomGenerator({
+        "calling": (1-POSTURE_NOISE) * 0.87,
+        "gesture cancel": (1-0.13*(1-POSTURE_NOISE))/0.87 * 0.01,
+        "gesture forward": (1-0.13*(1-POSTURE_NOISE))/0.87 * 0.11,
+        "picking berries right": (1-0.13*(1-POSTURE_NOISE))/0.87 * 0.01
+    }),
+    "gesture cancel": WeightedRandomGenerator({
+        "calling": (1-0.21*(1-POSTURE_NOISE))/0.79 * 0.01,
+        "gesture cancel": (1-POSTURE_NOISE) * 0.79,
+        "picking berries": (1-0.21*(1-POSTURE_NOISE))/0.79 * 0.16,
+        "gesture forward": (1-0.21*(1-POSTURE_NOISE))/0.79 * 0.01,
+        "gesture backward": (1-0.21*(1-POSTURE_NOISE))/0.79 * 0.02,
+        "picking berries right": (1-0.21*(1-POSTURE_NOISE))/0.79 * 0.02
+    }),
+    "picking berries": WeightedRandomGenerator({
+        "gesture cancel": (1-0.13*(1-POSTURE_NOISE))/0.87 * 0.02,
+        "picking berries": (1-POSTURE_NOISE) * 0.87,
+        "gesture forward": (1-0.13*(1-POSTURE_NOISE))/0.87 * 0.06,
+        "gesture backward": (1-0.13*(1-POSTURE_NOISE))/0.87 * 0.01,
+        "picking berries right": (1-0.13*(1-POSTURE_NOISE))/0.87 * 0.04
+    }),
+    "gesture forward": WeightedRandomGenerator({
+        "calling": (1-0.03*(1-POSTURE_NOISE))/0.97 * 0.02,
+        "gesture forward": (1-POSTURE_NOISE) * 0.97
+    }),
+    "gesture backward": WeightedRandomGenerator({
+        "gesture backward": 1
+    })
+}
+
 
 # REASONING
 

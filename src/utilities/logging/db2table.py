@@ -7,6 +7,7 @@ import warnings
 # from numpy import mean, var, errstate
 import numpy as np
 import yaml
+from math import sqrt
 from contextlib import closing
 
 from common.parameters import CONFIG_DIRECTORY, LOG_DIRECTORY, STATE_DIRECTORY
@@ -131,6 +132,27 @@ class DB:
                 self.failed_runs.append(run_id)
         return success, duration, actual_followed_goals, failed_runs
 
+    def get_success(self, runs, expected_goal):
+        success = []
+        if expected_goal == "DeliverGoal":
+            picker_x = 0
+            picker_y = 0
+            with closing(self.db.cursor()) as cursor:
+                cursor.execute(("""SELECT p.run_id, p.x - r.end_x - 0.95 as distance, p.timestamp-5 < r.timestamp+r.duration and p.timestamp > r.timestamp-5 as concurrent, g.duration, r.end_x FROM picker_behavior p, robot_actions r,
+	 robot_goals g WHERE p.run_id = r.run_id AND g.run_id = r.run_id AND g.goal = "DeliverGoal" AND p.behavior = ? AND r.action = ?"""),  ("get crate", "GiveCrateAction"))
+                for result in cursor.fetchall():
+                    if result[0] in runs:
+                        runs.remove(result[0])
+                        if float(result[1]) < 1 and float(result[1]) > 0.05 and bool(result[2]) and float(result[3]< 12) and abs(float(result[4])-13.5) < 1:
+                            success.append(1.0)
+                        else:
+                            success.append(0.0)
+            for run_id in runs:
+                success.append(0.0)
+            return success
+        else:
+            print(expected_goal)
+
     def calculate_statistics(self, list):
         return mean(list), var(list)
 
@@ -206,6 +228,18 @@ def delete_state(run_ids):
     with open(path, "w") as file:
         json.dump(state, file, indent=4)
 
+
+class ExperimentResult(object):
+    def __init__(self, noise, success, waiting, duration):
+        self.noise = noise
+        self.success = success
+        self.waiting = waiting
+        self.duration = duration
+
+    def __cmp__(self, other):
+        return cmp(self.noise, other.noise)
+
+
 if __name__ == '__main__':
     # CONFIG_DIRECTORY = "/home/rasberry"
     # STATE_DIRECTORY="large-state"
@@ -213,6 +247,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--id', action='store', type=str, help='experiment to show')
     parser.add_argument('-p', action="store_true", help='evaluate per picker')
+    parser.add_argument('-l', action="store_true", help='latex compatible output')
     parser.add_argument('--config', type=str, nargs='?', const=CONFIG_DIRECTORY, help='optional config directory')
     args = parser.parse_args()
     if args.config:
@@ -232,14 +267,21 @@ if __name__ == '__main__':
     data = []
     behaviour = {}
     repeat_these_runs = []
-    if args.p:
-        print("label;subject;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; picker_crate_fill; exp id")
-    else:
-        print("label;gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; has_crate; picker_crate_fill; picker crate full; position noise; posture noise; success; behaviour; duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var;exp id")
+    if not args.l:
+        if args.p:
+            print("label;subject;success;behaviour;duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var; gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; picker_crate_fill; exp id")
+        else:
+            print("label;gesture; behavior; direction; berry; berry state; robot_crate; picker_crate; has_crate; picker_crate_fill; picker crate full; position noise; posture noise; success; behaviour; duration mean; duration var; signal_distance mean; signal_distance var; stop_distance mean; stop_distance var; wait mean; wait var; speed mean; speed var;exp id")
     speeds = []
-    output = []
+    all_outputs = {}
+
     for experiment_id in experiments:
         label = db.get_label(experiment_id)
+        try:
+            output = all_outputs[label]
+        except:
+            output = []
+            all_outputs[label] = output
         if args.p:
             for subject_id in [
                         "picker01",
@@ -331,56 +373,106 @@ if __name__ == '__main__':
                 success2, signal_distances, stop_distances, speed = db.get_meetings(runs)
                 speeds += speed
                 success3, waits = db.get_waits(runs)
-                try:
-                    output.append("{}; {}; {}; {};  {};  {};  {};  {};  {}; {}; {}; {}"
-                        .format(label,
-                                "{}; {}; {}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception,
-                                                                            behavior_perception,
-                                                                            direction_perception,
-                                                                            berry_perception,
-                                                                            berry_existence,
-                                                                            robot_crate_perception,
-                                                                            picker_crate_possession_perception,
-                                                                            has_crate,
-                                                                            picker_crate_fill_perception,
-                                                                            crate_full),
-                                "{: >4.3f}; {: >4.3f}".format(position_noise[0], posture_noise),
-                                "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
-                                behaviour[experiment_id],
-                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(duration)),
-                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(signal_distances)),
-                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(stop_distances)),
-                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(waits)),
-                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(speed)),
-                                experiment_id,
-                                ", ".join(actual_followed_goals)))
-                except:
-                    output.append("{}; {}; {}; {};  {};  {};  {};  {};  {}; {}; {}; {}"
-                        .format(label,
-                                "{}; {}; {}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception,
-                                                                            behavior_perception,
-                                                                            direction_perception,
-                                                                            berry_perception,
-                                                                            berry_existence,
-                                                                            robot_crate_perception,
-                                                                            picker_crate_possession_perception,
-                                                                            has_crate,
-                                                                            picker_crate_fill_perception,
-                                                                            crate_full),
-                                "{: >4.3f}; {:}".format(position_noise[0], posture_noise),
-                                "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
-                                behaviour[experiment_id],
-                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(duration)),
-                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(signal_distances)),
-                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(stop_distances)),
-                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(waits)),
-                                "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(speed)),
-                                experiment_id,
-                                ", ".join(actual_followed_goals)))
+                test_success = db.get_success(runs, expected_goal)
+                if args.l:
+                    output.append(ExperimentResult([position_noise[0], posture_noise], mean(test_success), db.calculate_statistics(waits), db.calculate_statistics(duration)))
+                else:
+                    try:
+                        output.append("{}; {}; {}; {};  {};  {};  {};  {};  {}; {}; {}; {}"
+                            .format(label,
+                                    "{}; {}; {}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception,
+                                                                                behavior_perception,
+                                                                                direction_perception,
+                                                                                berry_perception,
+                                                                                berry_existence,
+                                                                                robot_crate_perception,
+                                                                                picker_crate_possession_perception,
+                                                                                has_crate,
+                                                                                picker_crate_fill_perception,
+                                                                                crate_full),
+                                    "{: >4.3f}; {: >4.3f}".format(position_noise[0], posture_noise),
+                                    "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
+                                    behaviour[experiment_id],
+                                    "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(duration)),
+                                    "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(signal_distances)),
+                                    "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(stop_distances)),
+                                    "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(waits)),
+                                    "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(speed)),
+                                    experiment_id,
+                                    ", ".join(actual_followed_goals)))
+                    except:
+                        output.append("{}; {}; {}; {};  {};  {};  {};  {};  {}; {}; {}; {}"
+                            .format(label,
+                                    "{}; {}; {}; {}; {}; {}; {}; {}; {}; {}".format(gesture_perception,
+                                                                                behavior_perception,
+                                                                                direction_perception,
+                                                                                berry_perception,
+                                                                                berry_existence,
+                                                                                robot_crate_perception,
+                                                                                picker_crate_possession_perception,
+                                                                                has_crate,
+                                                                                picker_crate_fill_perception,
+                                                                                crate_full),
+                                    "{: >4.3f}; {:}".format(position_noise[0], posture_noise),
+                                    "{:.2}, {:.2}, {:.2}".format(mean(success1), mean(success2), mean(success3)),
+                                    behaviour[experiment_id],
+                                    "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(duration)),
+                                    "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(signal_distances)),
+                                    "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(stop_distances)),
+                                    "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(waits)),
+                                    "{: >5.2f}; {: >6.3f}".format(*db.calculate_statistics(speed)),
+                                    experiment_id,
+                                    ", ".join(actual_followed_goals)))
             except IndexError:
                 pass
-    for line in sorted(output):
-        print(line)
+    for label, outputs in all_outputs.items():
+        gesture = False
+        if "gesture" in label:
+            noise = "posture"
+            gesture = True
+        else:
+            noise = "position"
+        cline_count = 1
+        output_tabular = "\\begin{tabular}{l"
+        output_success = "\\multicolumn{1}{r|}{Success [$\\%$]}"
+        output_duration = "\\multicolumn{1}{r|}{Duration [$s$]}"
+        output_waiting = "\\multicolumn{1}{r|}{Waiting [$s$]}"
+        output_noise = "\\multicolumn{1}{l}{}"
+        # print(label)
+        outputs = sorted(outputs)
+        for output in outputs:
+            if args.l:
+                if   (output.noise[1] in [0.3, 0.5, 0.6, 0.7, 0.8, 0.85]
+                      # or output.noise[0] in [0.2, 0.4, 0.6, 0.8]
+                      or True
+                      or (output.noise[0] == 0 and output.noise[1] == 0)):
+                    cline_count += 2
+                    output_tabular += " r@{}l"
+                    if gesture:
+                        output_noise += " & \\multicolumn{2}{c}{" + "{:}".format(output.noise[1]) + "}"
+                    else:
+                        output_noise += " & \\multicolumn{2}{c}{" + "{:}".format(output.noise[0]) + "}"
+                    output_success += " & \\multicolumn{2}{c}{" + "{:d}".format(int(output.success*100)) + "}"
+                    output_waiting += " & ${:.2f}$&$\\pm{:.2f}$".format(output.waiting[0], sqrt(output.waiting[1]))
+                    output_duration += " & ${:.2f}$&$\\pm{:.2f}$".format(output.duration[0], sqrt(output.duration[1]))
+            else:
+                print(output)
+        if args.l:
+            print(output_tabular + " }")
+            if "gesture" in label:
+                print("\\multicolumn{1}{l}{} & \\multicolumn{" + "{:d}".format(cline_count-1) + "}{c}{Posture Noise [$\\%$]} \\\\")
+            else:
+                print("\\multicolumn{1}{l}{} & \\multicolumn{" + "{:d}".format(cline_count-1) + "}{c}{Position Noise Variance} \\\\")
+            print(output_noise+ "\\\\")
+            print("\\cline{2-" + "{:d}".format(cline_count) +  "} \\\\")
+            if "Deliver" in label:
+                print("\\multicolumn{1}{l}{} & \\multicolumn{" + "{:d}".format(cline_count-1) + "}{c}{Delivery in case of " + noise + " noise}\\\\")
+            else:
+                print("\\multicolumn{1}{l}{} & \\multicolumn{" + "{:d}".format(cline_count-1) + "}{c}{Exchange in case of " + noise + " noise}\\\\")
+            print(output_success + "\\\\")
+            print(output_waiting + "\\\\")
+            print(output_duration + "\\\\")
+        print("\end{tabular}")
     repeat_these_runs = list(set(repeat_these_runs))
     # print("Failed runs: {}".format(repeat_these_runs))
     # delete_confirm = raw_input('Would you like to delete these runs (y/n)?\n')

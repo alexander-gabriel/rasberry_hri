@@ -219,7 +219,7 @@ class ActionRecognition:
                 rospy.loginfo("ACR: {} failed to use noise".format(action_label))
         else:
             action_label = tuple[0]
-            rospy.loginfo("ACR: {} NOT using noise".format(action_label))
+            # rospy.loginfo("ACR: {} NOT using noise".format(action_label))
         try:
             rospy.logdebug(
                 "ACR: Detected behavior '{}' with penalty {}, counts {}"

@@ -13,7 +13,7 @@ from qsrlib_io.world_trace import Object_State, World_Trace
 import numpy as np
 
 
-from opencog.type_constructors import ConceptNode
+from opencog.type_constructors import ConceptNode, ListLink, StateLink
 from opencog.utilities import initialize_opencog
 
 import tf
@@ -385,10 +385,12 @@ class Scheduler:
                 picker_direction = directions[1]
                 try:
                     self.directions[picker.name].appendleft(picker_direction)
-                    if self.directions[picker.name].count(picker_direction) == 3:
+                    if self.directions[picker.name].count(picker_direction) == 5 and not picker_direction == "0":
                         self._handle_direction_change(picker, picker_direction)
+                    elif abs(self.directions[picker.name].count("+") - self.directions[picker.name].count("-")) < 2:
+                        self._handle_direction_change(picker, "0")
                 except KeyError:
-                    self.directions[picker.name] = collections.deque([picker_direction], maxlen=5)
+                    self.directions[picker.name] = collections.deque([picker_direction], maxlen=7)
         except (ValueError) as err:
             pass
         except IndexError as err:
@@ -399,20 +401,25 @@ class Scheduler:
 
     def _handle_direction_change(self, picker, direction):
         if direction == "+":
-            self.bdi.world_state.leaving(picker).tv = self.kb.TRUE
-            rospy.loginfo("BDI: Observation: {} is leaving"
+            if not (
+                self.bdi.world_state.is_leaving(picker)
+            ):
+                self.bdi.world_state.leaving(picker).tv = self.kb.TRUE
+                rospy.loginfo("BDI: Observation: {} is leaving"
                           .format(picker.name))
         elif direction == "-":
-            self.bdi.world_state.approaching(
-                picker).tv = self.kb.TRUE
-            rospy.loginfo(
-                "BDI: Observation: {} is approaching"
-                .format(picker.name)
-            )
+            if not (
+                self.bdi.world_state.is_approaching(picker)
+            ):
+                self.bdi.world_state.approaching(
+                    picker).tv = self.kb.TRUE
+                rospy.loginfo(
+                    "BDI: Observation: {} is approaching"
+                    .format(picker.name)
+                )
         else:
             if (
-                self.bdi.world_state.approaching(picker).tv
-                == self.kb.TRUE
+                self.bdi.world_state.is_approaching(picker)
             ):
                 self.bdi.world_state.set_latest_distance(
                     picker, self.latest_distances[picker.name]
@@ -422,11 +429,14 @@ class Scheduler:
                     .format(picker.name, self.latest_distances[picker.name])
                 )
             else:
-                rospy.loginfo(
-                    "BDI: Observation: {} is standing"
-                    .format(picker.name)
-                )
-            self.bdi.world_state.standing(picker).tv = self.kb.TRUE
+                if not (
+                    self.bdi.world_state.is_standing(picker)
+                ):
+                    rospy.loginfo(
+                        "BDI: Observation: {} is standing"
+                        .format(picker.name)
+                    )
+                    self.bdi.world_state.standing(picker).tv = self.kb.TRUE
 
     def _handle_position_msgs(self, name, msg, timestamp):
         """Abstracts received position messages to the Knowledge Base"""

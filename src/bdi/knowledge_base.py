@@ -130,27 +130,27 @@ class KnowledgeBase(object):
 
     def execute(self, query):
         with self.lock:
-            rospy.logdebug("check variables: {}".format(query.get_out()[0]))
-            rospy.logdebug("check query: {}".format(query.get_out()[1]))
+            # rospy.logdebug("check variables: {}".format(query.get_out()[0]))
+            # rospy.logdebug("check query: {}".format(query.get_out()[1]))
             results = execute_atom(self.atomspace, query)
-            rospy.logdebug("check results: {}".format(results))
-        for result in results.get_out():
-            if result.tv == self.TRUE:
-                rospy.logdebug("WST: Execution Result Truth: {:}"
-                               .format(result.tv))
-                rospy.logdebug("WST: Execution Result:{:}".format(result))
-                rospy.logdebug("WST: ---------------------")
+            # rospy.logdebug("check results: {}".format(results))
+        # for result in results.get_out():
+        #     if result.tv == self.TRUE:
+        #         rospy.logdebug("WST: Execution Result Truth: {:}"
+        #                        .format(result.tv))
+        #         rospy.logdebug("WST: Execution Result:{:}".format(result))
+        #         rospy.logdebug("WST: ---------------------")
         return results
 
     def evaluate(self, query):
         with self.lock:
             results = evaluate_atom(self.atomspace, query)
-        for result in results.get_out():
-            if result.tv == self.TRUE:
-                rospy.logdebug("WST: Evalutation Result Truth: {:}"
-                               .format(result.tv))
-                rospy.logdebug("WST: Evalutation Result:{:}".format(result))
-                rospy.logdebug("WST: ---------------------")
+        # for result in results.get_out():
+        #     if result.tv == self.TRUE:
+        #         rospy.logdebug("WST: Evalutation Result Truth: {:}"
+        #                        .format(result.tv))
+        #         rospy.logdebug("WST: Evalutation Result:{:}".format(result))
+        #         rospy.logdebug("WST: ---------------------")
         return results
 
     # likely doesn't work
@@ -317,7 +317,7 @@ class KnowledgeBase(object):
 
     def equal(self, *subnodes, **kwargs):
         with self.lock:
-            return self.atomspace.add_link(types.NotLink, list(subnodes))
+            return self.atomspace.add_link(types.EqualLink, list(subnodes))
 
     def member(self, *subnodes, **kwargs):
         with self.lock:

@@ -1,5 +1,6 @@
 from os.path import join
 from math import sqrt
+import traceback
 
 import rospy
 import rospkg
@@ -34,6 +35,7 @@ from opencog.type_constructors import (
     TypeNode,
     FalseLink,
     MinusLink,
+    SetLink
 )
 
 from common.parameters import MINIMUM_DISTANCE, CRATE_CAPACITY, \
@@ -84,7 +86,8 @@ class WorldState(object):
     # variance experiment
 
     def state(self, concept, predicate, truth="TRUE"):
-        return StateLink(ListLink(concept, predicate), ConceptNode(truth))
+        statelink = StateLink(ListLink(concept, predicate), ConceptNode(truth))
+        return statelink
 
     def state2(self, concept, predicate):
         return StateLink(concept, predicate)
@@ -376,14 +379,29 @@ class WorldState(object):
     def not_approaching(self, picker):
         return self.absent(self.state(picker, self._movement, self._approaching))
 
+    def is_approaching(self, picker):
+        return self.is_movement(picker, self._approaching)
+
+
     def leaving(self, picker):
         return self.state(picker, self._movement, self._leaving)
 
     def not_leaving(self, picker):
         return self.absent(self.state(picker, self._movement, self._leaving))
 
+    def is_leaving(self, picker):
+        return self.is_movement(picker, self._leaving)
+
     def standing(self, picker):
         return self.state(picker, self._movement, self._standing)
+
+    def is_standing(self, picker):
+        return self.is_movement(picker, self._standing)
+
+    def is_movement(self, picker, movement):
+        # rospy.logwarn(self.kb.execute(MeetLink(StateLink(ListLink(picker, self._movement), VariableNode("approaching")))))
+        result = self.kb.evaluate(EqualLink(SetLink(ConceptNode(movement)), GetLink(StateLink(ListLink(picker, self._movement), VariableNode("leaving")))))
+        return result == self.kb.TRUE
 
     def not_standing(self, picker):
         return self.absent(self.state(picker, self._movement, self._standing))

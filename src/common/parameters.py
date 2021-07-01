@@ -9,7 +9,8 @@ NS = "{}hri".format(ROBOT_NS)
 ME = ROBOT_NS.strip("/")
 
 # the navigation system doesn't stop when requested, add some buffer space
-ROBOT_REACTION_SAFETY_MARGIN = 0.5
+ROBOT_REACTION_SAFETY_MARGIN_STANDING = 0.23
+ROBOT_REACTION_SAFETY_MARGIN_MOVING = 0.5
 
 # wait a bit before starting the experiment
 EXPERIMENT_START_DELAY = 4  # s
@@ -86,6 +87,7 @@ class WeightedRandomGenerator(object):
 
 POSTURE_NOISE = define("posture_noise", 0)
 ADD_POSTURE_NOISE = POSTURE_NOISE != 0
+# ADD_POSTURE_NOISE = POSTURE_NOISE != 0
 # including neutral
 # POSTURE_CONFUSION = {"calling": WeightedRandomGenerator({"gesture forward": (1-0.57*(1-POSTURE_NOISE))/0.43 * 0.07, "neutral": (1-0.57*(1-POSTURE_NOISE))/0.43 * 0.34, "calling": (1-POSTURE_NOISE) * 0.57}),
 #                      "gesture stop": WeightedRandomGenerator({"picking berries": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.01, "picking berries right": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.02, "calling": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.06, "gesture cancel": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.07, "gesture forward": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.12, "gesture backward": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.13, "gesture stop": (1-POSTURE_NOISE) * 0.26, "neutral": (1-0.26*(1-POSTURE_NOISE))/0.74 * 0.34}),
@@ -170,7 +172,7 @@ PICKER_SPEED = define("picker_speed", 0.7)  # m/s
 
 PICKER_UPDATE_FREQUENCY = define("picker_sim_frequency", 30)  # Hz
 
-PICKER_DISTANCE_PREFERENCE = define("picker_distance", 0.3)
+PICKER_DISTANCE_PREFERENCE = define("picker_distance", 0.5)
 
 
 # ROBOT SETUP
@@ -273,7 +275,6 @@ BEHAVIOURS = {
         ["expect service", 0],
         ["wait for robot to arrive", 0],
         ["get crate", 3],
-        ["leave with crate", 0],
         ["pick berries", 4]
     ],
     "exchange standard": [

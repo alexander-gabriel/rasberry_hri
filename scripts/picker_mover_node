@@ -1410,7 +1410,9 @@ def do_wait_for_robot_to_arrive(self):
     self.orientation = 2 * pi
     if self.robot_movement == "approaching":
         meta_end_wait(self)
-    if self.old_distance <= PICKER_DISTANCE_PREFERENCE:
+    # if self.old_distance <= PICKER_DISTANCE_PREFERENCE:
+    if self.old_distance <= 1 and self.robot_movement == "standing":
+        rospy.loginfo("PMO: Robot has arrived")
         return True
     else:
         return False

@@ -31,7 +31,7 @@ from common.parameters import (
     NS, MINIMUM_DISTANCE, REASONING_LOOP_FREQUENCY,
     PICKER_WIDTH, PICKER_LENGTH, ROBOT_WIDTH, ROBOT_LENGTH, PICKER_SPEED,
     PICKER_UPDATE_FREQUENCY, DIRECTION_PERCEPTION, PICKERS,
-    ROBOT_REACTION_SAFETY_MARGIN)
+    ROBOT_REACTION_SAFETY_MARGIN_MOVING, ROBOT_REACTION_SAFETY_MARGIN_STANDING)
 QUANTIZATION = PICKER_SPEED / PICKER_UPDATE_FREQUENCY * 0.9
 
 
@@ -221,6 +221,10 @@ class Scheduler:
     def human_position_callback(self, msg, name):
         timestamp = rospy.get_time()
         initialize_opencog(self.atomspace)
+        if not self.sensory_lock2.locked():
+            self.sensory_lock2.acquire()
+            self._handle_position_msgs(name, msg, timestamp)
+            self.sensory_lock2.release()
         if not self.sensory_lock1.locked():
             self.sensory_lock1.acquire()
             person = ConceptNode(name)
@@ -230,10 +234,6 @@ class Scheduler:
             self.latest_people_msgs[name] = msg
             self._react_to_distance_events(person)
             self.sensory_lock1.release()
-        if not self.sensory_lock2.locked():
-            self.sensory_lock2.acquire()
-            self._handle_position_msgs(name, msg, timestamp)
-            self.sensory_lock2.release()
 
     def human_action_callback(self, msg):
         if msg.action != "":
@@ -292,7 +292,14 @@ class Scheduler:
                 MINIMUM_DISTANCE,
                 self.bdi.world_state.get_optimum_distance(person)
             )
-            if distance <= minimum_distance + ROBOT_REACTION_SAFETY_MARGIN:
+            try:
+                if self.directions[person.name][0] == "-":
+                    minimum_distance += ROBOT_REACTION_SAFETY_MARGIN_MOVING
+                else:
+                    minimum_distance += ROBOT_REACTION_SAFETY_MARGIN_STANDING
+            except KeyError:
+                minimum_distance += ROBOT_REACTION_SAFETY_MARGIN_STANDING
+            if distance <= minimum_distance:
                 if not self.bdi.world_state.too_close:
                     rospy.loginfo(
                         "BDI: Robot has met picker. Halting at {:.2f}."
@@ -418,25 +425,29 @@ class Scheduler:
                     .format(picker.name)
                 )
         else:
-            if (
-                self.bdi.world_state.is_approaching(picker)
+            if not (
+                self.bdi.world_state.is_standing(picker)
             ):
-                self.bdi.world_state.set_latest_distance(
-                    picker, self.latest_distances[picker.name]
-                )
-                rospy.loginfo(
-                    "BDI: Observation: {} is stopping at {:.2f}m distance"
-                    .format(picker.name, self.latest_distances[picker.name])
-                )
-            else:
-                if not (
-                    self.bdi.world_state.is_standing(picker)
+                if (
+                    self.bdi.world_state.is_approaching(picker)
                 ):
+                    self.bdi.world_state.set_latest_distance(
+                        picker, self.latest_distances[picker.name]
+                    )
                     rospy.loginfo(
-                        "BDI: Observation: {} is standing"
-                        .format(picker.name)
+                        "BDI: Observation: {} is stopping at {:.2f}m distance"
+                        .format(picker.name, self.latest_distances[picker.name])
                     )
                     self.bdi.world_state.standing(picker).tv = self.kb.TRUE
+                else:
+                    if not (
+                        self.bdi.world_state.is_standing(picker)
+                    ):
+                        rospy.loginfo(
+                            "BDI: Observation: {} is standing"
+                            .format(picker.name)
+                        )
+                        self.bdi.world_state.standing(picker).tv = self.kb.TRUE
 
     def _handle_position_msgs(self, name, msg, timestamp):
         """Abstracts received position messages to the Knowledge Base"""

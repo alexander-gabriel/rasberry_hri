@@ -78,7 +78,7 @@ class DB:
                     run_stats[result[0]] = [result[1]]
         for run_id, goals in run_stats.items():
             goals = list(filter(lambda x: x != "WaitGoal", goals))
-            if experiment.p.expected_goal in goals and experiment.p.expected_goal == goals[0]:
+            if experiment.p.expected_goal in goals and (experiment.p.expected_goal == goals[0] or "ApproachGoal" == goals[0]):
                 goal_choice.succeeded.append(run_id)
                 goal_choice.errors += list(filter(lambda x: x != experiment.p.expected_goal and x != "WaitGoal", goals))
             else:
@@ -116,6 +116,9 @@ class DB:
         if experiment.p.picker_behavior in ["deliver standard", "deliver no call", "exchange standard", "exchange no call"]:
             location = 13.5
             time_limit = 30
+            if experiment.p.robot_x == 5.53:
+                location = 11.5
+
         elif experiment.p.picker_behavior in ["deliver expect robot to come", "deliver expect mind read", "exchange expect robot to come", "exchange expect mind read"]:
             location = 16.2
             time_limit = 30
@@ -131,10 +134,10 @@ class DB:
         task_performance.failed = []
         with closing(self.db.cursor()) as cursor:
             if experiment.picker:
-                cursor.execute(("""SELECT p.run_id, p.x - a.end_x - 0.95 as distance, p.timestamp < a.timestamp+15 and p.timestamp > a.timestamp as concurrent, g.duration, a.end_x FROM picker_behavior p, robot_actions a,
+                cursor.execute(("""SELECT p.run_id, p.x - a.end_x - 0.95 as distance, p.timestamp < a.timestamp+6 and p.timestamp > a.timestamp as concurrent, g.duration, a.end_x FROM picker_behavior p, robot_actions a,
      robot_goals g, runs r WHERE  r.experiment_id = ? AND r.picker_id = ? AND r.run_id = p.run_id AND r.run_id = a.run_id AND r.run_id = g.run_id AND g.goal = ? AND p.behavior = ? AND a.action = ?"""),  (experiment.id, experiment.picker, experiment.p.expected_goal, behaviour1, action))
             else:
-                cursor.execute(("""SELECT p.run_id, p.x - a.end_x - 0.95 as distance, p.timestamp < a.timestamp+15 and p.timestamp > a.timestamp as concurrent, g.duration, a.end_x FROM picker_behavior p, robot_actions a,
+                cursor.execute(("""SELECT p.run_id, p.x - a.end_x - 0.95 as distance, p.timestamp < a.timestamp+6 and p.timestamp > a.timestamp as concurrent, g.duration, a.end_x FROM picker_behavior p, robot_actions a,
      robot_goals g, runs r WHERE r.run_id = p.run_id AND r.run_id = a.run_id AND r.run_id = g.run_id AND g.goal = ? AND p.behavior = ? AND a.action = ? AND r.experiment_id = ?"""),  (experiment.p.expected_goal, behaviour1, action, experiment.id))
             count = 0
             vergleich = experiment.goal_choice.succeeded[:]
@@ -145,7 +148,7 @@ class DB:
                         vergleich.remove(result[0])
                     except ValueError:
                         pass
-                    if float(result[1]) < 1 and float(result[1]) > -0.05 and bool(result[2]) and float(result[3]< time_limit) and abs(float(result[4])-location) < 1:
+                    if float(result[1]) < 0.6 and float(result[1]) > -0.05 and bool(result[2]) and float(result[3]< time_limit):
                         task_performance.succeeded.append(result[0])
                     else:
                         task_performance.failed.append(result[0])
@@ -153,6 +156,7 @@ class DB:
                     print("unknown run")
             if count == 0:
                 task_performance.failed = experiment.goal_choice.succeeded
+            task_performance.failed += vergleich
         succeeded = len(task_performance.succeeded)
         print("{} results: {:d}  goal_choice success: {:d}   task performance: {:d} / {:d}".format(experiment.id, count, len(experiment.goal_choice.succeeded), len(task_performance.succeeded), len(task_performance.failed)))
         try:
@@ -212,6 +216,8 @@ class DB:
             for result in cursor.fetchall():
                 if result[0] in experiment.task_performance.succeeded:
                     service_times.append(result[1])
+                    if result[1] > 20:
+                        print(result[0] + ": " + str(result[1]))
         return service_times
 
     def get_yaml(self, experiment_id, config_directory=CONFIG_DIRECTORY):
@@ -261,7 +267,7 @@ class DB:
                 cursor.execute(("SELECT wait FROM picker_waiting WHERE "
                                 "run_id = ?"), (run_id,))
                 for result in list(map(lambda x: x[0], cursor.fetchall())):
-                    if isinstance(result, float) and result < WAITING_THRESHOLD:
+                    if isinstance(result, float):
                         waits.append(float(result))
                         success.append(1.0)
                     else:
@@ -283,8 +289,6 @@ class DB:
                     if isinstance(result[1], float) and result[0] == expected_goal and not found_expected_goal:
                         found_expected_goal = True
                         duration.append(result[1])
-                        if float(result[1]) < 5:
-                            print(run_id)
                         success.append(1.0)
                     elif not found_expected_goal:
                         actual_followed_goals.add(result[0])
@@ -308,8 +312,6 @@ class DB:
                     if isinstance(result[1], float) and result[0] == expected_goal and not found_expected_goal:
                         found_expected_goal = True
                         duration.append(result[1])
-                        if float(result[1]) < 5:
-                            print(run_id)
                         success.append(1.0)
                     elif not found_expected_goal:
                         actual_followed_goals.add(result[0])
@@ -447,7 +449,10 @@ class ExperimentResult(object):
         self.task_performance = result.task_performance.success
         self.goal_choice_success = result.goal_choice.success
         self.waiting = self.calculate_statistics(result.waiting_time)
-        self.duration = self.calculate_statistics(result.service_time)
+        duration_without_waiting = list(map(lambda x: x[0] - x[1], zip(result.service_time, result.waiting_time)))
+        self.duration = self.calculate_statistics(duration_without_waiting)
+        self.total = self.calculate_statistics(result.service_time)
+        # self.duration = self.calculate_statistics(result.service_time)
         self.label = result.label
         self.p = result.p
         self.s = result.s
@@ -553,7 +558,7 @@ class Evaluator(object):
             p.robot_crate = parameters["robot_crate_possession_perception"]
             p.picker_crate_possession = parameters["picker_crate_possession_perception"]
             p.picker_crate_fill = parameters["picker_crate_fill_perception"]
-
+            p.robot_x = parameters["robot_position"][0]
             s.berry = not bool(parameters["no_berry_places"])
             s.has_crate = parameters["has_crate"]
             s.crate_full = parameters["crate_full"]
@@ -587,6 +592,8 @@ class Evaluator(object):
 
         experiment = dotdict()
         experiment.label = self.db.get_label(experiment_id)
+        print(experiment.label)
+        print(parameters.posture_noise)
         experiment.id = experiment_id
         experiment.p = parameters
         experiment.s = state
@@ -619,42 +626,52 @@ class Evaluator(object):
                         except KeyError:
                             exp4_results_by_label[result.label] = [result]
             if exp4_results_by_label:
-                output.append("\\begin{tabular}{ l r@{}l r@{}l}")
-                output.append("& \\multicolumn{2}{c}{Duration [$s$]} & \\multicolumn{2}{c}{Waiting[$s$]}\\\\")
-                output.append("\\cline{2-5} \\\\")
-                output_deliver = "& \\multicolumn{4}{c}{Delivery} \\\\"
-                output_deliver_hri_normal = "\\multicolumn{1}{r|}{HRI-aware, short} "
-                output_deliver_hri_comp = "\\multicolumn{1}{r|}{HRI-aware, long} "
+                output.append("\\begin{tabular}{@{\extracolsep{0pt}} l r@{}l r@{}l r@{}l @{}}")
+                output.append("& \\multicolumn{2}{c}{Service [$s$]} & \\multicolumn{2}{c}{Waiting [$s$]} & \\multicolumn{2}{c}{Total [$s$]}\\\\")
+                output.append("\\cline{2-7} \\\\")
+                output_deliver = "& \\multicolumn{6}{c}{Delivery} \\\\"
+                output_deliver_hri_normal = "\\multicolumn{1}{r|}{HRI $6m$} "
+                output_deliver_hri_long = "\\multicolumn{1}{r|}{HRI $12m$} "
+                output_deliver_hri_comp = "\\multicolumn{1}{r|}{HRI cmp} "
                 output_deliver_simple = "\\multicolumn{1}{r|}{Baseline} "
-                output_exchange = "& \\multicolumn{4}{c}{Exchange} \\\\"
-                output_exchange_hri_normal = "\\multicolumn{1}{r|}{HRI-aware, short} "
-                output_exchange_hri_comp = "\\multicolumn{1}{r|}{HRI-aware, long} "
+                output_exchange = "& \\multicolumn{6}{c}{Exchange} \\\\"
+                output_exchange_hri_normal = "\\multicolumn{1}{r|}{HRI $6m$} "
+                output_exchange_hri_long = "\\multicolumn{1}{r|}{HRI $12m$} "
+                output_exchange_hri_comp = "\\multicolumn{1}{r|}{HRI cmp} "
                 output_exchange_simple = "\\multicolumn{1}{r|}{Baseline} "
                 for label, results in exp4_results_by_label.items():
                     parts = label.split(" - ")
                     result = results[0]
                     if parts[1] == "Deliver":
                         if parts[2] == "Normal":
-                            output_deliver_hri_normal += "& ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$\\\\".format(result.duration[0], sqrt(result.duration[1]), result.waiting[0], sqrt(result.waiting[1]))
+                            output_deliver_hri_normal += "& ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$\\\\".format(result.duration[0], sqrt(result.duration[1]), result.waiting[0], sqrt(result.waiting[1]), result.total[0], sqrt(result.total[1]))
                         elif parts[2] == "Comparable":
-                            output_deliver_hri_comp += "& ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$\\\\".format(result.duration[0], sqrt(result.duration[1]), result.waiting[0], sqrt(result.waiting[1]))
+                            output_deliver_hri_comp += "& ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$\\\\".format(result.duration[0], sqrt(result.duration[1]), result.waiting[0], sqrt(result.waiting[1]), result.total[0], sqrt(result.total[1]))
                         elif parts[2] == "Simple":
-                            output_deliver_simple += "& ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$\\\\".format(result.duration[0], sqrt(result.duration[1]), result.waiting[0], sqrt(result.waiting[1]))
+                            output_deliver_simple += "& ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$\\\\".format(result.duration[0], sqrt(result.duration[1]), result.waiting[0], sqrt(result.waiting[1]), result.total[0], sqrt(result.total[1]))
+                        elif parts[2] == "Long":
+                            output_deliver_hri_long += "& ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$\\\\".format(result.duration[0], sqrt(result.duration[1]), result.waiting[0], sqrt(result.waiting[1]), result.total[0], sqrt(result.total[1]))
                     elif parts[1] == "Exchange":
                         if parts[2] == "Normal":
-                            output_exchange_hri_normal += "& ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$\\\\".format(result.duration[0], sqrt(result.duration[1]), result.waiting[0], sqrt(result.waiting[1]))
+                            output_exchange_hri_normal += "& ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$\\\\".format(result.duration[0], sqrt(result.duration[1]), result.waiting[0], sqrt(result.waiting[1]), result.total[0], sqrt(result.total[1]))
                         elif parts[2] == "Comparable":
-                            output_exchange_hri_comp += "& ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$\\\\".format(result.duration[0], sqrt(result.duration[1]), result.waiting[0], sqrt(result.waiting[1]))
+                            output_exchange_hri_comp += "& ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$\\\\".format(result.duration[0], sqrt(result.duration[1]), result.waiting[0], sqrt(result.waiting[1]), result.total[0], sqrt(result.total[1]))
                         elif parts[2] == "Simple":
-                            output_exchange_simple += "& ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$\\\\".format(result.duration[0], sqrt(result.duration[1]), result.waiting[0], sqrt(result.waiting[1]))
+                            output_exchange_simple += "& ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$\\\\".format(result.duration[0], sqrt(result.duration[1]), result.waiting[0], sqrt(result.waiting[1]), result.total[0], sqrt(result.total[1]))
+                        elif parts[2] == "Long":
+                            output_exchange_hri_long += "& ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$  & ${:.2f}$&$\pm{:.2f}$\\\\".format(result.duration[0], sqrt(result.duration[1]), result.waiting[0], sqrt(result.waiting[1]), result.total[0], sqrt(result.total[1]))
                 output.append(output_deliver)
-                output.append(output_deliver_hri_normal)
-                output.append(output_deliver_hri_comp)
                 output.append(output_deliver_simple)
+                output.append(output_deliver_hri_comp)
+                output.append(output_deliver_hri_long)
+                output.append(output_deliver_hri_normal)
+
+
                 output.append(output_exchange)
-                output.append(output_exchange_hri_normal)
-                output.append(output_exchange_hri_comp)
                 output.append(output_exchange_simple)
+                output.append(output_exchange_hri_comp)
+                output.append(output_exchange_hri_long)
+                output.append(output_exchange_hri_normal)
                 output.append("\\end{tabular}")
             if exp3_results_by_label:
                 for label, results in exp3_results_by_label.items():
@@ -662,8 +679,9 @@ class Evaluator(object):
                     output_choice_success = "\\multicolumn{1}{r|}{Action Choice [$\\%$]}"
                     output_task_success = "\\multicolumn{1}{r|}{Action Execution [$\\%$]}"
                     output_success = "\\multicolumn{1}{r|}{Success [$\\%$]}"
-                    output_duration = "\\multicolumn{1}{r|}{Duration [$s$]}"
-                    output_waiting = "\\multicolumn{1}{r|}{Waiting [$s$]}"
+                    output_duration = "\\multicolumn{1}{r|}{Service Duration [$s$]}"
+                    output_waiting = "\\multicolumn{1}{r|}{Waiting Duration [$s$]}"
+                    output_total = "\\multicolumn{1}{r|}{Total Duration [$s$]}"
                     output_noise = "\\multicolumn{1}{l}{}"
                     gesture_noise = False
                     cline_count = 1
@@ -675,7 +693,7 @@ class Evaluator(object):
                     results = sorted(results)
                     for result in results:
                         if (result.noise[1] in [0.3, 0.45, 0.6, 0.75, 0.9]
-                              or result.noise[0] in [0.005, 0.01, 0.015, 0.0075, 0.02, 0.03]
+                              or result.noise[0] in [0.01, 0.015, 0.02, 0.025, 0.03]
                               or (result.noise[0] == 0 and result.noise[1] == 0)):
                             cline_count += 2
                             output_tabular += " r@{}l"
@@ -687,8 +705,10 @@ class Evaluator(object):
                             output_task_success += " & \\multicolumn{2}{c}{" + "{:d}".format(int(result.task_performance*100)) + "}"
                             output_success += " & \\multicolumn{2}{c}{" + "{:d}".format(int(result.goal_choice_success*result.task_performance*100)) + "}"
                             output_waiting += " & ${:.2f}$&$\\pm{:.2f}$".format(result.waiting[0], sqrt(result.waiting[1]))
+                            output_total += " & ${:.2f}$&$\\pm{:.2f}$".format(result.total[0], sqrt(result.total[1]))
                             output_duration += " & ${:.2f}$&$\\pm{:.2f}$".format(result.duration[0], sqrt(result.duration[1]))
                             print(result.result.task_performance.failed)
+                            # print(result.result.goal_choice.failed)
                     output.append(output_tabular + " }")
                     if gesture_noise:
                         output.append("\\multicolumn{1}{l}{} & \\multicolumn{" + "{:d}".format(cline_count-1) + "}{c}{Posture Noise [$\\%$]} \\\\")
@@ -705,6 +725,7 @@ class Evaluator(object):
                     output.append(output_success + "\\\\")
                     output.append(output_waiting + "\\\\")
                     output.append(output_duration + "\\\\")
+                    output.append(output_total + "\\\\")
                     output.append("\end{tabular}")
         else:
             if self.per_picker:

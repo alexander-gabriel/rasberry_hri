@@ -13,7 +13,7 @@ ROBOT_REACTION_SAFETY_MARGIN_STANDING = 0.23
 ROBOT_REACTION_SAFETY_MARGIN_MOVING = 0.5
 
 # wait a bit before starting the experiment
-EXPERIMENT_START_DELAY = 4  # s
+EXPERIMENT_START_DELAY = 8  # s
 
 def define(key, default):
     key_path = "{}/{}".format(NS, key)
